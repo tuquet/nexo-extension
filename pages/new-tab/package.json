@@ -23,7 +23,14 @@
     "@extension/i18n": "workspace:*",
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
-    "@extension/ui": "workspace:*"
+    "@extension/ui": "workspace:*",
+    "@google/genai": "^1.27.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "antd": "^5.27.6",
+    "dexie": "^4.2.1",
+    "jszip": "^3.10.1",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@extension/tailwindcss-config": "workspace:*",

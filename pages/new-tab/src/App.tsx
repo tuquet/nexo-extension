@@ -1,12 +1,12 @@
 import ApiKeyModal from './components/ApiKeyModal';
 import AppHeader from './components/AppHeader';
 import AssetDisplay from './components/AssetDisplay';
+import AssetGallery from './components/AssetGallery';
 import CreationForm from './components/CreationForm';
 import Loader from './components/Loader';
 import ScriptDisplay from './components/ScriptDisplay';
 import { db } from './db';
 import { useAssets } from './hooks/useAssets';
-import { useRouteSync, writeRouteState } from './hooks/useRouteState';
 import { useScripts } from './hooks/useScripts';
 import { generateScript } from './services/geminiService';
 import { useApiKey } from './stores/useApiKey';
@@ -14,11 +14,9 @@ import { useTheme } from './stores/useTheme';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
 import { ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import JSZip from 'jszip';
-import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Root, Scene, AspectRatio } from './types';
 import type React from 'react';
-
-const AssetGallery = lazy(() => import('./components/AssetGallery'));
 
 type ScriptViewMode = 'formatted' | 'json';
 
@@ -65,24 +63,6 @@ const NewTab = () => {
   useEffect(() => {
     setError(scriptsError);
   }, [scriptsError]);
-
-  // Initialize from URL on first render and wire popstate
-  useRouteSync(initial => {
-    if (initial.view) setCurrentView(initial.view);
-    if (initial.scriptId != null) selectScript(initial.scriptId);
-    if (initial.actIndex != null && initial.sceneIndex != null)
-      setActiveSceneIdentifier({ actIndex: initial.actIndex, sceneIndex: initial.sceneIndex });
-  });
-
-  // Write route on relevant state changes
-  useEffect(() => {
-    writeRouteState({
-      view: currentView,
-      scriptId: activeScript?.id ?? null,
-      actIndex: activeSceneIdentifier?.actIndex ?? null,
-      sceneIndex: activeSceneIdentifier?.sceneIndex ?? null,
-    });
-  }, [currentView, activeScript?.id, activeSceneIdentifier]);
 
   const handleGenerateScript = async (prompt: string, language: 'en-US' | 'vi-VN', aspectRatio: AspectRatio) => {
     setIsLoading(true);
@@ -146,7 +126,7 @@ const NewTab = () => {
         const scriptsToImport = Array.isArray(importedData) ? importedData : [importedData];
 
         const isValidScript = (script: unknown): script is Root =>
-          script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
+          typeof script === 'object' && script !== null && 'title' in script && 'acts' in script;
 
         if (scriptsToImport.length === 0) {
           setIsImporting(false);
@@ -157,8 +137,11 @@ const NewTab = () => {
           throw new Error('Tệp không chứa định dạng kịch bản hợp lệ.');
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const scriptsToAdd = scriptsToImport.map(({ id, ...rest }) => rest);
+        const scriptsToAdd = scriptsToImport.map(script => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...rest } = script;
+          return rest;
+        });
         await db.scripts.bulkAdd(scriptsToAdd);
         window.location.reload();
       } catch (error) {
@@ -357,14 +340,7 @@ const NewTab = () => {
             </div>
           ) : (
             <main className="flex-1 overflow-y-auto p-6">
-              <Suspense
-                fallback={
-                  <div className="p-6">
-                    <LoadingSpinner />
-                  </div>
-                }>
-                <AssetGallery onDeleteAsset={deleteAssetFromGallery} />
-              </Suspense>
+              <AssetGallery onDeleteAsset={deleteAssetFromGallery} />
             </main>
           )}
         </div>
