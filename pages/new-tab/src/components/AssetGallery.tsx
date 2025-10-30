@@ -1,4 +1,6 @@
 import { db } from '../db';
+import { useAssets } from '../hooks/useAssets';
+import { useScriptsStore } from '../stores/useScriptsStore';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type React from 'react';
 
@@ -10,11 +12,10 @@ interface Asset {
   dataType: string; // mime type
 }
 
-interface AssetGalleryProps {
-  onDeleteAsset: (assetType: 'image' | 'video', assetId: number, scriptId: number) => Promise<void>;
-}
-
-const AssetGallery: React.FC<AssetGalleryProps> = ({ onDeleteAsset }) => {
+const AssetGallery: React.FC = () => {
+  const setActiveScript = useScriptsStore(s => s.setActiveScript);
+  const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
+  const { deleteAssetFromGallery } = useAssets(setActiveScript, saveActiveScript, () => {});
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const objectUrlsRef = useRef<string[]>([]);
@@ -81,7 +82,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({ onDeleteAsset }) => {
   }, [fetchAssets]);
 
   const handleDeleteClick = async (asset: Asset) => {
-    await onDeleteAsset(asset.type, asset.id, asset.scriptId);
+    await deleteAssetFromGallery(asset.type, asset.id, asset.scriptId);
   };
 
   if (isLoading) {

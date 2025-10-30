@@ -1,32 +1,15 @@
 import ImageGenerationModal from './ImageGenerationModal';
 import { VIDEO_LOADING_MESSAGES, DEFAULT_ASPECT_RATIO, DEFAULT_IMAGE_NEGATIVE_PROMPT } from '../constants';
 import { db } from '../db';
+import { useAssets } from '../hooks/useAssets';
+import { useApiKey } from '../stores/useApiKey';
+import { useScriptsStore } from '../stores/useScriptsStore';
 import { useState, useEffect } from 'react';
 import type { Scene, AspectRatio } from '../types';
 import type React from 'react';
 
-interface AssetDisplayProps {
-  activeScene: Scene | null;
-  actIndex: number | null;
-  sceneIndex: number | null;
-  defaultAspectRatio?: AspectRatio;
-  onGenerateSceneImage: (
-    actIndex: number,
-    sceneIndex: number,
-    finalPrompt: string,
-    finalNegativePrompt: string,
-    aspectRatio: AspectRatio,
-  ) => void;
-  onCancelGenerateSceneImage: (actIndex: number, sceneIndex: number) => void;
-  onGenerateSceneVideo: (actIndex: number, sceneIndex: number, aspectRatio: AspectRatio) => void;
-  onDeleteSceneImage: (actIndex: number, sceneIndex: number) => void;
-  onDeleteSceneVideo: (actIndex: number, sceneIndex: number) => void;
-  isApiKeySet: boolean;
-  currentSceneNumber: number;
-  totalScenes: number;
-  onGoToPreviousScene: () => void;
-  onGoToNextScene: () => void;
-}
+// AssetDisplay now reads active script/scene from the centralized store and uses the shared useAssets
+// utility internally so components no longer need many props.
 
 const SceneAssetCard: React.FC<{
   scene: Scene;
@@ -274,22 +257,7 @@ const SceneAssetCard: React.FC<{
   );
 };
 
-const AssetDisplay: React.FC<AssetDisplayProps> = ({
-  activeScene,
-  actIndex,
-  sceneIndex,
-  defaultAspectRatio,
-  onGenerateSceneImage,
-  onCancelGenerateSceneImage,
-  onGenerateSceneVideo,
-  onDeleteSceneImage,
-  onDeleteSceneVideo,
-  isApiKeySet,
-  currentSceneNumber,
-  totalScenes,
-  onGoToPreviousScene,
-  onGoToNextScene,
-}) => {
+const AssetDisplay: React.FC = () => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalConfig, setImageModalConfig] = useState<{
     actIndex: number;
@@ -298,6 +266,34 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({
     initialNegativePrompt: string;
     initialAspectRatio: AspectRatio;
   } | null>(null);
+
+  // read active script + scene from store
+  const activeScript = useScriptsStore(s => s.activeScript);
+  const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
+  const setActiveScript = useScriptsStore(s => s.setActiveScript);
+  const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
+
+  const apiKey = useApiKey.getState().apiKey;
+
+  const { generateSceneImage, cancelGenerateSceneImage, generateSceneVideo, deleteSceneImage, deleteSceneVideo } =
+    useAssets(setActiveScript, saveActiveScript, () => {});
+
+  const actIndex = activeSceneIdentifier?.actIndex ?? null;
+  const sceneIndex = activeSceneIdentifier?.sceneIndex ?? null;
+  const activeScene =
+    activeScript && actIndex !== null && sceneIndex !== null ? activeScript.acts[actIndex].scenes[sceneIndex] : null;
+  const defaultAspectRatio = activeScript?.setting.defaultAspectRatio;
+  const isApiKeySet = !!apiKey;
+
+  const totalScenes = activeScript ? activeScript.acts.flatMap(a => a.scenes).length : 0;
+  const currentSceneNumber = (() => {
+    if (!activeScript || !activeSceneIdentifier) return 0;
+    const flat = activeScript.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si })));
+    const idx = flat.findIndex(
+      x => x.ai === activeSceneIdentifier.actIndex && x.si === activeSceneIdentifier.sceneIndex,
+    );
+    return idx === -1 ? 0 : idx + 1;
+  })();
 
   const handleOpenImageModal = (modalActIndex: number, modalSceneIndex: number, initialAspectRatio: AspectRatio) => {
     if (!activeScene) return;
@@ -314,7 +310,8 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({
 
   const handleImageModalSubmit = (finalPrompt: string, finalNegativePrompt: string, finalAspectRatio: AspectRatio) => {
     if (imageModalConfig) {
-      onGenerateSceneImage(
+      generateSceneImage(
+        activeScript!,
         imageModalConfig.actIndex,
         imageModalConfig.sceneIndex,
         finalPrompt,
@@ -373,7 +370,15 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({
           {totalScenes > 0 && (
             <div className="flex flex-shrink-0 items-center gap-2">
               <button
-                onClick={onGoToPreviousScene}
+                onClick={() => {
+                  // go to previous scene using store setter
+                  const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
+                  const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
+                  if (curIndex > 0) {
+                    const prev = flat[curIndex - 1];
+                    useScriptsStore.getState().setActiveSceneIdentifier({ actIndex: prev.ai, sceneIndex: prev.si });
+                  }
+                }}
                 disabled={currentSceneNumber <= 1}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
                 aria-label="Cảnh trước"
@@ -386,7 +391,14 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({
                 {currentSceneNumber}/{totalScenes}
               </span>
               <button
-                onClick={onGoToNextScene}
+                onClick={() => {
+                  const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
+                  const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
+                  if (curIndex !== -1 && curIndex < flat.length - 1) {
+                    const next = flat[curIndex + 1];
+                    useScriptsStore.getState().setActiveSceneIdentifier({ actIndex: next.ai, sceneIndex: next.si });
+                  }
+                }}
                 disabled={currentSceneNumber >= totalScenes}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
                 aria-label="Cảnh tiếp theo"
@@ -400,14 +412,14 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({
         </header>
 
         <SceneAssetCard
-          scene={activeScene}
-          actIndex={actIndex}
-          sceneIndex={sceneIndex}
+          scene={activeScene!}
+          actIndex={actIndex!}
+          sceneIndex={sceneIndex!}
           onOpenImageModal={handleOpenImageModal}
-          onCancelGenerateImage={onCancelGenerateSceneImage}
-          onDeleteImage={onDeleteSceneImage}
-          onGenerateVideo={onGenerateSceneVideo}
-          onDeleteVideo={onDeleteSceneVideo}
+          onCancelGenerateImage={(ai, si) => cancelGenerateSceneImage(activeScript!, ai, si)}
+          onDeleteImage={(ai, si) => deleteSceneImage(activeScript!, ai, si)}
+          onGenerateVideo={(ai, si, ar) => generateSceneVideo(activeScript!, ai, si, ar)}
+          onDeleteVideo={(ai, si) => deleteSceneVideo(activeScript!, ai, si)}
           defaultAspectRatio={defaultAspectRatio}
           isApiKeySet={isApiKeySet}
         />

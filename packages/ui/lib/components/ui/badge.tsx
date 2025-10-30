@@ -1,3 +1,5 @@
+/* eslint-disable func-style */
+/* eslint-disable import-x/exports-last */
 import { cn } from '@/lib/utils';
 import { cva } from 'class-variance-authority';
 import type { VariantProps } from 'class-variance-authority';
@@ -20,10 +22,10 @@ const badgeVariants = cva(
   },
 );
 
-const Badge = ({ className, variant, ...props }: BadgeProps) => (
-  <div className={cn(badgeVariants({ variant }), className)} {...props} />
-);
-
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+}
 
 export { Badge, badgeVariants };

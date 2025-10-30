@@ -1,4 +1,5 @@
 import { useApiKey } from '../stores/useApiKey';
+import { Input, Button } from '@extension/ui';
 import { useState, useEffect } from 'react';
 import type React from 'react';
 
@@ -76,27 +77,16 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose }) => {
             </a>
             .
           </p>
-          <input
+          <Input
             type="password"
             value={localKey}
             onChange={e => setLocalKey(e.target.value)}
             placeholder="Dán khóa API của bạn vào đây"
-            className="focus:border-primary focus:ring-primary/20 block w-full rounded-lg border-slate-300 bg-white shadow-sm transition focus:ring-2 sm:text-sm dark:border-slate-600 dark:bg-slate-700"
           />
         </div>
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500">
-            Hủy
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="bg-primary hover:bg-primary-dark rounded-lg border border-transparent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors">
-            Lưu Khóa API
-          </button>
+          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={handleSave}>Lưu Khóa API</Button>
         </div>
       </div>
     </div>

@@ -1,28 +1,21 @@
 import EditableField from './EditableField';
 import SceneCard from './SceneCard';
+import { useScriptsStore } from '../stores/useScriptsStore';
 import type { Root } from '../types';
 import type React from 'react';
 
-type ActiveSceneIdentifier = { actIndex: number; sceneIndex: number } | null;
 type ScriptViewMode = 'formatted' | 'json';
 
 interface ScriptDisplayProps {
   script: Root;
-  onUpdateField: (path: string, value: unknown) => void;
   language: 'en-US' | 'vi-VN';
-  activeSceneIdentifier: ActiveSceneIdentifier;
-  onSelectScene: (identifier: { actIndex: number; sceneIndex: number } | null) => void;
   viewMode: ScriptViewMode;
 }
 
-const ScriptDisplay: React.FC<ScriptDisplayProps> = ({
-  script,
-  onUpdateField,
-  language,
-  activeSceneIdentifier,
-  onSelectScene,
-  viewMode,
-}) => {
+const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMode }) => {
+  const updateScriptField = useScriptsStore(s => s.updateScriptField);
+  const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
+  const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
   if (viewMode === 'json') {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
@@ -39,7 +32,7 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
           <EditableField
             initialValue={script.title}
-            onSave={v => onUpdateField('title', v)}
+            onSave={v => updateScriptField('title', v)}
             context="Movie Title"
             language={language}
             as="input"
@@ -51,7 +44,7 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({
           {/* This was already a div, so no change here */}
           <EditableField
             initialValue={script.logline}
-            onSave={v => onUpdateField('logline', v)}
+            onSave={v => updateScriptField('logline', v)}
             context="Movie Logline"
             language={language}
           />
@@ -73,10 +66,9 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">HỒI {act.act_number}</h2>
             <div className="mt-1 text-slate-600 dark:text-slate-400">
               {' '}
-              {/* Changed from <p> to <div> */}
               <EditableField
                 initialValue={act.summary}
-                onSave={v => onUpdateField(`acts[${actIndex}].summary`, v)}
+                onSave={v => updateScriptField(`acts[${actIndex}].summary`, v)}
                 context={`Summary for Act ${act.act_number}`}
                 language={language}
               />
@@ -92,11 +84,11 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({
                   key={scene.scene_number}
                   role="button"
                   tabIndex={0}
-                  onClick={() => onSelectScene({ actIndex, sceneIndex })}
+                  onClick={() => setActiveSceneIdentifier({ actIndex, sceneIndex })}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      onSelectScene({ actIndex, sceneIndex });
+                      setActiveSceneIdentifier({ actIndex, sceneIndex });
                     }
                   }}
                   className={`cursor-pointer rounded-lg transition-all duration-300 ${isActive ? 'ring-primary ring-2 ring-offset-4 ring-offset-slate-50 dark:ring-offset-slate-900' : 'hover:ring-primary/50 hover:ring-2'}`}
@@ -104,7 +96,7 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({
                   <SceneCard
                     scene={scene}
                     onUpdateField={(path, value) =>
-                      onUpdateField(`acts[${actIndex}].scenes[${sceneIndex}].${path}`, value)
+                      updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].${path}`, value)
                     }
                     language={language}
                   />
