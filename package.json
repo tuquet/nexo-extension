@@ -38,9 +38,15 @@
     "postinstall": "pnpm copy-env"
   },
   "dependencies": {
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@iconify/react": "^6.0.2",
     "antd": "^5.27.6",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "dexie": "^4.2.1",
+    "jszip": "^3.10.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.9.4",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.9",

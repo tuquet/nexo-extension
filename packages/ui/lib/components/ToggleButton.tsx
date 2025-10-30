@@ -1,23 +1,26 @@
-import { cn } from '../utils';
+import { Button } from '../components/ui/button';
 import { useStorage } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
-import type { ComponentPropsWithoutRef } from 'react';
+import { themeStorage } from '@extension/storage';
+import { Icon } from '@iconify/react';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
 type ToggleButtonProps = ComponentPropsWithoutRef<'button'>;
 
 export const ToggleButton = ({ className, children, ...props }: ToggleButtonProps) => {
-  const { isLight } = useStorage(exampleThemeStorage);
+  const { isLight } = useStorage(themeStorage);
+
+  let content: ReactNode = children;
+  if (content === undefined || content === null) {
+    content = isLight ? (
+      <Icon icon="lucide:sun-medium" width={20} height={20} />
+    ) : (
+      <Icon icon="lucide:moon" width={20} height={20} />
+    );
+  }
 
   return (
-    <button
-      className={cn(
-        'mt-4 rounded border-2 px-4 py-1 font-bold shadow hover:scale-105',
-        isLight ? 'border-black bg-white text-black' : 'border-white bg-black text-white',
-        className,
-      )}
-      onClick={exampleThemeStorage.toggle}
-      {...props}>
-      {children}
-    </button>
+    <Button className={className} onClick={themeStorage.toggle} {...props}>
+      {content}
+    </Button>
   );
 };

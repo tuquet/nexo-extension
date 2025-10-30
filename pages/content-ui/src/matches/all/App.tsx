@@ -1,4 +1,3 @@
-import { t } from '@extension/i18n';
 import { ToggleButton } from '@extension/ui';
 import { useEffect } from 'react';
 
@@ -12,7 +11,7 @@ export default function App() {
       <div className="flex gap-1 text-sm text-blue-500">
         Edit <strong className="text-blue-700">pages/content-ui/src/matches/all/App.tsx</strong> and save to reload.
       </div>
-      <ToggleButton className={'mt-0'}>{t('toggleTheme')}</ToggleButton>
+      <ToggleButton className={'mt-0'} />
     </div>
   );
 }

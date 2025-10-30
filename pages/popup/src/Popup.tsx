@@ -1,7 +1,7 @@
 import '@src/Popup.css';
 import { t } from '@extension/i18n';
 import { PROJECT_URL_OBJECT, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
+import { themeStorage } from '@extension/storage';
 import { cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
 
 const notificationOptions = {
@@ -12,7 +12,7 @@ const notificationOptions = {
 } as const;
 
 const Popup = () => {
-  const { isLight } = useStorage(exampleThemeStorage);
+  const { isLight } = useStorage(themeStorage);
   const logo = isLight ? 'popup/logo_vertical.svg' : 'popup/logo_vertical_dark.svg';
 
   const goGithubSite = () => chrome.tabs.create(PROJECT_URL_OBJECT);
@@ -54,7 +54,7 @@ const Popup = () => {
           onClick={injectContentScript}>
           {t('injectButton')}
         </button>
-        <ToggleButton>{t('toggleTheme')}</ToggleButton>
+        <ToggleButton />
       </header>
     </div>
   );
