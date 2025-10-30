@@ -1,11 +1,11 @@
 import '@src/Options.css';
 import { t } from '@extension/i18n';
 import { PROJECT_URL_OBJECT, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { themeStorage } from '@extension/storage';
+import { exampleThemeStorage } from '@extension/storage';
 import { cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
 
 const Options = () => {
-  const { isLight } = useStorage(themeStorage);
+  const { isLight } = useStorage(exampleThemeStorage);
   const logo = isLight ? 'options/logo_horizontal.svg' : 'options/logo_horizontal_dark.svg';
 
   const goGithubSite = () => chrome.tabs.create(PROJECT_URL_OBJECT);
@@ -18,7 +18,7 @@ const Options = () => {
       <p>
         Edit <code>pages/options/src/Options.tsx</code>
       </p>
-      <ToggleButton onClick={themeStorage.toggle}>{t('toggleTheme')}</ToggleButton>
+      <ToggleButton onClick={exampleThemeStorage.toggle}>{t('toggleTheme')}</ToggleButton>
     </div>
   );
 };

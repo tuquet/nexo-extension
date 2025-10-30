@@ -30,7 +30,18 @@
     "antd": "^5.27.6",
     "dexie": "^4.2.1",
     "jszip": "^3.10.1",
-    "zustand": "^4.4.0"
+    "zustand": "^4.4.0",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@hookform/resolvers": "^5.2.2",
+    "@iconify/react": "^6.0.2",
+    "@tanstack/react-form": "^1.23.8",
+    "@tanstack/react-table": "^8.21.3",
+    "lucide-react": "^0.548.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.9.4",
+    "sonner": "^2.0.7",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@extension/tailwindcss-config": "workspace:*",
