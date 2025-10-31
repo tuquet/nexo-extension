@@ -13,7 +13,7 @@ const scriptSchema = {
   type: Type.OBJECT,
   properties: {
     title: { type: Type.STRING, description: 'The title of the movie.' },
-    alias: { type: Type.STRING, description: 'An alternative or working title.' },
+    alias: { type: Type.STRING, description: 'the-title-alias-webfriendly' },
     logline: { type: Type.STRING, description: 'A one-sentence summary of the story.' },
     genre: {
       type: Type.ARRAY,
@@ -132,6 +132,8 @@ const generateScript = async (
   language: 'en-US' | 'vi-VN',
   apiKey: string,
   modelName: string,
+  temperature: number,
+  topP: number,
 ): Promise<Root> => {
   try {
     const ai = getAiClient(apiKey);
@@ -147,6 +149,8 @@ const generateScript = async (
         systemInstruction: systemInstruction,
         responseMimeType: 'application/json',
         responseSchema: scriptSchema,
+        temperature: temperature,
+        topP: topP,
       },
     });
 

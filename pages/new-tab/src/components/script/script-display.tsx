@@ -1,8 +1,10 @@
 import EditableField from './editable-field';
 import SceneCard from './script-scene-card';
 import { useScriptsStore } from '../../stores/use-scripts-store';
+import { Badge, Button, Textarea } from '@extension/ui';
+import { useEffect, useState, useRef } from 'react';
 import type { Root } from '../../types';
-import type React from 'react';
+import type { FC } from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
 
@@ -12,24 +14,61 @@ interface ScriptDisplayProps {
   viewMode: ScriptViewMode;
 }
 
-const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMode }) => {
+const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) => {
   const updateScriptField = useScriptsStore(s => s.updateScriptField);
   const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
+  const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
+  const [jsonText, setJsonText] = useState(JSON.stringify(script, null, 2));
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setJsonText(JSON.stringify(script, null, 2));
+  }, [script]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [jsonText, viewMode]);
+
+  const handleSaveJson = async () => {
+    try {
+      const parsed = JSON.parse(jsonText) as Root | Root[];
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0) throw new Error('Array empty');
+        await saveActiveScript(parsed[0] as Root);
+      } else {
+        await saveActiveScript(parsed as Root);
+      }
+      setJsonError(null);
+    } catch (err) {
+      setJsonError(err instanceof Error ? err.message : 'JSON không hợp lệ');
+    }
+  };
 
   if (viewMode === 'json') {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-        <pre className="whitespace-pre-wrap break-words text-sm text-slate-700 dark:text-slate-300">
-          {JSON.stringify(script, null, 2)}
-        </pre>
+      <div>
+        <Textarea
+          ref={textareaRef}
+          className="min-h-[300px] w-full resize-none font-mono"
+          value={jsonText}
+          onChange={e => setJsonText(e.target.value)}
+        />
+        {jsonError && <div className="mt-2 text-sm text-red-600">{jsonError}</div>}
+        <div className="mt-3 flex gap-2">
+          <Button onClick={handleSaveJson}>Lưu JSON</Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-12">
-      <header className="border-b border-slate-200 pb-8 text-center dark:border-slate-700">
+      <div>
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
           <EditableField
             initialValue={script.title}
@@ -52,18 +91,16 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {script.genre.map(g => (
-            <span
-              key={g}
-              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+            <Badge key={g} variant="secondary" className="capitalize">
               {g}
-            </span>
+            </Badge>
           ))}
         </div>
-      </header>
+      </div>
 
       {script.acts.map((act, actIndex) => (
         <section key={act.act_number}>
-          <div className="bg-background sticky top-0 z-10 -my-4 mb-4 py-4 backdrop-blur-sm">
+          <div className="bg-background/70 sticky top-0 z-10 -mx-4 -my-4 mb-4 px-4 py-4 backdrop-blur-sm">
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">HỒI {act.act_number}</h2>
             <div className="mt-1 text-slate-600 dark:text-slate-400">
               {' '}
@@ -86,6 +123,8 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
                   role="button"
                   tabIndex={0}
                   onClick={() => setActiveSceneIdentifier({ actIndex, sceneIndex })}
+                  onMouseOver={() => setActiveSceneIdentifier({ actIndex, sceneIndex })}
+                  onFocus={() => setActiveSceneIdentifier({ actIndex, sceneIndex })}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
@@ -94,19 +133,11 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
                   }}
                   className={`cursor-pointer rounded-lg transition-all duration-300 ${
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-lg'
+                      ? 'ring-primary ring-2 ring-offset-4 ring-offset-slate-50 dark:ring-offset-slate-900'
                       : 'hover:ring-primary/50 hover:ring-2'
                   }`}
                   id={`scene-${actIndex}-${sceneIndex}`}>
-                  <div className="bg-background h-full w-full rounded-[5px]">
-                    <SceneCard
-                      scene={scene}
-                      onUpdateField={(path, value) =>
-                        updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].${path}`, value)
-                      }
-                      language={language}
-                    />
-                  </div>
+                  <SceneCard onUpdateField={updateScriptField} scene={scene} language={language} />
                 </div>
               );
             })}

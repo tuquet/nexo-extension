@@ -30,3 +30,5 @@ export * from './ui/dropdown-menu';
 export * from './ui/field';
 export * from './ui/navigation-menu';
 export * from './ui/separator';
+export * from './ui/label';
+export * from './ui/slider';

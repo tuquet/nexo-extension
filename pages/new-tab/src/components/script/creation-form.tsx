@@ -1,21 +1,19 @@
+import { ModelSettings } from './model-settings';
 import {
   PREDEFINED_GENRES,
   DEFAULT_ASPECT_RATIO,
-  SCRIPT_GENERATION_MODEL,
   PLOT_SUGGESTION_MODEL,
-  AVAILABLE_TEXT_MODELS,
   IMAGE_GENERATION_MODEL,
   VIDEO_GENERATION_MODEL,
-  AVAILABLE_IMAGE_MODELS,
-  AVAILABLE_VIDEO_MODELS,
 } from '../../constants';
 import { suggestPlotPoints } from '../../services/gemini-service';
 import { useApiKey } from '../../stores/use-api-key';
 import CreatableSelect from '../script/creatable-select';
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@extension/ui';
 import usePersistentState from '@src/hooks/use-persistent-state';
+import { useModelSettings } from '@src/stores/use-model-settings';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { AlertCircle, ChevronDown } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import type { AspectRatio } from '../../types';
 import type { FormEvent } from 'react';
@@ -30,6 +28,8 @@ interface CreationFormProps {
     scriptModel: string,
     imageModel: string,
     videoModel: string,
+    temperature: number,
+    topP: number,
   ) => void;
   isLoading: boolean;
   onCancel: () => void;
@@ -38,8 +38,8 @@ interface CreationFormProps {
 const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) => {
   const { apiKey, isApiKeySet } = useApiKey();
   const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
+  const { model, temperature, topP } = useModelSettings();
 
-  // Sử dụng hook mới để quản lý trạng thái form
   const [logline, setLogline] = usePersistentState<string>(`${FORM_STORAGE_KEY}_logline`, '');
   const [genres, setGenres] = usePersistentState<string[]>(`${FORM_STORAGE_KEY}_genres`, []);
   const [language, setLanguage] = usePersistentState<'en-US' | 'vi-VN'>(`${FORM_STORAGE_KEY}_language`, 'vi-VN');
@@ -51,28 +51,14 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
     `${FORM_STORAGE_KEY}_aspectRatio`,
     DEFAULT_ASPECT_RATIO,
   );
-  const [scriptModel, setScriptModel] = usePersistentState<string>(
-    `${FORM_STORAGE_KEY}_scriptModel`,
-    SCRIPT_GENERATION_MODEL,
-  );
-  const [suggestionModel, setSuggestionModel] = usePersistentState<string>(
-    `${FORM_STORAGE_KEY}_suggestionModel`,
-    PLOT_SUGGESTION_MODEL,
-  );
-  const [imageModel, setImageModel] = usePersistentState<string>(
-    `${FORM_STORAGE_KEY}_imageModel`,
-    IMAGE_GENERATION_MODEL,
-  );
-  const [videoModel, setVideoModel] = usePersistentState<string>(
-    `${FORM_STORAGE_KEY}_videoModel`,
-    VIDEO_GENERATION_MODEL,
-  );
+  const [suggestionModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_suggestionModel`, PLOT_SUGGESTION_MODEL);
+  const [imageModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_imageModel`, IMAGE_GENERATION_MODEL);
+  const [videoModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_videoModel`, VIDEO_GENERATION_MODEL);
 
   const [plotSuggestions, setPlotSuggestions] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState<boolean>(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleGenerateScript = (e: FormEvent) => {
     e.preventDefault();
@@ -92,8 +78,8 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
       **Desired Script Length:** ${scriptLength}
       Based on the provided logline, genres, and desired length, please generate a full movie script.`.trim();
 
-    onGenerate(finalPrompt, language, defaultAspectRatio, scriptModel, imageModel, videoModel);
-    clearPersistedForm(); // Xóa dữ liệu sau khi gửi đi
+    onGenerate(finalPrompt, language, defaultAspectRatio, model, imageModel, videoModel, temperature, topP);
+    clearPersistedForm();
   };
 
   const handleSuggestPlotPoints = async () => {
@@ -105,7 +91,11 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
     setIsSuggesting(true);
     setSuggestionError(null);
     setPlotSuggestions([]);
-    const suggestionPrompt = `**Logline / Core Idea:**\n${logline}\n\n**Genres:**\n${genres.join(', ')}`.trim();
+    const suggestionPrompt = `**Logline / Core Idea:**
+${logline}
+
+**Genres:**
+${genres.join(', ')}`.trim();
     try {
       const suggestions = await suggestPlotPoints(suggestionPrompt, language, apiKey!, suggestionModel);
       setPlotSuggestions(suggestions);
@@ -117,7 +107,11 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
   };
 
   const handleAddSuggestionToLogline = (suggestion: string) => {
-    setLogline(prev => `${prev}\n\n- ${suggestion}`.trim());
+    setLogline(prev =>
+      `${prev}
+
+- ${suggestion}`.trim(),
+    );
   };
 
   const clearPersistedForm = () => {
@@ -148,7 +142,6 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
       )}
 
       <form onSubmit={handleGenerateScript} className="space-y-6">
-        {/* All form elements from App.tsx go here */}
         <div>
           <label htmlFor="logline" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
             Tóm tắt / Ý tưởng chính
@@ -183,7 +176,7 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
             onClick={handleSuggestPlotPoints}
             disabled={!logline.trim() || isLoading || isSuggesting || !isApiKeySet}
             title={!isApiKeySet ? 'Vui lòng đặt khóa API trong cài đặt để sử dụng' : ''}>
-            {isSuggesting ? '🤔 Đang gợi ý...' : '💡 Gợi ý tình tiết'}
+            {isSuggesting ? 'Đang gợi ý...' : 'Gợi ý tình tiết'}
           </Button>
         </div>
         {suggestionError && (
@@ -200,7 +193,7 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
             </label>
             <div
               id="plot-suggestions-list"
-              className="mt-2 space-y-1 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+              className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
               {plotSuggestions.map((item, index) => (
                 <div key={index}>
                   <button
@@ -268,110 +261,22 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-4 rounded-lg border border-dashed border-slate-300 p-4 dark:border-slate-600">
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex w-full items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-400">
-            <span>Tùy chọn nâng cao</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showAdvanced && (
-            <div className="grid grid-cols-1 gap-x-4 gap-y-6 pt-2 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="scriptModel"
-                  className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Model tạo kịch bản
-                </label>
-                <Select value={scriptModel} onValueChange={setScriptModel} disabled={isLoading}>
-                  <SelectTrigger id="scriptModel" className="focus:border-primary focus:ring-primary/20 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_TEXT_MODELS.map(model => (
-                      <SelectItem key={model.value} value={model.value}>
-                        {model.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label
-                  htmlFor="suggestionModel"
-                  className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Model gợi ý tình tiết
-                </label>
-                <Select value={suggestionModel} onValueChange={setSuggestionModel} disabled={isLoading || isSuggesting}>
-                  <SelectTrigger id="suggestionModel" className="focus:border-primary focus:ring-primary/20 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_TEXT_MODELS.map(model => (
-                      <SelectItem key={model.value} value={model.value}>
-                        {model.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label
-                  htmlFor="imageModel"
-                  className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Model tạo ảnh
-                </label>
-                <Select value={imageModel} onValueChange={setImageModel} disabled={isLoading}>
-                  <SelectTrigger id="imageModel" className="focus:border-primary focus:ring-primary/20 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_IMAGE_MODELS.map(model => (
-                      <SelectItem key={model.value} value={model.value}>
-                        {model.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label
-                  htmlFor="videoModel"
-                  className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Model tạo video
-                </label>
-                <Select value={videoModel} onValueChange={setVideoModel} disabled={isLoading}>
-                  <SelectTrigger id="videoModel" className="focus:border-primary focus:ring-primary/20 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_VIDEO_MODELS.map(model => (
-                      <SelectItem key={model.value} value={model.value}>
-                        {model.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+        <div>
+          <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Tùy chọn nâng cao</div>
+          <ModelSettings disabled={isLoading} />
         </div>
-
         <div className="pt-2">
           <Button
             type="submit"
             className="w-full"
             disabled={isLoading || !isApiKeySet}
             title={!isApiKeySet ? 'Vui lòng đặt khóa API trong cài đặt để tạo kịch bản' : ''}>
-            {isLoading ? '⏳ Đang tạo...' : '🎬 Tạo kịch bản'}
+            {isLoading ? 'Đang tạo...' : 'Tạo kịch bản'}
           </Button>
         </div>
         {formError && (
           <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-            🚨 {formError}
+            {formError}
           </div>
         )}
       </form>

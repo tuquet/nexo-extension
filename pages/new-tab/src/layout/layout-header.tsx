@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
   const isAssetRouteActive = location.pathname === '/asset';
 
   return (
-    <div className="bg-background/70 sticky top-0 z-40 w-full backdrop-blur-sm">
+    <div className="bg-background/70 z-40 w-full backdrop-blur-sm">
       <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">

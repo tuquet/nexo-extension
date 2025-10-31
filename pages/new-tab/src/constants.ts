@@ -4,30 +4,28 @@ import type { AspectRatio } from './types';
 export const SCRIPT_GENERATION_MODEL = 'gemini-2.5-flash';
 export const PLOT_SUGGESTION_MODEL = 'gemini-2.5-flash';
 export const TEXT_ENHANCEMENT_MODEL = 'gemini-2.5-flash';
-export const IMAGE_GENERATION_MODEL = 'gemini-1.5-flash';
-export const VIDEO_GENERATION_MODEL = ''; // Không có model video tương thích
+export const IMAGE_GENERATION_MODEL = 'imagen-4.0-generate-001';
+export const VIDEO_GENERATION_MODEL = 'veo-3.1-fast-generate-preview';
 
 // Danh sách các model có thể lựa chọn cho việc tạo văn bản
 export const AVAILABLE_TEXT_MODELS = [
-  { value: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Mạnh nhất - Chi phí cao)' },
-  { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash (Nhanh & Rẻ - Chi phí thấp)' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Chất lượng cao)' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Nhanh & Tiết kiệm)' },
 ];
 
 // Danh sách các model có thể lựa chọn cho việc tạo ảnh
-export const AVAILABLE_IMAGE_MODELS = [
-  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Chất lượng cao - Chi phí cao)' },
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Nhanh & Tối ưu - Chi phí thấp)' },
-];
-
+export const AVAILABLE_IMAGE_MODELS = [{ value: 'imagen-4.0-generate-001', label: 'Imagen 4.0 (Chất lượng cao)' }];
 // Danh sách các model có thể lựa chọn cho việc tạo video
-export const AVAILABLE_VIDEO_MODELS: { value: string; label: string }[] = [];
+export const AVAILABLE_VIDEO_MODELS: { value: string; label: string }[] = [
+  { value: 'veo-3.1-fast-generate-preview', label: ' Veo 3.1 Fast Generate (Xem trước)' },
+  { value: 'veo-3.0-standard-generate', label: 'Veo 3.0 Standard (Tiêu chuẩn)' },
+  { value: 'veo-4.0-hq-generate', label: 'Veo 4.0 HQ (Chất lượng cao)' },
+];
 
 // Danh sách các model cho Live API (tương tác thời gian thực)
 export const AVAILABLE_LIVE_MODELS = [
-  // Model này thường miễn phí hoặc có chi phí thấp trong giai đoạn Preview
-  { value: 'gemini-2.5-flash-live', label: 'Gemini 2.5 Flash Live (Chi phí thấp - Preview)' },
-  { value: 'gemini-2.5-flash-native-audio-dialog', label: 'Gemini 2.5 Native Audio (Chi phí thấp - Preview)' },
-  { value: 'gemini-2.0-flash-live', label: 'Gemini 2.0 Flash Live (Miễn phí - Preview)' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Chất lượng cao)' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Nhanh & Tiết kiệm)' },
 ];
 
 export const AVAILABLE_TTS_MODELS: { value: string; label: string }[] = [];
@@ -66,7 +64,7 @@ export const VIDEO_LOADING_MESSAGES = [
 ];
 
 // Giá trị mặc định
-export const DEFAULT_ASPECT_RATIO: AspectRatio = '16:9';
+export const DEFAULT_ASPECT_RATIO: AspectRatio = '9:16';
 
 // Câu lệnh phủ định mặc định để cải thiện chất lượng ảnh
 export const DEFAULT_IMAGE_NEGATIVE_PROMPT =

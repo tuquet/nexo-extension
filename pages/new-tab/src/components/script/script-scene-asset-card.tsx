@@ -181,7 +181,7 @@ const SceneAssetCard: React.FC<{
             className="text-sm font-medium text-slate-800 dark:text-slate-200">
             Hình ảnh
           </label>
-          <div className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md bg-slate-100 dark:bg-slate-700/50">
+          <div className="group relative flex h-40 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-700/50">
             {scene.isGeneratingImage && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 p-2 text-center text-white">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/50 border-t-white"></div>
@@ -250,7 +250,7 @@ const SceneAssetCard: React.FC<{
             className="text-sm font-medium text-slate-800 dark:text-slate-200">
             Video
           </label>
-          <div className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md bg-slate-100 dark:bg-slate-700/50">
+          <div className="group relative flex h-40 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-700/50">
             {scene.isGeneratingVideo && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 p-2 text-center text-white">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/50 border-t-white"></div>

@@ -113,10 +113,8 @@ const AssetDisplay: React.FC = () => {
       )}
       <Card className="space-y-6">
         <CardHeader>
-          <CardTitle>Tạo tài sản</CardTitle>
-          <CardDescription>
-            Cảnh {activeScene.scene_number} - {activeScene.location}
-          </CardDescription>
+          <CardTitle>Cảnh {activeScene.scene_number}</CardTitle>
+          <CardDescription>{activeScene.location}</CardDescription>
           <CardAction>
             {totalScenes > 0 && (
               <div className="flex flex-shrink-0 items-center gap-2">

@@ -6,27 +6,24 @@ import ScriptDisplay from '@src/components/script/script-display';
 import ScriptHeader from '@src/components/script/script-header';
 import { useAssets } from '@src/hooks/use-assets';
 import { useRouteSync, writeRouteState } from '@src/hooks/use-route-state';
+import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const NewTab = () => {
-  // initialize store on mount
   useEffect(() => {
+    void useApiKey.getState().loadApiKey();
     void useScriptsStore.getState().init();
   }, []);
 
-  // savedScripts retrieved on-demand inside header; not needed here
   const activeScript = useScriptsStore(s => s.activeScript);
   const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const scriptsError = useScriptsStore(s => s.scriptsError);
   const selectScript = useScriptsStore(s => s.selectScript);
   const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
-  // clearAllData intentionally unused here; header handles destructive actions
-  const updateScriptField = useScriptsStore(s => s.updateScriptField);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
-
   const [error, setError] = useState<string | null>(null);
 
   // initialize asset helpers (we don't need the returned functions here)
@@ -34,7 +31,6 @@ const NewTab = () => {
 
   // UI and process-specific state
   const isImporting = useScriptsStore(s => s.isImporting);
-
   const currentView = useScriptsStore(s => s.currentView);
   const setCurrentView = useScriptsStore(s => s.setCurrentView);
   const scriptViewMode = useScriptsStore(s => s.scriptViewMode);
@@ -65,11 +61,6 @@ const NewTab = () => {
     });
   }, [currentView, activeScript?.id, activeSceneIdentifier]);
 
-  const handleSaveModelSettings = (newSettings: { imageModel: string; videoModel: string }) => {
-    void updateScriptField('setting.defaultImageModel', newSettings.imageModel);
-    void updateScriptField('setting.defaultVideoModel', newSettings.videoModel);
-  };
-
   const NoScriptFallback = () => (
     <div className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">
       <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,8 +85,7 @@ const NewTab = () => {
         <ModelSettingsModal
           isOpen={isModelSettingsOpen}
           onClose={() => setModelSettingsModalOpen(false)}
-          script={activeScript}
-          onSave={handleSaveModelSettings}
+          onSave={() => {}}
         />
       )}
       <ScriptHeader />
@@ -113,7 +103,7 @@ const NewTab = () => {
 
       <div className="bg-background min-h-screen">
         <div className="flex h-full">
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 p-6">
             <div className="mx-auto">
               {activeScript ? (
                 <ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />
@@ -124,7 +114,9 @@ const NewTab = () => {
           </main>
 
           {activeScript && (
-            <aside className="w-[450px] flex-shrink-0 overflow-y-auto p-6">
+            <aside
+              className="sticky top-0 h-[calc(100vh-4rem)] w-[450px] flex-shrink-0 overflow-y-auto p-6"
+              style={{ alignSelf: 'flex-start' }}>
               <AssetDisplay />
             </aside>
           )}

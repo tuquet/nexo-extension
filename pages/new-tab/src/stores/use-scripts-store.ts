@@ -235,7 +235,12 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cinegenie-scripts-${new Date().toISOString().slice(0, 10)}.json`;
+      // Prefer using a script alias if available; otherwise fallback to date
+      const defaultName = `cinegenie-scripts-${new Date().toISOString().slice(0, 10)}.json`;
+      // If there's an active script with an alias, use that alias for the filename
+      const active = get().activeScript;
+      const aliasPart = active?.alias ? active.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
+      a.download = aliasPart ? `${aliasPart}.json` : defaultName;
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
@@ -276,9 +281,11 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
-      const safeTitle = activeScript.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      // Prefer alias, then title, then 'script'
+      const aliasPart = activeScript.alias ? activeScript.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
+      const safeTitle = aliasPart || activeScript.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'script';
       a.href = url;
-      a.download = `${safeTitle || 'script'}.zip`;
+      a.download = `${safeTitle}.zip`;
       a.click();
       a.remove();
       URL.revokeObjectURL(url);

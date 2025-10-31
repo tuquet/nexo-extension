@@ -84,7 +84,7 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
       <CardContent>
         {/* Display the generated image if it exists */}
         {imageUrl && (
-          <div className="mt-4 aspect-video overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
+          <div className="mt-4 aspect-video rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
             <img
               src={imageUrl}
               alt={`Hình ảnh cho Cảnh ${scene.scene_number}`}
@@ -107,13 +107,11 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
         </blockquote>
 
         {scene.dialogues.length > 0 && (
-          <div className="mt-6">
-            <h5 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              Hội thoại
-            </h5>
+          <div className="mt-6 space-x-4">
+            <h5 className="mb-2 text-xs font-bold tracking-widest text-slate-500 dark:text-slate-400">Hội thoại</h5>
             <div className="space-y-4">
               {scene.dialogues.map((dialogue, index) => (
-                <div key={index} className="grid grid-cols-[100px_1fr] items-start gap-x-4">
+                <div key={index} className="grid grid-cols-[200px_1fr] items-start gap-x-4">
                   <div className="text-left font-semibold uppercase text-slate-800 dark:text-slate-200">
                     {dialogue.role}
                   </div>

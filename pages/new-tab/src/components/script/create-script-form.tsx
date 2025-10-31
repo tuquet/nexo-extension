@@ -32,6 +32,8 @@ const CreateScriptForm = () => {
     scriptModel: string,
     imageModel: string,
     videoModel: string,
+    temperature: number,
+    topP: number,
   ) => {
     setIsLoading(true);
     setError(null);
@@ -40,7 +42,14 @@ const CreateScriptForm = () => {
 
     try {
       if (!apiKey) throw new Error('API key is not set.');
-      const generatedScript = await generateScript(prompt, language, apiKey, scriptModel || SCRIPT_GENERATION_MODEL);
+      const generatedScript = await generateScript(
+        prompt,
+        language,
+        apiKey,
+        scriptModel || SCRIPT_GENERATION_MODEL,
+        temperature,
+        topP,
+      );
 
       if (isCancelledRef.current) return; // Dừng xử lý nếu người dùng đã hủy
 
@@ -66,7 +75,7 @@ const CreateScriptForm = () => {
 
   return (
     <>
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 p-6">
         <div className="mx-auto max-w-2xl">
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
