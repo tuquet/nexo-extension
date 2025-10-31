@@ -1,7 +1,7 @@
-import EditableField from './EditableField';
-import SceneCard from './SceneCard';
-import { useScriptsStore } from '../stores/useScriptsStore';
-import type { Root } from '../types';
+import EditableField from './editable-field';
+import SceneCard from './script-scene-card';
+import { useScriptsStore } from '../../stores/use-scripts-store';
+import type { Root } from '../../types';
 import type React from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
@@ -16,6 +16,7 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
   const updateScriptField = useScriptsStore(s => s.updateScriptField);
   const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
+
   if (viewMode === 'json') {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
@@ -49,7 +50,7 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
             language={language}
           />
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {script.genre.map(g => (
             <span
               key={g}
@@ -62,7 +63,7 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
 
       {script.acts.map((act, actIndex) => (
         <section key={act.act_number}>
-          <div className="sticky top-0 z-10 -my-4 mb-4 bg-slate-50/80 py-4 backdrop-blur-sm dark:bg-slate-900/80">
+          <div className="bg-background sticky top-0 z-10 -my-4 mb-4 py-4 backdrop-blur-sm">
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">HỒI {act.act_number}</h2>
             <div className="mt-1 text-slate-600 dark:text-slate-400">
               {' '}
@@ -91,15 +92,21 @@ const ScriptDisplay: React.FC<ScriptDisplayProps> = ({ script, language, viewMod
                       setActiveSceneIdentifier({ actIndex, sceneIndex });
                     }
                   }}
-                  className={`cursor-pointer rounded-lg transition-all duration-300 ${isActive ? 'ring-primary ring-2 ring-offset-4 ring-offset-slate-50 dark:ring-offset-slate-900' : 'hover:ring-primary/50 hover:ring-2'}`}
+                  className={`cursor-pointer rounded-lg transition-all duration-300 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-lg'
+                      : 'hover:ring-primary/50 hover:ring-2'
+                  }`}
                   id={`scene-${actIndex}-${sceneIndex}`}>
-                  <SceneCard
-                    scene={scene}
-                    onUpdateField={(path, value) =>
-                      updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].${path}`, value)
-                    }
-                    language={language}
-                  />
+                  <div className="bg-background h-full w-full rounded-[5px]">
+                    <SceneCard
+                      scene={scene}
+                      onUpdateField={(path, value) =>
+                        updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].${path}`, value)
+                      }
+                      language={language}
+                    />
+                  </div>
                 </div>
               );
             })}

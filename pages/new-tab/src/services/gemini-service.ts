@@ -1,10 +1,4 @@
-import {
-  SCRIPT_GENERATION_MODEL,
-  PLOT_SUGGESTION_MODEL,
-  IMAGE_GENERATION_MODEL,
-  TEXT_ENHANCEMENT_MODEL,
-  VIDEO_GENERATION_MODEL,
-} from '../constants';
+import { TEXT_ENHANCEMENT_MODEL } from '../constants';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { Root, AspectRatio } from '../types';
 
@@ -46,6 +40,18 @@ const scriptSchema = {
         location: {
           type: Type.STRING,
           description: "The primary physical location of the story (e.g., 'A remote space station').",
+        },
+        defaultAspectRatio: {
+          type: Type.STRING,
+          description: "The default aspect ratio for generated assets, e.g., '16:9'. Can be left empty.",
+        },
+        defaultImageModel: {
+          type: Type.STRING,
+          description: 'The default model for image generation. Can be left empty.',
+        },
+        defaultVideoModel: {
+          type: Type.STRING,
+          description: 'The default model for video generation. Can be left empty.',
         },
       },
       required: ['time', 'location'],
@@ -121,7 +127,12 @@ const scriptSchema = {
   required: ['title', 'alias', 'logline', 'genre', 'tone', 'themes', 'notes', 'setting', 'characters', 'acts'],
 };
 
-const generateScript = async (prompt: string, language: 'en-US' | 'vi-VN', apiKey: string): Promise<Root> => {
+const generateScript = async (
+  prompt: string,
+  language: 'en-US' | 'vi-VN',
+  apiKey: string,
+  modelName: string,
+): Promise<Root> => {
   try {
     const ai = getAiClient(apiKey);
     const systemInstruction = `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${language}.
@@ -130,7 +141,7 @@ const generateScript = async (prompt: string, language: 'en-US' | 'vi-VN', apiKe
         The 'role' in dialogue must correspond to one of the character roles defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roles for dialogue.`;
 
     const response = await ai.models.generateContent({
-      model: SCRIPT_GENERATION_MODEL,
+      model: modelName,
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
@@ -168,7 +179,12 @@ const plotPointsSchema = {
   required: ['suggestions'],
 };
 
-const suggestPlotPoints = async (prompt: string, language: 'en-US' | 'vi-VN', apiKey: string): Promise<string[]> => {
+const suggestPlotPoints = async (
+  prompt: string,
+  language: 'en-US' | 'vi-VN',
+  apiKey: string,
+  modelName: string,
+): Promise<string[]> => {
   try {
     const ai = getAiClient(apiKey);
     const systemInstruction = `You are a creative story consultant and plot expert.
@@ -177,7 +193,7 @@ const suggestPlotPoints = async (prompt: string, language: 'en-US' | 'vi-VN', ap
         Focus on creating unexpected turns, raising the stakes, or introducing intriguing complications.`;
 
     const response = await ai.models.generateContent({
-      model: PLOT_SUGGESTION_MODEL,
+      model: modelName,
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
@@ -203,6 +219,7 @@ const generateSceneImage = async (
   prompt: string,
   aspectRatio: AspectRatio,
   apiKey: string,
+  modelName: string,
   negativePrompt?: string,
 ): Promise<string> => {
   try {
@@ -219,7 +236,7 @@ const generateSceneImage = async (
     }
 
     const response = await ai.models.generateImages({
-      model: IMAGE_GENERATION_MODEL,
+      model: modelName,
       prompt: finalPrompt,
       config: config,
     });
@@ -297,12 +314,13 @@ const generateSceneVideo = async (
   prompt: string,
   aspectRatio: AspectRatio,
   apiKey: string,
+  modelName: string,
   startImage?: { mimeType: string; data: string },
 ): Promise<Blob> => {
   const videoAI = getAiClient(apiKey);
   try {
     const requestPayload = {
-      model: VIDEO_GENERATION_MODEL,
+      model: modelName,
       prompt: prompt,
       config: {
         numberOfVideos: 1,

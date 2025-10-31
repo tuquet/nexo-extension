@@ -51,10 +51,11 @@ export interface Character {
 }
 
 export interface Setting {
-  location: string;
   time: string;
-  // Add a default aspect ratio for the entire script's asset generation.
-  defaultAspectRatio?: AspectRatio;
+  location: string;
+  defaultAspectRatio?: AspectRatio; // Thêm dòng này
+  defaultImageModel?: string; // Thêm dòng này
+  defaultVideoModel?: string; // Thêm dòng này
 }
 
 export interface BuildMeta {

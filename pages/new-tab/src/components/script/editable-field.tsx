@@ -1,5 +1,6 @@
-import { enhanceText } from '../services/geminiService';
-import { useApiKey } from '../stores/useApiKey';
+import { enhanceText } from '../../services/gemini-service';
+import { useApiKey } from '../../stores/use-api-key';
+import { Input, Textarea, Button } from '@extension/ui';
 import { useState, useRef, useEffect } from 'react';
 import type React from 'react';
 
@@ -75,40 +76,37 @@ const EditableField: React.FC<EditableFieldProps> = ({
   };
 
   if (isEditing) {
-    const InputComponent = as;
+    const InputComponent = as === 'textarea' ? Textarea : Input;
     return (
       <div className={`w-full ${className}`}>
         <InputComponent
           ref={inputRef as React.RefObject<HTMLTextAreaElement & HTMLInputElement>}
           value={value}
           onChange={handleChange}
-          className="focus:border-primary focus:ring-primary/20 block w-full resize-none rounded-md border-slate-300 bg-white shadow-sm transition focus:ring-2 sm:text-sm dark:border-slate-600 dark:bg-slate-700"
+          className="block w-full resize-none"
         />
         <div className="mt-2 flex items-center justify-end gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleEnhance}
             disabled={isEnhancing || !value.trim() || !apiKey}
-            title={!apiKey ? 'Vui lòng đặt khóa API trong cài đặt để sử dụng tính năng này' : ''}
-            className="border-primary/50 text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+            title={!apiKey ? 'Vui lòng đặt khóa API trong cài đặt để sử dụng tính năng này' : ''}>
             {isEnhancing ? (
-              <span className="border-primary/50 border-t-primary h-3 w-3 animate-spin rounded-full border-2"></span>
+              <span className="border-primary/50 border-t-primary h-3 w-3 animate-spin rounded-full border-2" />
             ) : (
               <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
             )}
             Nâng cao
-          </button>
-          <button
-            onClick={handleCancel}
-            className="rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500">
+          </Button>
+          <Button variant="secondary" onClick={handleCancel} size="sm">
             Hủy
-          </button>
-          <button
-            onClick={handleSave}
-            className="bg-primary hover:bg-primary-dark rounded-md px-2 py-1 text-xs font-semibold text-white transition-colors">
+          </Button>
+          <Button variant="default" onClick={handleSave} size="sm">
             Lưu
-          </button>
+          </Button>
         </div>
       </div>
     );

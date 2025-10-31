@@ -55,8 +55,11 @@ Files of interest (quick map)
 
 - pages/new-tab/src/
   - App.tsx — top-level NewTab entry (mounts stores, handles import/export/zip)
+  - NewTab.tsx — entry used in the pages; now uses `react-router` HashRouter + Routes to navigate between pages (Scripts, AssetGallery)
   - db.ts — IndexedDB wrapper used across the app
   - stores/useScriptsStore.ts — canonical zustand store for scripts (init, add, save, delete)
+  - stores/usePreferencesStore.ts — small zustand store for UI preferences (theme, containerSize, compactMode)
+  - layout/ContainerWrapper.tsx — layout wrapper that reads containerSize from preferences store and centers content
   - components/* — UI components: AssetDisplay, AssetGallery, ScriptDisplay, ScriptHeader, CreationForm
   - services/geminiService.ts — AI script generation helper
 

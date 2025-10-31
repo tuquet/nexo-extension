@@ -1,8 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import type React from 'react';
 
+interface Option {
+  label: string;
+  value: string;
+}
+
 interface CreatableSelectProps {
-  options: string[];
+  options: Option[];
   value: string[];
   onChange: (newValue: string[]) => void;
   placeholder?: string;
@@ -38,9 +43,9 @@ const CreatableSelect: React.FC<CreatableSelectProps> = ({
     onChange(value.filter(item => item !== itemToRemove));
   };
 
-  const handleAddValue = (itemToAdd: string) => {
-    const trimmedItem = itemToAdd.trim();
-    if (trimmedItem && !value.find(v => v.toLowerCase() === trimmedItem.toLowerCase())) {
+  const handleAddValue = (itemToAdd: string | Option) => {
+    const trimmedItem = typeof itemToAdd === 'string' ? itemToAdd.trim() : itemToAdd.value.trim();
+    if (trimmedItem && !value.some(v => v.toLowerCase() === trimmedItem.toLowerCase())) {
       onChange([...value, trimmedItem]);
     }
     setInputValue('');
@@ -58,8 +63,8 @@ const CreatableSelect: React.FC<CreatableSelectProps> = ({
     if (e.key === 'Enter') {
       e.preventDefault();
       if (inputValue.trim()) {
-        const matchingOption = filteredOptions.find(opt => opt.toLowerCase() === inputValue.trim().toLowerCase());
-        handleAddValue(matchingOption || inputValue);
+        const matchingOption = filteredOptions.find(opt => opt.label.toLowerCase() === inputValue.trim().toLowerCase());
+        handleAddValue(matchingOption ?? inputValue);
       }
     }
     if (e.key === 'Backspace' && inputValue === '' && value.length > 0) {
@@ -69,14 +74,14 @@ const CreatableSelect: React.FC<CreatableSelectProps> = ({
 
   const filteredOptions = options.filter(
     option =>
-      option.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !value.find(v => v.toLowerCase() === option.toLowerCase()),
+      option.label.toLowerCase().includes(inputValue.toLowerCase()) &&
+      !value.some(v => v.toLowerCase() === option.value.toLowerCase()),
   );
 
   const showCreateOption =
     inputValue.trim() &&
-    !options.find(opt => opt.toLowerCase() === inputValue.trim().toLowerCase()) &&
-    !value.find(v => v.toLowerCase() === inputValue.trim().toLowerCase());
+    !options.some(opt => opt.label.toLowerCase() === inputValue.trim().toLowerCase()) &&
+    !value.some(v => v.toLowerCase() === inputValue.trim().toLowerCase());
 
   return (
     <div className="relative" ref={wrapperRef}>
@@ -88,8 +93,9 @@ const CreatableSelect: React.FC<CreatableSelectProps> = ({
         aria-disabled={disabled}
         onKeyDown={e => {
           if (disabled) return;
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
+          // Chỉ focus vào input nếu người dùng nhấn Enter/Space trên chính wrapper,
+          // không phải trên input con (để tránh chặn phím space khi đang gõ).
+          if (e.target !== inputRef.current && (e.key === 'Enter' || e.key === ' ')) {
             inputRef.current?.focus();
           }
         }}>
@@ -126,12 +132,12 @@ const CreatableSelect: React.FC<CreatableSelectProps> = ({
         <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
           <ul className="py-1">
             {filteredOptions.map(option => (
-              <li key={option}>
+              <li key={option.value}>
                 <button
                   type="button"
-                  onClick={() => handleAddValue(option)}
+                  onClick={() => handleAddValue(option.value)}
                   className="w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700">
-                  {option}
+                  {option.label}
                 </button>
               </li>
             ))}

@@ -50,14 +50,8 @@ Add the following to the `lib/components/index.ts` file.
 
 ```tsx
 export * from './CustomComponent.js';
-```
-
-Add the following to the `lib/components/CustomComponent.tsx` file.
-
-```tsx
 import { cn } from '@/lib/utils.js';
 import type { ComponentPropsWithoutRef } from 'react';
-
 type CustomComponentProps = ComponentPropsWithoutRef<'section'>;
 
 export const CustomComponent = ({ children, ...props }: CustomComponentProps) => {

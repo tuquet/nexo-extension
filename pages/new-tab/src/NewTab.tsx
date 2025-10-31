@@ -1,12 +1,26 @@
-import Header from './layout/Header';
+import CreateScriptForm from './components/script/create-script-form';
+import LayoutContainerWrapper from './layout/layout-container-wrapper';
+import Header from './layout/layout-header';
+import WelcomePage from './pages/welcome/page';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
 import { ErrorDisplay, LoadingSpinner, ThemeProvider } from '@extension/ui';
-import ScriptsPage from '@src/pages/Scripts';
+import AssetGalleryPage from '@src/pages/gallery/page';
+import ScriptListPage from '@src/pages/script/page';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 
 const NewTab = () => (
   <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-    <Header />
-    <ScriptsPage />
+    <HashRouter>
+      <LayoutContainerWrapper>
+        <Header />
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/asset" element={<AssetGalleryPage />} />
+          <Route path="/script" element={<ScriptListPage />} />
+          <Route path="/script/new" element={<CreateScriptForm />} />
+        </Routes>
+      </LayoutContainerWrapper>
+    </HashRouter>
   </ThemeProvider>
 );
 

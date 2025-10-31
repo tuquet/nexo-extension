@@ -17,8 +17,11 @@ type ScriptsState = {
   isImporting: boolean;
   isZipping: boolean;
   settingsModalOpen: boolean;
+  modelSettingsModalOpen: boolean;
+  setModelSettingsModalOpen: (v: boolean) => void;
   setSettingsModalOpen: (v: boolean) => void;
   importData: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  importDataFromString: (jsonString: string) => Promise<void>;
   exportData: () => Promise<void>;
   exportZip: () => Promise<void>;
   init: () => Promise<void>;
@@ -65,6 +68,7 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
   isImporting: false,
   isZipping: false,
   settingsModalOpen: false,
+  modelSettingsModalOpen: false,
 
   init: async () => {
     try {
@@ -140,42 +144,85 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
   },
 
   importData: async event => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
     try {
       set({ isImporting: true, scriptsError: null });
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target?.result as string);
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsText(file);
-      });
 
-      const importedData = JSON.parse(text);
+      const allScriptsToImport: Root[] = [];
+
+      // Hàm đọc một file và trả về nội dung text
+      const readFileAsText = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target?.result as string);
+          reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+          reader.readAsText(file);
+        });
+
+      // Đọc tất cả các file song song
+      const fileContents = await Promise.all(Array.from(files).map(readFileAsText));
+
+      for (const text of fileContents) {
+        const importedData = JSON.parse(text);
+        const scriptsFromFile = Array.isArray(importedData) ? importedData : [importedData];
+
+        const isValidScript = (script: unknown): script is Root =>
+          script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
+
+        if (!scriptsFromFile.every(isValidScript)) {
+          // Có thể hiển thị lỗi cụ thể hơn, nhưng để đơn giản, ta sẽ bỏ qua file không hợp lệ
+          console.warn('Một file chứa định dạng kịch bản không hợp lệ và đã được bỏ qua.');
+          continue;
+        }
+
+        const scriptsToAdd = scriptsFromFile.map(s => {
+          const { id: _id, ...rest } = s as Root & { id?: number };
+          void _id; // Bỏ qua id cũ để Dexie tự tạo id mới
+          return rest as Root;
+        });
+        allScriptsToImport.push(...scriptsToAdd);
+      }
+
+      if (allScriptsToImport.length > 0) await db.scripts.bulkAdd(allScriptsToImport);
+      window.location.reload();
+    } catch (err) {
+      console.error('Lỗi nhập dữ liệu:', err);
+      set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+    }
+  },
+
+  importDataFromString: async jsonString => {
+    if (!jsonString.trim()) return;
+
+    try {
+      set({ isImporting: true, scriptsError: null });
+
+      const importedData = JSON.parse(jsonString);
       const scriptsToImport = Array.isArray(importedData) ? importedData : [importedData];
 
       const isValidScript = (script: unknown): script is Root =>
         script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
 
-      if (scriptsToImport.length === 0) {
-        set({ isImporting: false });
-        return;
-      }
-
       if (!scriptsToImport.every(isValidScript)) {
-        throw new Error('Tệp không chứa định dạng kịch bản hợp lệ.');
+        throw new Error('Dữ liệu JSON không chứa định dạng kịch bản hợp lệ.');
       }
 
       const scriptsToAdd = scriptsToImport.map(s => {
-        const obj = s as unknown as Record<string, unknown>;
-        const { id: _id, ...rest } = obj;
-        void _id;
-        return rest as unknown as Root;
+        const { id: _id, ...rest } = s as Root & { id?: number };
+        void _id; // Bỏ qua id cũ để Dexie tự tạo id mới
+        return rest as Root;
       });
-      await db.scripts.bulkAdd(scriptsToAdd as Root[]);
-      window.location.reload();
+
+      if (scriptsToAdd.length > 0) {
+        await db.scripts.bulkAdd(scriptsToAdd);
+        window.location.reload(); // Tải lại để hiển thị dữ liệu mới
+      } else {
+        set({ isImporting: false });
+      }
     } catch (err) {
-      console.error('Lỗi nhập dữ liệu:', err);
+      console.error('Lỗi nhập dữ liệu từ chuỗi:', err);
       set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
     }
   },
@@ -271,6 +318,7 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
   setCurrentView: v => set({ currentView: v }),
   setScriptViewMode: m => set({ scriptViewMode: m }),
   setSettingsModalOpen: v => set({ settingsModalOpen: v }),
+  setModelSettingsModalOpen: v => set({ modelSettingsModalOpen: v }),
 }));
 
 export type { ScriptsState };

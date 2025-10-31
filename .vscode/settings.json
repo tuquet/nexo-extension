@@ -1,3 +1,26 @@
 {
-  "typescript.tsdk": "node_modules\\typescript\\lib"
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  // Bật tính năng tự động định dạng khi lưu file
+  "editor.formatOnSave": true,
+
+  // Đặt Prettier làm công cụ định dạng mặc định cho tất cả các loại file
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Tùy chọn: Dùng Prettier để chạy fix lỗi ESLint/TSLint (nếu có cài đặt)
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+    // Hoặc "source.fixAll": "explicit" nếu bạn muốn bao gồm tất cả các fixers
+  },
+
+  // Tùy chọn: Nếu bạn muốn chỉ định Prettier cho một số ngôn ngữ cụ thể
+  // Ví dụ chỉ dùng Prettier cho JavaScript và TypeScript:
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

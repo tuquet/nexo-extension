@@ -1,22 +1,16 @@
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { ErrorDisplay, LoadingSpinner, ThemeProvider } from '@extension/ui';
-import ApiKeyModal from '@src/components/ApiKeyModal';
-import AssetDisplay from '@src/components/AssetDisplay';
-import CreationForm from '@src/components/CreationForm';
-import Loader from '@src/components/Loader';
-import ScriptDisplay from '@src/components/ScriptDisplay';
-import ScriptHeader from '@src/components/ScriptHeader';
-import { useAssets } from '@src/hooks/useAssets';
-import { useRouteSync, writeRouteState } from '@src/hooks/useRouteState';
-import { generateScript } from '@src/services/geminiService';
-import { useApiKey } from '@src/stores/useApiKey';
-import { useScriptsStore } from '@src/stores/useScriptsStore';
+import { Button, ErrorDisplay, LoadingSpinner } from '@extension/ui';
+import ModelSettingsModal from '@src/components/script/model-settings-modal';
+import AssetDisplay from '@src/components/script/script-asset-display';
+import ScriptDisplay from '@src/components/script/script-display';
+import ScriptHeader from '@src/components/script/script-header';
+import { useAssets } from '@src/hooks/use-assets';
+import { useRouteSync, writeRouteState } from '@src/hooks/use-route-state';
+import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useState, useEffect } from 'react';
-import type { AspectRatio } from '@src/types';
+import { Link } from 'react-router-dom';
 
 const NewTab = () => {
-  const { apiKey } = useApiKey();
-
   // initialize store on mount
   useEffect(() => {
     void useScriptsStore.getState().init();
@@ -27,11 +21,10 @@ const NewTab = () => {
   const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const scriptsError = useScriptsStore(s => s.scriptsError);
   const selectScript = useScriptsStore(s => s.selectScript);
-  const newScript = useScriptsStore(s => s.newScript);
-  const addScript = useScriptsStore(s => s.addScript);
   const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
   // clearAllData intentionally unused here; header handles destructive actions
+  const updateScriptField = useScriptsStore(s => s.updateScriptField);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
 
   const [error, setError] = useState<string | null>(null);
@@ -40,13 +33,13 @@ const NewTab = () => {
   void useAssets(setActiveScript, saveActiveScript, setError);
 
   // UI and process-specific state
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const isImporting = useScriptsStore(s => s.isImporting);
-  const isSettingsModalOpen = useScriptsStore(s => s.settingsModalOpen);
-  const setIsSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
+
   const currentView = useScriptsStore(s => s.currentView);
   const setCurrentView = useScriptsStore(s => s.setCurrentView);
   const scriptViewMode = useScriptsStore(s => s.scriptViewMode);
+  const isModelSettingsOpen = useScriptsStore(s => s.modelSettingsModalOpen);
+  const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
   // modal state is managed in the store
 
   // Effect to sync script errors with the main error state
@@ -72,31 +65,41 @@ const NewTab = () => {
     });
   }, [currentView, activeScript?.id, activeSceneIdentifier]);
 
-  const handleGenerateScript = async (prompt: string, language: 'en-US' | 'vi-VN', aspectRatio: AspectRatio) => {
-    setIsLoading(true);
-    setError(null);
-    newScript(); // Reset active script via hook
-
-    try {
-      if (!apiKey) throw new Error('API key is not set.');
-      const generatedScript = await generateScript(prompt, language, apiKey);
-      generatedScript.setting.defaultAspectRatio = aspectRatio;
-      await addScript(generatedScript);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSaveModelSettings = (newSettings: { imageModel: string; videoModel: string }) => {
+    void updateScriptField('setting.defaultImageModel', newSettings.imageModel);
+    void updateScriptField('setting.defaultVideoModel', newSettings.videoModel);
   };
 
-  // export/import/zip handlers moved into the store; header now triggers them directly
-
-  // navigation helpers moved into components that consume the store directly
+  const NoScriptFallback = () => (
+    <div className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">
+      <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1}
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        />
+      </svg>
+      <h3 className="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-200">Chưa có kịch bản nào được chọn</h3>
+      <p className="mt-1 text-sm">Vui lòng chọn một kịch bản từ danh sách hoặc tạo một kịch bản mới.</p>
+      <Link className="mt-4" to="/script/new">
+        <Button>Tạo kịch bản mới</Button>
+      </Link>
+    </div>
+  );
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <div>
+      {activeScript && (
+        <ModelSettingsModal
+          isOpen={isModelSettingsOpen}
+          onClose={() => setModelSettingsModalOpen(false)}
+          script={activeScript}
+          onSave={handleSaveModelSettings}
+        />
+      )}
+      <ScriptHeader />
       {error && <div className="error">{error}</div>}
-      <ApiKeyModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
       {isImporting && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 text-center backdrop-blur-sm"
@@ -107,32 +110,27 @@ const NewTab = () => {
           <p className="text-slate-300">Ứng dụng sẽ sớm được tải lại.</p>
         </div>
       )}
-      <ScriptHeader />
 
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="bg-background min-h-screen">
         <div className="flex h-full">
           <main className="flex-1 overflow-y-auto p-6">
-            <div className={activeScript ? 'mx-auto max-w-4xl' : 'mx-auto max-w-2xl'}>
-              {isLoading ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader />
-                </div>
-              ) : activeScript ? (
+            <div className="mx-auto">
+              {activeScript ? (
                 <ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />
               ) : (
-                <CreationForm onGenerate={handleGenerateScript} isLoading={isLoading} />
+                <NoScriptFallback />
               )}
             </div>
           </main>
 
           {activeScript && (
-            <aside className="w-[350px] flex-shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-6 dark:border-slate-700/50 dark:bg-slate-800/50">
+            <aside className="w-[450px] flex-shrink-0 overflow-y-auto p-6">
               <AssetDisplay />
             </aside>
           )}
         </div>
       </div>
-    </ThemeProvider>
+    </div>
   );
 };
 

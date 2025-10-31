@@ -1,6 +1,6 @@
-import { db } from '../db';
-import { useAssets } from '../hooks/useAssets';
-import { useScriptsStore } from '../stores/useScriptsStore';
+import { db } from '../../db';
+import { useAssets } from '../../hooks/use-assets';
+import { useScriptsStore } from '../../stores/use-scripts-store';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type React from 'react';
 
@@ -12,7 +12,7 @@ interface Asset {
   dataType: string; // mime type
 }
 
-const AssetGallery: React.FC = () => {
+const AssetGalleryPage: React.FC = () => {
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
   const { deleteAssetFromGallery } = useAssets(setActiveScript, saveActiveScript, () => {});
@@ -151,4 +151,4 @@ const AssetGallery: React.FC = () => {
   );
 };
 
-export default AssetGallery;
+export default AssetGalleryPage;

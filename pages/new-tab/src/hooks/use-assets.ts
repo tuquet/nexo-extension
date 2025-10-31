@@ -3,8 +3,8 @@ import {
   generateSceneImage as geminiGenerateSceneImage,
   generateSceneVideo as geminiGenerateSceneVideo,
   blobToBase64,
-} from '../services/geminiService';
-import { useApiKey } from '../stores/useApiKey';
+} from '../services/gemini-service';
+import { useApiKey } from '../stores/use-api-key';
 import type { Root, AspectRatio } from '../types';
 
 const base64ToBlob = async (base64: string) => (await fetch(base64)).blob();
@@ -37,6 +37,7 @@ export const useAssets = (
     sceneIndex: number,
     prompt: string,
     negativePrompt: string,
+    modelName: string,
     aspectRatio: AspectRatio,
   ) => {
     const apiKey = getApiKey();
@@ -45,10 +46,10 @@ export const useAssets = (
 
     const working = clone(script);
     working.acts[actIndex].scenes[sceneIndex].isGeneratingImage = true;
-    cb.setActiveScript(working);
+    cb.setActiveScript(working); // Cập nhật UI ngay lập tức để vô hiệu hóa nút
 
     try {
-      const imgUrl = await geminiGenerateSceneImage(prompt, aspectRatio, apiKey, negativePrompt);
+      const imgUrl = await geminiGenerateSceneImage(prompt, aspectRatio, apiKey, modelName, negativePrompt);
       const imgBlob = await base64ToBlob(imgUrl);
       const imageId = await db.images.add({ data: imgBlob, scriptId });
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
@@ -57,12 +58,12 @@ export const useAssets = (
       const scene = updated.acts[actIndex].scenes[sceneIndex];
       scene.generatedImageId = imageId;
       scene.isGeneratingImage = false;
-      await cb.saveActiveScript(updated);
+      await cb.saveActiveScript(updated); // Chỉ dùng saveActiveScript để cập nhật trạng thái cuối cùng
     } catch (e) {
       console.error('Lỗi tạo ảnh:', e);
       const reverted = clone(script);
       reverted.acts[actIndex].scenes[sceneIndex].isGeneratingImage = false;
-      cb.setActiveScript(reverted);
+      await cb.saveActiveScript(reverted); // Dùng saveActiveScript để đảm bảo tính nhất quán
       cb.setError(e instanceof Error ? e.message : 'Không thể tạo ảnh.');
     }
   };
@@ -74,14 +75,20 @@ export const useAssets = (
     cb.setActiveScript(updated);
   };
 
-  const generateSceneVideo = async (script: Root, actIndex: number, sceneIndex: number, aspectRatio: AspectRatio) => {
+  const generateSceneVideo = async (
+    script: Root,
+    actIndex: number,
+    sceneIndex: number,
+    modelName: string,
+    aspectRatio: AspectRatio,
+  ) => {
     const apiKey = getApiKey();
     if (!script?.id || !apiKey) return;
     const scriptId = script.id;
 
     const working = clone(script);
     working.acts[actIndex].scenes[sceneIndex].isGeneratingVideo = true;
-    cb.setActiveScript(working);
+    cb.setActiveScript(working); // Cập nhật UI ngay lập tức để vô hiệu hóa nút
 
     const scene = script.acts[actIndex].scenes[sceneIndex];
     const prompt = `Cinematic shot for a movie scene. Location: ${scene.location} (${scene.time}). Action: ${scene.action}. Visual style: ${scene.visual_style}. Audio style: ${scene.audio_style}.`;
@@ -93,7 +100,7 @@ export const useAssets = (
         if (img?.data) startImage = { mimeType: img.data.type, data: await blobToBase64(img.data) };
       }
 
-      const videoBlob = await geminiGenerateSceneVideo(prompt, aspectRatio, apiKey, startImage);
+      const videoBlob = await geminiGenerateSceneVideo(prompt, aspectRatio, apiKey, modelName, startImage);
       const videoId = await db.videos.add({ data: videoBlob, scriptId });
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
 
@@ -101,12 +108,12 @@ export const useAssets = (
       const s = updated.acts[actIndex].scenes[sceneIndex];
       s.generatedVideoId = videoId;
       s.isGeneratingVideo = false;
-      await cb.saveActiveScript(updated);
+      await cb.saveActiveScript(updated); // Chỉ dùng saveActiveScript để cập nhật trạng thái cuối cùng
     } catch (e) {
       console.error('Lỗi tạo video:', e);
       const reverted = clone(script);
       reverted.acts[actIndex].scenes[sceneIndex].isGeneratingVideo = false;
-      cb.setActiveScript(reverted);
+      await cb.saveActiveScript(reverted); // Dùng saveActiveScript để đảm bảo tính nhất quán
       cb.setError(`Tạo video thất bại: ${e instanceof Error ? e.message : 'Không rõ nguyên nhân'}`);
     }
   };
