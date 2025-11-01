@@ -21,6 +21,7 @@ export interface AudioRecord {
   id?: number; // Primary key
   scriptId: number; // Foreign key to the script
   data: Blob;
+  isFullScript?: boolean;
 }
 
 /**

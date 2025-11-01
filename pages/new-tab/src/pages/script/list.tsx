@@ -27,15 +27,12 @@ import type { ScriptStory } from '@src/types';
 const ScriptListPage = () => {
   const navigate = useNavigate();
   const savedScripts = useScriptsStore(s => s.savedScripts);
-  const selectScript = useScriptsStore(s => s.selectScript);
   const deleteActiveScript = useScriptsStore(s => s.deleteActiveScript);
   const hasHydrated = useStoreHydration();
 
   const handleDelete = async (script: ScriptStory) => {
-    // `deleteActiveScript` works on the active script, so we select it first
-    selectScript(script.id as number);
-    // Now that the script is active, delete it.
-    await deleteActiveScript();
+    // Truyền ID vào để xóa, không cần select trước
+    await deleteActiveScript(script.id as number);
   };
 
   if (!hasHydrated) {

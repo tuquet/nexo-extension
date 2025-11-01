@@ -14,21 +14,31 @@ import {
   TabsTrigger,
 } from '@extension/ui';
 import { Settings } from 'lucide-react';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ScriptsState } from '../../stores/use-scripts-store';
 import type React from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
 
 const ScriptHeader: React.FC = () => {
+  const navigate = useNavigate();
+  const { id: idFromUrl } = useParams<{ id: string }>();
   const scripts = useScriptsStore((s: ScriptsState) => s.savedScripts);
   const activeScript = useScriptsStore((s: ScriptsState) => s.activeScript);
-  const selectScript = useScriptsStore((s: ScriptsState) => s.selectScript);
   const currentView = useScriptsStore(s => s.currentView);
   const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
   const scriptViewMode = useScriptsStore(s => s.scriptViewMode);
   const setScriptViewMode = useScriptsStore(s => s.setScriptViewMode);
   const confirmationTimeoutRef = useRef<number | null>(null);
+  const [selectedValue, setSelectedValue] = useState<string | undefined>(idFromUrl);
+
+  // Đồng bộ state cục bộ với activeScript từ store
+  useEffect(() => {
+    if (activeScript) {
+      setSelectedValue(String(activeScript.id));
+    }
+  }, [activeScript]);
 
   useEffect(
     () => () => {
@@ -52,12 +62,13 @@ const ScriptHeader: React.FC = () => {
             </Tabs>
           )}
           <Select
-            value={activeScript ? String(activeScript.id) : undefined}
+            value={selectedValue}
             onValueChange={val => {
-              const script = scripts.find(s => String(s.id) === val);
-              if (script) selectScript(script.id!);
+              // Đẩy việc điều hướng vào cuối event loop để cho phép Select component hoàn tất cập nhật trạng thái của nó trước.
+              // Điều này tránh được race condition gây ra lỗi "pending".
+              setTimeout(() => navigate(`/script/${val}`), 0);
             }}>
-            <SelectTrigger className="w-[auto]">
+            <SelectTrigger className="w-[auto]" disabled={scripts.length === 0}>
               <SelectValue placeholder="Chọn kịch bản" />
             </SelectTrigger>
             <SelectContent>

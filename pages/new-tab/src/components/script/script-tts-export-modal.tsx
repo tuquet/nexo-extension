@@ -26,16 +26,15 @@ import { useScriptsStore, selectActiveScriptCharacters, selectAllDialogueLines }
 import { Copy, Check } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import type { VbeeTransformationResult } from '@src/services/vbee-service';
-import type { ScriptStory } from '@src/types';
 import type React from 'react';
 
 interface ScriptTtsExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  script: ScriptStory | null;
 }
 
-const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onClose, script }) => {
+const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onClose }) => {
+  const activeScript = useScriptsStore(s => s.activeScript);
   const [projectJsonText, setProjectJsonText] = useState(''); // Payload for Project tab
   const [plainText, setPlainText] = useState(''); // Plain text for TTS tab
   const [token, setToken] = useState('');
@@ -78,6 +77,14 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
 
     setIsSubmitting(true);
     setError(null);
+
+    // Lấy phiên bản mới nhất của activeScript từ store ngay trước khi thực hiện hành động
+    const currentActiveScript = useScriptsStore.getState().activeScript;
+    if (!currentActiveScript) {
+      setError('Không tìm thấy kịch bản đang hoạt động.');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const { payload, updatedScript } = JSON.parse(projectJsonText) as VbeeTransformationResult;
@@ -128,7 +135,7 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
   const { ttsModel } = useModelSettings();
 
   useEffect(() => {
-    if (isOpen && script) {
+    if (isOpen && activeScript) {
       // Khởi tạo map giọng nói với giọng mặc định
       const initialVoiceMap = characters.reduce(
         (acc, char) => {
@@ -170,15 +177,15 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener);
     };
-  }, [isOpen, script, ttsModel, characters, allDialogueLines]);
+  }, [isOpen, activeScript, ttsModel, characters, allDialogueLines]);
 
   // Cập nhật payload JSON khi có thay đổi về ánh xạ giọng nói hoặc tab
   useEffect(() => {
-    if (isOpen && script && activeTab === 'project') {
-      const transformation = transformScriptToVbeeProject(script, ttsModel, characterVoiceMap);
+    if (isOpen && activeScript && activeTab === 'project') {
+      const transformation = transformScriptToVbeeProject(activeScript, ttsModel, characterVoiceMap);
       setProjectJsonText(JSON.stringify(transformation, null, 2));
     }
-  }, [isOpen, script, activeTab, characterVoiceMap, ttsModel]);
+  }, [isOpen, activeScript, activeTab, characterVoiceMap, ttsModel]);
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>

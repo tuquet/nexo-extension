@@ -387,14 +387,11 @@ const AssetGalleryPage: React.FC = () => {
             </div>
             <DialogFooter className="sm:justify-between">
               <div className="flex items-center gap-2">
-                <Button variant="destructive" onClick={() => {}}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => handleDownloadAsset(selectedAsset)}>
                   <Download className="mr-2 h-4 w-4" /> Tải xuống
                 </Button>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button onClick={() => handleGoToScript(selectedAsset)}>
                   <ExternalLink className="mr-2 h-4 w-4" /> Đi đến kịch bản
                 </Button>

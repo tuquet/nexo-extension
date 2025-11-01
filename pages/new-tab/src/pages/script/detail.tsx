@@ -9,22 +9,22 @@ import ScriptTtsExportModal from '@src/components/script/script-tts-export-modal
 import { QUERIES } from '@src/constants';
 import { useAssets } from '@src/hooks/use-assets';
 import { useMediaQuery } from '@src/hooks/use-media-query';
-import { useRouteSync, writeRouteState } from '@src/hooks/use-route-state';
+import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 const ScriptDetailPage = () => {
   useEffect(() => {
     void useApiKey.getState().loadApiKey();
   }, []);
 
+  const hasHydrated = useStoreHydration();
+  const { id: idFromUrl } = useParams<{ id: string }>();
   const activeScript = useScriptsStore(s => s.activeScript);
-  const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const scriptsError = useScriptsStore(s => s.scriptsError);
   const selectScript = useScriptsStore(s => s.selectScript);
-  const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +35,6 @@ const ScriptDetailPage = () => {
 
   // UI and process-specific state
   const isImporting = useScriptsStore(s => s.isImporting);
-  const currentView = useScriptsStore(s => s.currentView);
-  const setCurrentView = useScriptsStore(s => s.setCurrentView);
   const scriptViewMode = useScriptsStore(s => s.scriptViewMode);
   const isModelSettingsOpen = useScriptsStore(s => s.modelSettingsModalOpen);
   const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
@@ -49,23 +47,14 @@ const ScriptDetailPage = () => {
     setError(scriptsError);
   }, [scriptsError]);
 
-  // Initialize from URL on first render and wire popstate
-  useRouteSync(initial => {
-    if (initial.view) setCurrentView(initial.view);
-    if (initial.scriptId != null) selectScript(initial.scriptId);
-    if (initial.actIndex != null && initial.sceneIndex != null)
-      setActiveSceneIdentifier({ actIndex: initial.actIndex, sceneIndex: initial.sceneIndex });
-  });
-
-  // Write route on relevant state changes
+  // Đồng bộ state với URL.
+  // Hook này sẽ chạy khi component được mount, hoặc khi id trên URL thay đổi.
   useEffect(() => {
-    writeRouteState({
-      view: currentView,
-      scriptId: activeScript?.id ?? null,
-      actIndex: activeSceneIdentifier?.actIndex ?? null,
-      sceneIndex: activeSceneIdentifier?.sceneIndex ?? null,
-    });
-  }, [currentView, activeScript?.id, activeSceneIdentifier]);
+    if (hasHydrated) {
+      const scriptIdFromUrl = idFromUrl ? parseInt(idFromUrl, 10) : null;
+      if (scriptIdFromUrl !== null) selectScript(scriptIdFromUrl);
+    }
+  }, [idFromUrl, hasHydrated, selectScript]);
 
   const NoScriptFallback = () => (
     <div className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">
@@ -87,8 +76,12 @@ const ScriptDetailPage = () => {
 
   // Hiển thị loading spinner nếu URL có ID nhưng activeScript chưa khớp
   // Điều này ngăn việc hiển thị NoScriptFallback trong lúc chuyển trang
-  const match = window.location.hash.match(/#\/script\/(\d+)/);
-  const urlScriptId = match ? parseInt(match[1], 10) : null;
+  if (!hasHydrated) {
+    // Nếu store chưa hydrate, luôn hiển thị loading
+    return <LoadingSpinner />;
+  }
+
+  const urlScriptId = idFromUrl ? parseInt(idFromUrl, 10) : null;
   const isSyncingRoute = urlScriptId !== null && activeScript?.id !== urlScriptId;
   if (isSyncingRoute) {
     return <LoadingSpinner />;
@@ -104,9 +97,7 @@ const ScriptDetailPage = () => {
           onSave={() => {}}
         />
       )}
-      {activeScript && (
-        <ScriptTtsExportModal isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} script={activeScript} />
-      )}
+      {activeScript && <ScriptTtsExportModal isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} />}
 
       <ScriptHeader />
       {error && <div className="error">{error}</div>}

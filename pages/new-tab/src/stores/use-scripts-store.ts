@@ -29,7 +29,7 @@ type ScriptsState = {
   selectScript: (id: number) => void;
   newScript: () => void;
   saveActiveScript: (script: ScriptStory) => Promise<void>;
-  deleteActiveScript: () => Promise<void>;
+  deleteActiveScript: (id: number) => Promise<void>;
   cleanActiveScript: () => Promise<void>;
   clearAllData: () => Promise<void>;
   updateScriptField: (path: string, value: unknown) => Promise<void>;
@@ -121,10 +121,8 @@ const useScriptsStore = create<ScriptsState>()(
         }
       },
 
-      deleteActiveScript: async () => {
-        const active = get().activeScript;
-        if (!active || active.id === undefined) return;
-        const id = active.id;
+      deleteActiveScript: async id => {
+        if (id === undefined) return;
         try {
           await db.scripts.delete(id);
           await db.images.where({ scriptId: id }).delete();

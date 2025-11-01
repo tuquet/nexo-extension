@@ -196,6 +196,7 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
       await db.audios.put({
         scriptId: script.id,
         data: audioBlob,
+        isFullScript: true, // Đánh dấu đây là file âm thanh gộp
       });
 
       // Step 4: Create a URL for the local player and update the state
@@ -266,29 +267,30 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   }, [vbeeProjectId, fetchStatus]); // Include fetchStatus in dependency array
 
   useEffect(() => {
-    // Function to revoke the old URL and clear state
-    const cleanup = () => {
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-        audioUrlRef.current = null;
-      }
-      setLocalAudioUrl(null);
-    };
-
     const loadAudioFromDb = async () => {
-      cleanup(); // Clean up previous URL before loading a new one
       if (!script?.id) return;
-      const audioRecord = await db.audios.where({ scriptId: script.id }).first();
+      // Lấy tất cả audio của kịch bản này và sắp xếp để ưu tiên bản full
+      const audioRecords = await db.audios.where({ scriptId: script.id }).reverse().sortBy('isFullScript');
+      const audioRecord = audioRecords[0]; // Lấy bản ghi đầu tiên (sẽ là bản full nếu có)
       if (audioRecord) {
         const url = URL.createObjectURL(audioRecord.data);
         audioUrlRef.current = url; // Store in ref
         setLocalAudioUrl(url);
+      } else {
+        // Nếu không có audio nào, đảm bảo dọn dẹp state
+        setLocalAudioUrl(null);
       }
     };
 
     void loadAudioFromDb();
 
-    return cleanup; // Return the cleanup function
+    // Hàm cleanup sẽ được gọi khi script.id thay đổi hoặc component unmount
+    return () => {
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+    };
   }, [script?.id]);
 
   if (!script) {
