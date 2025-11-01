@@ -1,3 +1,4 @@
+import { ApiAuthError, ApiContentError } from './api-errors';
 import { TEXT_ENHANCEMENT_MODEL } from '../constants';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { ScriptStory, AspectRatio } from '../types';
@@ -172,9 +173,14 @@ const generateScript = async (
     return JSON.parse(text) as ScriptStory;
   } catch (error) {
     console.error('Lỗi tạo kịch bản:', error);
-    throw new Error(
-      `Không thể tạo kịch bản. Vui lòng kiểm tra khóa API và kết nối mạng của bạn. Chi tiết: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('API key not valid')) {
+      throw new ApiAuthError('Khóa API không hợp lệ. Vui lòng kiểm tra lại.');
+    }
+    if (errorMessage.includes('SAFETY')) {
+      throw new ApiContentError('Nội dung bị chặn do cài đặt an toàn của Gemini. Vui lòng thử lại với prompt khác.');
+    }
+    throw new Error(`Không thể tạo kịch bản: ${errorMessage}`);
   }
 };
 

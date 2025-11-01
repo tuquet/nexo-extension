@@ -14,7 +14,7 @@ const ResponsiveDetailLayout: React.FC<ResponsiveDetailLayoutProps> = ({ scriptC
   if (isMobile) {
     // Mobile View: Tabs
     return (
-      <div className="p-4">
+      <div>
         <Tabs defaultValue="script" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="script">Kịch bản</TabsTrigger>
@@ -34,11 +34,11 @@ const ResponsiveDetailLayout: React.FC<ResponsiveDetailLayoutProps> = ({ scriptC
   // Desktop View: 2 Columns
   return (
     <div className="flex h-full">
-      <main className="flex-1 p-6">
+      <div className="flex-1">
         <div className="mx-auto">{scriptContent}</div>
-      </main>
+      </div>
       <aside
-        className="scrollbar-hidden sticky top-0 h-[calc(100vh-4rem)] w-[500px] flex-shrink-0 overflow-y-auto p-6"
+        className="scrollbar-hidden sticky top-28 h-[calc(100vh-8rem)] w-[500px] flex-shrink-0 overflow-y-auto pl-6"
         style={{ alignSelf: 'flex-start' }}>
         {assetContent}
       </aside>

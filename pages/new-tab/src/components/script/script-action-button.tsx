@@ -10,7 +10,7 @@ import {
   ButtonGroup,
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { FileJson, ChevronDown, Trash, FolderDown, MicVocal } from 'lucide-react';
+import { FileJson, ChevronDown, Trash, FolderDown, MicVocal, Wand2 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
 
@@ -72,6 +72,13 @@ const ScriptActionButton = () => {
                 disabled={!activeScript}>
                 <FileJson className="mr-2 h-4 w-4" />
                 Xuất JSON
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem disabled={true}>
+                <Wand2 className="mr-2 h-4 w-4" />
+                Làm sạch kịch bản (Sắp có)
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

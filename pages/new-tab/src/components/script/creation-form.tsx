@@ -1,5 +1,5 @@
 import { ModelSettings } from './model-settings';
-import { PREDEFINED_GENRES, PLOT_SUGGESTION_MODEL } from '../../constants';
+import { PREDEFINED_GENRES, PLOT_SUGGESTION_MODEL, SCRIPT_GENERATION_LOADING_MESSAGES } from '../../constants';
 import { suggestPlotPoints, getScriptGenerationPayload } from '../../services/gemini-service';
 import { useApiKey } from '../../stores/use-api-key';
 import CreatableSelect from '../script/creatable-select';
@@ -22,7 +22,7 @@ import { useModelSettings } from '@src/stores/use-model-settings';
 import { usePreferencesStore } from '@src/stores/use-preferences-store';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { AlertCircle, Copy } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { AspectRatio } from '../../types';
 import type { FormEvent } from 'react';
 
@@ -64,6 +64,23 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, onImportJson, o
   const [formError, setFormError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('ai');
   const [jsonText, setJsonText] = useState('');
+  const [loadingMessage, setLoadingMessage] = useState(SCRIPT_GENERATION_LOADING_MESSAGES[0]);
+
+  useEffect(() => {
+    let interval: number;
+    if (isLoading) {
+      // Bắt đầu chạy chữ khi loading
+      interval = window.setInterval(() => {
+        setLoadingMessage(prev => {
+          const currentIndex = SCRIPT_GENERATION_LOADING_MESSAGES.indexOf(prev);
+          const nextIndex = (currentIndex + 1) % SCRIPT_GENERATION_LOADING_MESSAGES.length;
+          return SCRIPT_GENERATION_LOADING_MESSAGES[nextIndex];
+        });
+      }, 3000); // Thay đổi thông báo mỗi 3 giây
+    }
+    // Dọn dẹp interval khi không còn loading hoặc component bị hủy
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleGenerateScript = (e: FormEvent) => {
     e.preventDefault();
@@ -380,9 +397,7 @@ ${genres.join(', ')}`.trim();
             <h4 className="mt-6 text-lg font-semibold text-slate-800 dark:text-slate-200">
               Đang tạo kịch bản của bạn...
             </h4>
-            <p className="text-slate-500 dark:text-slate-400">
-              AI đang làm việc. Quá trình này có thể mất một chút thời gian.
-            </p>
+            <p className="text-slate-500 dark:text-slate-400">{loadingMessage}</p>
           </div>
         </div>
       )}

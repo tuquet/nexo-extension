@@ -5,9 +5,25 @@ import {
   blobToBase64,
 } from '../services/gemini-service';
 import { useApiKey } from '../stores/use-api-key';
+import { useScriptsStore } from '../stores/use-scripts-store';
 import type { ScriptStory, AspectRatio } from '../types';
 
-const base64ToBlob = async (base64: string) => (await fetch(base64)).blob();
+/**
+ * Chuyển đổi một chuỗi data URL (ví dụ: "data:image/jpeg;base64,...") thành một Blob.
+ * @param dataUrl Chuỗi data URL.
+ * @returns Một đối tượng Blob.
+ */
+const dataUrlToBlob = (dataUrl: string): Blob => {
+  const parts = dataUrl.split(',');
+  const mimeType = parts[0].match(/:(.*?);/)?.[1];
+  const b64 = atob(parts[1]);
+  let n = b64.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = b64.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mimeType });
+};
 
 const ASSET_EVENTS = { CHANGED: 'assets-changed' } as const;
 
@@ -16,19 +32,7 @@ const clone = <T>(v: T): T =>
     ? // use native structuredClone when available for accurate cloning
       structuredClone(v)
     : JSON.parse(JSON.stringify(v));
-
-type Callbacks = {
-  setActiveScript: (script: ScriptStory) => void;
-  saveActiveScript: (script: ScriptStory) => Promise<void>;
-  setError: (error: string | null) => void;
-};
-
-export const useAssets = (
-  setActiveScript: (script: ScriptStory) => void,
-  saveActiveScript: (script: ScriptStory) => Promise<void>,
-  setError: (error: string | null) => void,
-) => {
-  const cb: Callbacks = { setActiveScript, saveActiveScript, setError };
+export const useAssets = (setError: (error: string | null) => void) => {
   const getApiKey = () => useApiKey.getState().apiKey;
 
   const generateSceneImage = async (
@@ -46,11 +50,12 @@ export const useAssets = (
 
     const working = clone(script);
     working.acts[actIndex].scenes[sceneIndex].isGeneratingImage = true;
-    cb.setActiveScript(working); // Cập nhật UI ngay lập tức để vô hiệu hóa nút
+    // Cập nhật UI ngay lập tức để vô hiệu hóa nút
+    useScriptsStore.getState().setActiveScript(working);
 
     try {
       const imgUrl = await geminiGenerateSceneImage(prompt, aspectRatio, apiKey, modelName, negativePrompt);
-      const imgBlob = await base64ToBlob(imgUrl);
+      const imgBlob = dataUrlToBlob(imgUrl);
       const imageId = await db.images.add({ data: imgBlob, scriptId });
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
 
@@ -58,13 +63,13 @@ export const useAssets = (
       const scene = updated.acts[actIndex].scenes[sceneIndex];
       scene.generatedImageId = imageId;
       scene.isGeneratingImage = false;
-      await cb.saveActiveScript(updated); // Chỉ dùng saveActiveScript để cập nhật trạng thái cuối cùng
+      await useScriptsStore.getState().saveActiveScript(updated); // Chỉ dùng saveActiveScript để cập nhật trạng thái cuối cùng
     } catch (e) {
       console.error('Lỗi tạo ảnh:', e);
       const reverted = clone(script);
       reverted.acts[actIndex].scenes[sceneIndex].isGeneratingImage = false;
-      await cb.saveActiveScript(reverted); // Dùng saveActiveScript để đảm bảo tính nhất quán
-      cb.setError(e instanceof Error ? e.message : 'Không thể tạo ảnh.');
+      await useScriptsStore.getState().saveActiveScript(reverted); // Dùng saveActiveScript để đảm bảo tính nhất quán
+      setError(e instanceof Error ? e.message : 'Không thể tạo ảnh.');
     }
   };
 
@@ -72,7 +77,7 @@ export const useAssets = (
     const updated = clone(script);
     const scene = updated.acts?.[actIndex]?.scenes?.[sceneIndex];
     if (scene) scene.isGeneratingImage = false;
-    cb.setActiveScript(updated);
+    useScriptsStore.getState().setActiveScript(updated);
   };
 
   const generateSceneVideo = async (
@@ -88,7 +93,8 @@ export const useAssets = (
 
     const working = clone(script);
     working.acts[actIndex].scenes[sceneIndex].isGeneratingVideo = true;
-    cb.setActiveScript(working); // Cập nhật UI ngay lập tức để vô hiệu hóa nút
+    // Cập nhật UI ngay lập tức để vô hiệu hóa nút
+    useScriptsStore.getState().setActiveScript(working);
 
     const scene = script.acts[actIndex].scenes[sceneIndex];
     const prompt = `Cinematic shot for a movie scene. Location: ${scene.location} (${scene.time}). Action: ${scene.action}. Visual style: ${scene.visual_style}. Audio style: ${scene.audio_style}.`;
@@ -108,13 +114,13 @@ export const useAssets = (
       const s = updated.acts[actIndex].scenes[sceneIndex];
       s.generatedVideoId = videoId;
       s.isGeneratingVideo = false;
-      await cb.saveActiveScript(updated); // Chỉ dùng saveActiveScript để cập nhật trạng thái cuối cùng
+      await useScriptsStore.getState().saveActiveScript(updated); // Chỉ dùng saveActiveScript để cập nhật trạng thái cuối cùng
     } catch (e) {
       console.error('Lỗi tạo video:', e);
       const reverted = clone(script);
       reverted.acts[actIndex].scenes[sceneIndex].isGeneratingVideo = false;
-      await cb.saveActiveScript(reverted); // Dùng saveActiveScript để đảm bảo tính nhất quán
-      cb.setError(`Tạo video thất bại: ${e instanceof Error ? e.message : 'Không rõ nguyên nhân'}`);
+      await useScriptsStore.getState().saveActiveScript(reverted); // Dùng saveActiveScript để đảm bảo tính nhất quán
+      setError(`Tạo video thất bại: ${e instanceof Error ? e.message : 'Không rõ nguyên nhân'}`);
     }
   };
 
@@ -126,11 +132,11 @@ export const useAssets = (
     try {
       await db.images.delete(scene.generatedImageId);
       delete scene.generatedImageId;
-      await cb.saveActiveScript(updated);
+      await useScriptsStore.getState().saveActiveScript(updated);
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
     } catch (e) {
       console.error('Lỗi xóa ảnh:', e);
-      cb.setError('Không thể xóa ảnh.');
+      setError('Không thể xóa ảnh.');
     }
   };
 
@@ -142,11 +148,11 @@ export const useAssets = (
     try {
       await db.videos.delete(scene.generatedVideoId);
       delete scene.generatedVideoId;
-      await cb.saveActiveScript(updated);
+      await useScriptsStore.getState().saveActiveScript(updated);
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
     } catch (e) {
       console.error('Lỗi xóa video:', e);
-      cb.setError('Không thể xóa video.');
+      setError('Không thể xóa video.');
     }
   };
 
@@ -171,14 +177,29 @@ export const useAssets = (
             delete scene.generatedVideoId;
             changed = true;
           }
+          if (type === 'audio') {
+            // Xóa audio của từng câu thoại
+            for (const dialogue of scene.dialogues) {
+              if (dialogue.generatedAudioId === assetId) {
+                delete dialogue.generatedAudioId;
+                changed = true;
+              }
+            }
+          }
         }
       }
 
-      if (changed) await cb.saveActiveScript(script);
+      // Xóa audio gộp của toàn bộ kịch bản
+      if (type === 'audio' && script.buildMeta?.fullScriptAudioId === assetId) {
+        delete script.buildMeta.fullScriptAudioId;
+        changed = true;
+      }
+
+      if (changed) await useScriptsStore.getState().saveActiveScript(script);
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
     } catch (e) {
       console.error(`Lỗi xóa ${type}:`, e);
-      cb.setError('Không thể xóa tài sản.');
+      setError('Không thể xóa tài sản.');
     }
   };
 

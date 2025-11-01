@@ -50,8 +50,8 @@ const ScriptHeader: React.FC = () => {
   );
 
   return (
-    <div className="bg-background w-full">
-      <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div className="bg-background sticky top-16 z-30 -mx-4 -mt-6 mb-6 border-b px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <div className="flex h-12 items-center justify-between">
         <div className="flex items-center gap-4">
           {activeScript && currentView === 'script' && (
             <Tabs value={scriptViewMode} onValueChange={v => setScriptViewMode(v as ScriptViewMode)}>

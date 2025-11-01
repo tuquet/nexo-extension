@@ -8,6 +8,14 @@ import {
   Badge,
   toast,
   CardAction,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@extension/ui'; // Assuming DownloadCloud is exported from here
 import { VBEE_PROJECT_URL } from '@src/constants';
 import { db } from '@src/db';
@@ -33,7 +41,6 @@ interface VbeeProjectStatus {
 interface ScriptTtsAssetCardProps {
   onGenerateTts: () => void;
   script: ScriptStory | null;
-  onSave: (script: ScriptStory) => Promise<void>;
 }
 
 const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script }) => {
@@ -48,32 +55,11 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
   const [isGeneratingSrt, setIsGeneratingSrt] = useState(false);
   const audioUrlRef = useRef<string | null>(null);
+  // State cho dialog xác nhận
+  const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
+  const [syncData, setSyncData] = useState<Map<string, string> | null>(null);
+
   const allDialogues = useScriptsStore(selectAllDialogues);
-
-  const downloadAndSaveAudio = useCallback(
-    async (scriptId: number, actIndex: number, sceneIndex: number, dialogueIndex: number, audioUrl: string) => {
-      try {
-        // 1. Set loading state
-        // This needs a new specific updater if we want to keep it
-
-        // 2. Fetch audio
-        const response = await fetch(audioUrl);
-        if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
-
-        // 4. Update script with DB ID
-        // This also needs a new specific updater
-      } catch (e) {
-        console.error(`Failed to download/save audio for dialogue ${dialogueIndex}:`, e);
-        toast.error(`Lỗi tải âm thanh cho câu thoại ${dialogueIndex + 1}.`);
-        // Optionally clear the ID if it fails
-        // This also needs a new specific updater
-      } finally {
-        // 5. Unset loading state
-        // This also needs a new specific updater
-      }
-    },
-    [],
-  );
 
   const fetchStatus = useCallback(async () => {
     // We get the script from the store directly inside the fetch function
@@ -95,7 +81,6 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
       const project = response.result.project as VbeeProjectStatus;
       setProjectStatus(project);
 
-      // Always try to update any available audio links, don't wait for all to be "done".
       if (project.blocks?.length > 0) {
         const projectBlockAudioLinkMap = new Map(
           project.blocks.filter(b => b.audio_link).map(b => [b.id, b.audio_link as string]),
@@ -105,24 +90,28 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
           toast.info('Vbee chưa xử lý xong. Vui lòng thử lại sau ít phút.');
           return;
         }
-        const updatedScript = structuredClone(currentScript);
 
-        updatedScript.acts.forEach((act, actIndex) => {
-          act.scenes.forEach((scene, sceneIndex) => {
-            scene.dialogues?.forEach((dialogue, dialogueIndex) => {
+        // Kiểm tra xem có liên kết mới nào cần đồng bộ không
+        let canSync = false;
+        for (const act of currentScript.acts) {
+          for (const scene of act.scenes) {
+            for (const dialogue of scene.dialogues ?? []) {
               if (dialogue.projectBlockItemId && projectBlockAudioLinkMap.has(dialogue.projectBlockItemId)) {
-                const newAudioLink = projectBlockAudioLinkMap.get(dialogue.projectBlockItemId)!;
-                // If there's no audio ID yet, start the download process.
-                // We don't check for changes, we just trigger the download if an ID is missing.
-                if (!dialogue.generatedAudioId) {
-                  // Don't await this, let it run in the background
-                  void downloadAndSaveAudio(updatedScript.id!, actIndex, sceneIndex, dialogueIndex, newAudioLink);
-                }
+                canSync = true;
+                break;
               }
-            });
-          });
-        });
-        setLastSyncTime(new Date());
+            }
+          }
+        }
+
+        if (canSync) {
+          // Nếu có, lưu dữ liệu và mở dialog xác nhận
+          setSyncData(projectBlockAudioLinkMap);
+          setIsSyncConfirmOpen(true);
+        } else {
+          toast.info('Không tìm thấy liên kết âm thanh nào từ Vbee để đồng bộ.');
+          setLastSyncTime(new Date());
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lỗi không xác định.');
@@ -130,7 +119,63 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
     } finally {
       setIsLoading(false);
     }
-  }, [vbeeProjectId, downloadAndSaveAudio]);
+  }, [vbeeProjectId]);
+
+  const handleConfirmSync = useCallback(async () => {
+    const currentScript = useScriptsStore.getState().activeScript;
+    if (!syncData || !currentScript) return;
+
+    toast.info('Bắt đầu quá trình đồng bộ và ghi đè...');
+    setIsLoading(true); // Show loading indicator during the whole process
+
+    try {
+      // Bước 1: Tải về tất cả các file audio và lưu vào một map tạm thời
+      const audioBlobs = new Map<string, Blob>();
+      const fetchPromises = Array.from(syncData.entries()).map(async ([blockId, audioUrl]) => {
+        try {
+          const response = await fetch(audioUrl);
+          if (response.ok) {
+            // Đọc dữ liệu dưới dạng ArrayBuffer, sau đó tạo lại Blob với đúng MIME type.
+            const buffer = await response.arrayBuffer();
+            const correctBlob = new Blob([buffer], { type: 'audio/mpeg' });
+            audioBlobs.set(blockId, correctBlob);
+          }
+        } catch (e) {
+          console.error(`Lỗi tải audio cho block ID ${blockId}:`, e);
+        }
+      });
+      await Promise.all(fetchPromises);
+
+      // Bước 2: Cập nhật kịch bản với các audio đã tải về
+      const updatedScript = structuredClone(currentScript);
+      for (const act of updatedScript.acts) {
+        for (const scene of act.scenes) {
+          for (const dialogue of scene.dialogues ?? []) {
+            if (dialogue.projectBlockItemId && audioBlobs.has(dialogue.projectBlockItemId)) {
+              const audioBlob = audioBlobs.get(dialogue.projectBlockItemId)!;
+              // Lưu blob vào DB và lấy ID
+              const audioId = await db.audios.add({ scriptId: updatedScript.id!, data: audioBlob });
+              // Cập nhật generatedAudioId cho câu thoại
+              dialogue.generatedAudioId = audioId;
+            }
+          }
+        }
+      }
+
+      // Bước 3: Lưu lại toàn bộ kịch bản đã được cập nhật chỉ một lần
+      await useScriptsStore.getState().saveActiveScript(updatedScript);
+    } catch (e) {
+      toast.error('Đã xảy ra lỗi trong quá trình đồng bộ.');
+      console.error('Lỗi handleConfirmSync:', e);
+    } finally {
+      setIsLoading(false);
+    }
+
+    setLastSyncTime(new Date());
+    toast.success('Đồng bộ hoàn tất!');
+    setIsSyncConfirmOpen(false);
+    setSyncData(null);
+  }, [syncData]);
 
   const handleDownload = useCallback(async () => {
     if (!vbeeProjectId || !script?.id) return;
@@ -169,14 +214,25 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
       if (!fileResponse.ok) {
         throw new Error(`Lỗi tải file âm thanh: ${fileResponse.statusText}`);
       }
-      const audioBlob = await fileResponse.blob();
+      // Đọc buffer và tạo lại blob với đúng MIME type để tránh lỗi "octet-stream"
+      const audioBuffer = await fileResponse.arrayBuffer();
+      const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
 
       // Step 3: Save the blob to IndexedDB
-      await db.audios.put({
+      const audioId = await db.audios.add({
         scriptId: script.id,
         data: audioBlob,
         isFullScript: true, // Đánh dấu đây là file âm thanh gộp
       });
+
+      // Step 3.5: Update the script's buildMeta with the new audio ID
+      const updatedScript = structuredClone(script);
+      if (!updatedScript.buildMeta) {
+        updatedScript.buildMeta = {};
+      }
+      updatedScript.buildMeta.fullScriptAudioId = audioId;
+      updatedScript.buildMeta.is_audio_generated = true;
+      await useScriptsStore.getState().saveActiveScript(updatedScript);
 
       // Step 4: Create a URL for the local player and update the state
       const localUrl = URL.createObjectURL(audioBlob);
@@ -238,12 +294,6 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
       setIsGeneratingSrt(false);
     }
   }, [script, allDialogues]);
-
-  useEffect(() => {
-    if (vbeeProjectId) {
-      void fetchStatus();
-    }
-  }, [vbeeProjectId, fetchStatus]); // Include fetchStatus in dependency array
 
   useEffect(() => {
     const loadAudioFromDb = async () => {
@@ -313,73 +363,89 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Mic className="h-5 w-5 text-slate-500" /> Lồng tiếng (TTS)
-        </CardTitle>
-        <CardDescription>Dự án Vbee ID: {vbeeProjectId}</CardDescription>
-        <CardAction>{renderStatusBadge()}</CardAction>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoading && !projectStatus && (
-          <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-            <Hourglass className="h-4 w-4 animate-spin" />
-            <span>Đang kiểm tra trạng thái...</span>
-          </div>
-        )}
-        {error && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
-            <AlertTriangle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
-        )}
-        {lastSyncTime && !isLoading && !error && (
-          <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-            <Check className="h-4 w-4 text-green-500" />
-            <span>Đồng bộ lần cuối lúc: {lastSyncTime.toLocaleTimeString()}</span>
-          </div>
-        )}
-        {localAudioUrl && (
-          <div>
-            <p className="mb-2 text-sm text-slate-500">Âm thanh đã lưu trong tài sản:</p>
-            <audio controls className="w-full" src={localAudioUrl}>
-              <track kind="captions" />
-              Your browser does not support the audio element.
-            </audio>
-          </div>
-        )}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mic className="h-5 w-5 text-slate-500" /> Lồng tiếng (TTS)
+          </CardTitle>
+          <CardDescription>Dự án Vbee ID: {vbeeProjectId}</CardDescription>
+          <CardAction>{renderStatusBadge()}</CardAction>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading && !projectStatus && (
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+              <Hourglass className="h-4 w-4 animate-spin" />
+              <span>Đang kiểm tra trạng thái...</span>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-600">
+              <AlertTriangle className="h-4 w-4" />
+              <span>{error}</span>
+            </div>
+          )}
+          {lastSyncTime && !isLoading && !error && (
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+              <Check className="h-4 w-4 text-green-500" />
+              <span>Đồng bộ lần cuối lúc: {lastSyncTime.toLocaleTimeString()}</span>
+            </div>
+          )}
+          {localAudioUrl && (
+            <div>
+              <p className="mb-2 text-sm text-slate-500">Âm thanh đã lưu trong tài sản:</p>
+              <audio controls className="w-full" src={localAudioUrl}>
+                <track kind="captions" />
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+          )}
 
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Button variant="outline" size="sm" onClick={() => void fetchStatus()} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Sync
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleDownload()}
-            disabled={isDownloading || !vbeeProjectId}>
-            <Download className={`mr-2 h-4 w-4 ${isDownloading ? 'animate-spin' : ''}`} />
-            {isDownloading ? 'Đang lưu...' : 'Save'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleExportSrt()}
-            disabled={isGeneratingSrt || !localAudioUrl}>
-            <FileText className={`mr-2 h-4 w-4 ${isGeneratingSrt ? 'animate-spin' : ''}`} />
-            {isGeneratingSrt ? 'Đang tạo...' : 'SRT'}
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href={`${VBEE_PROJECT_URL}/${vbeeProjectId}`} target="_blank" rel="noopener noreferrer">
-              <Link className="mr-2 h-4 w-4" />
-              Vbee
-            </a>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <Button variant="outline" size="sm" onClick={() => void fetchStatus()} disabled={isLoading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Sync
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleDownload()}
+              disabled={isDownloading || !vbeeProjectId}>
+              <Download className={`mr-2 h-4 w-4 ${isDownloading ? 'animate-spin' : ''}`} />
+              {isDownloading ? 'Đang lưu...' : 'Save'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleExportSrt()}
+              disabled={isGeneratingSrt || !localAudioUrl}>
+              <FileText className={`mr-2 h-4 w-4 ${isGeneratingSrt ? 'animate-spin' : ''}`} />
+              {isGeneratingSrt ? 'Đang tạo...' : 'SRT'}
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={`${VBEE_PROJECT_URL}/${vbeeProjectId}`} target="_blank" rel="noopener noreferrer">
+                <Link className="mr-2 h-4 w-4" />
+                Vbee
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      <AlertDialog open={isSyncConfirmOpen} onOpenChange={setIsSyncConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận đồng bộ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Đã tìm thấy các file âm thanh mới từ Vbee. Bạn có muốn tải về và ghi đè vào các câu thoại tương ứng không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleConfirmSync()}>Đồng ý</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

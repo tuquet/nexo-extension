@@ -22,32 +22,31 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
   const isAssetRouteActive = location.pathname === '/asset';
 
   return (
-    <div className="bg-background/70 z-40 w-full backdrop-blur-sm">
-      <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-foreground text-lg font-bold">{title}</span>
+    <header className="bg-background/70 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
+      <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          <Link to="/script" className="flex items-center gap-2">
+            <span className="text-lg font-bold">{title}</span>
           </Link>
-          <div className="flex gap-2">
-            <Link to="/script">
-              <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'}>Kịch Bản</Button>
-            </Link>
-            <Link to="/asset">
-              <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'}>Tài sản</Button>
-            </Link>
-          </div>
+          <nav className="flex items-center gap-2">
+            <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} asChild>
+              <Link to="/script">Kịch Bản</Link>
+            </Button>
+            <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} asChild>
+              <Link to="/asset">Tài sản</Link>
+            </Button>
+          </nav>
         </div>
         <div className="flex items-center gap-2">
           <ModeToggle />
           <Separator orientation="vertical" className="h-6" />
           <Button
             variant="ghost"
-            size="icon"
             aria-label="Toggle container size"
             title={`Container size: ${containerSize}`}
             onClick={toggleSize}>
             <span className="sr-only">Toggle container size</span>
-            <span className="bg-muted/10 text-foreground inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-xs font-medium">
+            <span className="bg-muted/50 text-foreground inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-medium">
               {
                 {
                   narrow: 'N',
@@ -65,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
         </div>
       </div>
       <ScriptSettingModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
-    </div>
+    </header>
   );
 };
 

@@ -59,6 +59,7 @@ export interface Setting {
 
 export interface BuildMeta {
   vbeeProjectId?: string | number;
+  fullScriptAudioId?: number;
   is_video_generated?: boolean;
   is_audio_generated?: boolean;
   is_image_generated?: boolean;

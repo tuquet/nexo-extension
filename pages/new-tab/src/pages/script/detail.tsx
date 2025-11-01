@@ -24,13 +24,11 @@ const ScriptDetailPage = () => {
   const activeScript = useScriptsStore(s => s.activeScript);
   const scriptsError = useScriptsStore(s => s.scriptsError);
   const selectScript = useScriptsStore(s => s.selectScript);
-  const setActiveScript = useScriptsStore(s => s.setActiveScript);
-  const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
   const [error, setError] = useState<string | null>(null);
 
   const [isTtsModalOpen, setIsTtsModalOpen] = useState(false);
   // initialize asset helpers (we don't need the returned functions here)
-  void useAssets(setActiveScript, saveActiveScript, setError);
+  void useAssets(setError);
 
   // UI and process-specific state
   const isImporting = useScriptsStore(s => s.isImporting);
@@ -117,7 +115,7 @@ const ScriptDetailPage = () => {
         ) : (
           <ResponsiveDetailLayout
             scriptContent={<ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />}
-            assetContent={<AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />}
+            assetContent={<AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} setError={setError} />}
           />
         )}
       </div>

@@ -74,6 +74,17 @@ export const VIDEO_LOADING_MESSAGES = [
   'Sắp xong rồi, vui lòng chờ...',
 ];
 
+// Các thông báo tải khi tạo kịch bản
+export const SCRIPT_GENERATION_LOADING_MESSAGES = [
+  'AI đang phân tích ý tưởng của bạn...',
+  'Đang xây dựng cấu trúc câu truyện...',
+  'Phác thảo các nhân vật chính...',
+  'Viết những dòng thoại đầu tiên...',
+  'Sắp xếp các cảnh quay...',
+  'Thêm thắt các tình tiết bất ngờ...',
+  'Kiểm tra lại mạch truyện...',
+];
+
 // Giá trị mặc định
 export const DEFAULT_ASPECT_RATIO: AspectRatio = '9:16';
 

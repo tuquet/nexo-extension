@@ -21,9 +21,10 @@ import type React from 'react';
 
 interface AssetDisplayProps {
   onGenerateTts: () => void;
+  setError: (error: string | null) => void;
 }
 
-const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
+const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts, setError }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalConfig, setImageModalConfig] = useState<{
     actIndex: number;
@@ -35,8 +36,6 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
 
   // read active script + scene from store
   const activeScript = useScriptsStore(s => s.activeScript);
-  const setActiveScript = useScriptsStore(s => s.setActiveScript);
-  const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
   const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
 
   // Use selectors to get derived data
@@ -51,7 +50,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
   const defaultAspectRatio = usePreferencesStore(s => s.defaultAspectRatio);
 
   const { generateSceneImage, cancelGenerateSceneImage, generateSceneVideo, deleteSceneImage, deleteSceneVideo } =
-    useAssets(setActiveScript, saveActiveScript, () => {});
+    useAssets(setError);
 
   const isApiKeySet = !!apiKey;
 
@@ -158,7 +157,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
           <>
             <div className="border-t border-slate-200 dark:border-slate-700"></div>
             <div className="p-6">
-              <ScriptTtsAssetCard onGenerateTts={onGenerateTts} script={activeScript} onSave={saveActiveScript} />
+              <ScriptTtsAssetCard onGenerateTts={onGenerateTts} script={activeScript} />
             </div>
           </>
         )}

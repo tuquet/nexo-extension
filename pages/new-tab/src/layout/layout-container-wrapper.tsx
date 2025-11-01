@@ -13,11 +13,7 @@ const sizeClasses: Record<Size, string> = {
 const LayoutContainerWrapper = ({ children }: PropsWithChildren<object>) => {
   const size = usePreferencesStore(s => s.containerSize);
 
-  return (
-    <div className="relative w-full">
-      <div className={sizeClasses[size]}>{children}</div>
-    </div>
-  );
+  return <main className={sizeClasses[size]}>{children}</main>;
 };
 
 export default LayoutContainerWrapper;

@@ -92,12 +92,7 @@ const _processAndSaveScripts = async (jsonString: string): Promise<number | unde
   const scriptsToImport = Array.isArray(importedData) ? importedData : [importedData];
 
   const isValidScript = (script: unknown): script is ScriptStory =>
-    script !== null &&
-    typeof script === 'object' &&
-    'title' in script &&
-    'acts' in script &&
-    typeof (script as ScriptStory).title === 'string' &&
-    Array.isArray((script as ScriptStory).acts);
+    script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
 
   if (!scriptsToImport.every(isValidScript)) {
     throw new Error('Dữ liệu JSON không chứa định dạng kịch bản hợp lệ.');

@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { useAssets, ASSET_EVENTS } from '../../hooks/use-assets';
+import { useAssets } from '../../hooks/use-assets';
 import { useStoreHydration } from '../../hooks/use-store-hydration';
 import { useScriptsStore } from '../../stores/use-scripts-store';
 import {
@@ -32,6 +32,7 @@ import {
   PaginationLink,
   PaginationNext,
 } from '@extension/ui';
+import { ASSET_EVENTS } from '@src/hooks/use-assets';
 import { Search, Download, Trash2, ExternalLink, Eye, Music, Image, CheckCircle2, X } from 'lucide-react';
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -53,8 +54,7 @@ const AssetGalleryPage: React.FC = () => {
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
   const savedScripts = useScriptsStore(s => s.savedScripts);
   const hasHydrated = useStoreHydration();
-  const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
-  const { deleteAssetFromGallery } = useAssets(setActiveScript, saveActiveScript, () => {});
+  const { deleteAssetFromGallery } = useAssets(() => {});
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const objectUrlsRef = useRef<string[]>([]);
@@ -84,63 +84,59 @@ const AssetGalleryPage: React.FC = () => {
     try {
       const scriptMap = new Map(savedScripts.map(script => [script.id, script.title]));
 
-      // Count total assets for pagination
-      const totalCount = (await db.images.count()) + (await db.videos.count()) + (await db.audios.count());
+      // Bước 1: Đếm tổng số tài sản để tính toán phân trang
+      const imageCount = await db.images.count();
+      const videoCount = await db.videos.count();
+      const audioCount = await db.audios.count();
+      const totalCount = imageCount + videoCount + audioCount;
       setTotalAssets(totalCount);
 
+      // Bước 2: Truy vấn ID từ tất cả các bảng, sắp xếp và lấy ra ID cho trang hiện tại
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
-      // Fetch only the assets for the current page
-      // This is a simplified approach. A more robust solution would query all tables and sort by date.
-      // For now, we fetch from each and then slice.
-      const allImageRecords = await db.images.orderBy('id').reverse().toArray();
-      const allVideoRecords = await db.videos.orderBy('id').reverse().toArray();
-      const allAudioRecords = await db.audios.orderBy('id').reverse().toArray();
+      // Lấy chỉ ID để tối ưu hóa bộ nhớ
+      const imageKeys = (await db.images.toCollection().keys()) as number[];
+      const videoKeys = (await db.videos.toCollection().keys()) as number[];
+      const audioKeys = (await db.audios.toCollection().keys()) as number[];
+
+      // Gộp và sắp xếp tất cả các ID (giả định ID lớn hơn là mới hơn)
+      const allAssetKeys = [
+        ...imageKeys.map(id => ({ type: 'image' as const, id })),
+        ...videoKeys.map(id => ({ type: 'video' as const, id })),
+        ...audioKeys.map(id => ({ type: 'audio' as const, id })),
+      ].sort((a, b) => b.id - a.id);
+
+      // Lấy ra các khóa cho trang hiện tại
+      const paginatedKeys = allAssetKeys.slice(offset, offset + ITEMS_PER_PAGE);
+
+      // Phân loại các khóa theo từng bảng để thực hiện bulkGet
+      const imageIdsToGet = paginatedKeys.filter(k => k.type === 'image').map(k => k.id);
+      const videoIdsToGet = paginatedKeys.filter(k => k.type === 'video').map(k => k.id);
+      const audioIdsToGet = paginatedKeys.filter(k => k.type === 'audio').map(k => k.id);
+
+      // Bước 3: Sử dụng bulkGet để lấy dữ liệu đầy đủ chỉ cho các mục trên trang hiện tại
+      const [imageRecords, videoRecords, audioRecords] = await Promise.all([
+        db.images.bulkGet(imageIdsToGet),
+        db.videos.bulkGet(videoIdsToGet),
+        db.audios.bulkGet(audioIdsToGet),
+      ]);
 
       const loadedAssets: Asset[] = [];
-
       const newUrls: string[] = [];
 
-      allImageRecords.forEach(record => {
-        if (record.id && record.scriptId) {
+      // Xử lý và gộp kết quả
+      [...imageRecords, ...videoRecords, ...audioRecords].forEach(record => {
+        if (record && record.id && record.scriptId) {
+          // Sửa lại logic để xác định đúng loại tài sản
+          const mimeType = record.data.type;
+          console.log(mimeType, 'mimeType');
+          const type = mimeType.startsWith('audio') ? 'audio' : mimeType.startsWith('video') ? 'video' : 'image';
           const url = URL.createObjectURL(record.data);
           newUrls.push(url);
           loadedAssets.push({
             id: record.id,
             scriptId: record.scriptId,
-            type: 'image',
-            url: url,
-            scriptTitle: scriptMap.get(record.scriptId),
-            dataType: record.data.type,
-            data: record.data,
-          });
-        }
-      });
-
-      allVideoRecords.forEach(record => {
-        if (record.id && record.scriptId) {
-          const url = URL.createObjectURL(record.data);
-          newUrls.push(url);
-          loadedAssets.push({
-            id: record.id,
-            scriptId: record.scriptId,
-            type: 'video',
-            url: url,
-            scriptTitle: scriptMap.get(record.scriptId),
-            dataType: record.data.type,
-            data: record.data,
-          });
-        }
-      });
-
-      allAudioRecords.forEach(record => {
-        if (record.id && record.scriptId) {
-          const url = URL.createObjectURL(record.data);
-          newUrls.push(url);
-          loadedAssets.push({
-            id: record.id,
-            scriptId: record.scriptId,
-            type: 'audio',
+            type: type,
             url: url,
             scriptTitle: scriptMap.get(record.scriptId),
             dataType: record.data.type,
@@ -150,11 +146,8 @@ const AssetGalleryPage: React.FC = () => {
       });
 
       objectUrlsRef.current = newUrls;
-      // Sort all loaded assets by ID descending and then take the slice for the current page
-      const sortedAssets = loadedAssets.sort((a, b) => b.id - a.id);
-      const paginatedAssets = sortedAssets.slice(offset, offset + ITEMS_PER_PAGE);
-
-      setAssets(paginatedAssets);
+      // Sắp xếp lại lần cuối để đảm bảo thứ tự đúng trên giao diện
+      setAssets(loadedAssets.sort((a, b) => b.id - a.id));
     } catch (error) {
       console.error('Failed to load assets from database:', error);
     } finally {
