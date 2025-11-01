@@ -1,5 +1,6 @@
 import ImageGenerationModal from './image-generation-modal';
 import SceneAssetCard from './script-scene-asset-card';
+import ScriptTtsAssetCard from './script-tts-asset-card';
 import { DEFAULT_IMAGE_NEGATIVE_PROMPT, IMAGE_GENERATION_MODEL, VIDEO_GENERATION_MODEL } from '../../constants';
 import { useAssets } from '../../hooks/use-assets';
 import { useApiKey } from '../../stores/use-api-key';
@@ -9,7 +10,11 @@ import { useState } from 'react';
 import type { AspectRatio } from '../../types';
 import type React from 'react';
 
-const AssetDisplay: React.FC = () => {
+interface AssetDisplayProps {
+  onGenerateTts: () => void;
+}
+
+const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalConfig, setImageModalConfig] = useState<{
     actIndex: number;
@@ -77,27 +82,6 @@ const AssetDisplay: React.FC = () => {
     setImageModalConfig(null);
   };
 
-  const noScriptOrSceneFallback = (
-    <div className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">
-      <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1}
-          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-        />
-      </svg>
-      <h3 className="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-200">Tài sản kịch bản</h3>
-      <p className="text-sm">
-        Chọn hoặc tạo một kịch bản, sau đó chọn một cảnh từ trình biên tập để bắt đầu tạo tài sản.
-      </p>
-    </div>
-  );
-
-  if (!activeScene || actIndex === null || sceneIndex === null) {
-    return noScriptOrSceneFallback;
-  }
-
   return (
     <>
       {imageModalConfig && (
@@ -108,87 +92,108 @@ const AssetDisplay: React.FC = () => {
           initialPrompt={imageModalConfig.initialPrompt}
           initialNegativePrompt={imageModalConfig.initialNegativePrompt}
           initialAspectRatio={imageModalConfig.initialAspectRatio}
-          isGenerating={!!activeScene.isGeneratingImage}
+          isGenerating={!!activeScene?.isGeneratingImage}
         />
       )}
-      <Card className="space-y-6">
-        <CardHeader>
-          <CardTitle>Cảnh {activeScene.scene_number}</CardTitle>
-          <CardDescription>{activeScene.location}</CardDescription>
-          <CardAction>
-            {totalScenes > 0 && (
-              <div className="flex flex-shrink-0 items-center gap-2">
-                <button
-                  onClick={() => {
-                    // go to previous scene using store setter
-                    const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
-                    const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
-                    if (curIndex > 0) {
-                      const prev = flat[curIndex - 1];
-                      useScriptsStore.getState().setActiveSceneIdentifier({ actIndex: prev.ai, sceneIndex: prev.si });
-                    }
-                  }}
-                  disabled={currentSceneNumber <= 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
-                  aria-label="Cảnh trước"
-                  title="Cảnh trước">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="text-sm font-medium tabular-nums text-slate-600 dark:text-slate-400">
-                  {currentSceneNumber}/{totalScenes}
-                </span>
-                <button
-                  onClick={() => {
-                    const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
-                    const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
-                    if (curIndex !== -1 && curIndex < flat.length - 1) {
-                      const next = flat[curIndex + 1];
-                      useScriptsStore.getState().setActiveSceneIdentifier({ actIndex: next.ai, sceneIndex: next.si });
-                    }
-                  }}
-                  disabled={currentSceneNumber >= totalScenes}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
-                  aria-label="Cảnh tiếp theo"
-                  title="Cảnh tiếp theo">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <SceneAssetCard
-            scriptId={activeScript?.id}
-            scene={activeScene!}
-            actIndex={actIndex!}
-            sceneIndex={sceneIndex!}
-            onOpenImageModal={handleOpenImageModal}
-            onCancelGenerateImage={(ai, si) => cancelGenerateSceneImage(activeScript!, ai, si)}
-            onDeleteImage={(ai, si) => deleteSceneImage(activeScript!, ai, si)}
-            onUpdateSceneImage={(ai, si, imageId) =>
-              updateScriptField(`acts[${ai}].scenes[${si}].generatedImageId`, imageId)
-            }
-            onUpdateSceneVideo={(ai, si, videoId) =>
-              updateScriptField(`acts[${ai}].scenes[${si}].generatedVideoId`, videoId)
-            }
-            onGenerateVideo={(ai, si, ar) =>
-              generateSceneVideo(
-                activeScript!,
-                ai,
-                si,
-                activeScript?.setting.defaultVideoModel || VIDEO_GENERATION_MODEL,
-                ar,
-              )
-            }
-            onDeleteVideo={(ai, si) => deleteSceneVideo(activeScript!, ai, si)}
-            defaultAspectRatio={defaultAspectRatio}
-            isApiKeySet={isApiKeySet}
+      <Card>
+        {activeScene && actIndex !== null && sceneIndex !== null ? (
+          <div className="space-y-6">
+            <CardHeader>
+              <CardTitle>Cảnh {activeScene.scene_number}</CardTitle>
+              <CardDescription>{activeScene.location}</CardDescription>
+              <CardAction>
+                {totalScenes > 0 && (
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => {
+                        // go to previous scene using store setter
+                        const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
+                        const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
+                        if (curIndex > 0) {
+                          const prev = flat[curIndex - 1];
+                          useScriptsStore
+                            .getState()
+                            .setActiveSceneIdentifier({ actIndex: prev.ai, sceneIndex: prev.si });
+                        }
+                      }}
+                      disabled={currentSceneNumber <= 1}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
+                      aria-label="Cảnh trước"
+                      title="Cảnh trước">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-sm font-medium tabular-nums text-slate-600 dark:text-slate-400">
+                      {currentSceneNumber}/{totalScenes}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
+                        const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
+                        if (curIndex !== -1 && curIndex < flat.length - 1) {
+                          const next = flat[curIndex + 1];
+                          useScriptsStore
+                            .getState()
+                            .setActiveSceneIdentifier({ actIndex: next.ai, sceneIndex: next.si });
+                        }
+                      }}
+                      disabled={currentSceneNumber >= totalScenes}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
+                      aria-label="Cảnh tiếp theo"
+                      title="Cảnh tiếp theo">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <SceneAssetCard
+                scriptId={activeScript?.id}
+                scene={activeScene!}
+                actIndex={actIndex!}
+                sceneIndex={sceneIndex!}
+                onOpenImageModal={handleOpenImageModal}
+                onCancelGenerateImage={(ai, si) => cancelGenerateSceneImage(activeScript!, ai, si)}
+                onDeleteImage={(ai, si) => deleteSceneImage(activeScript!, ai, si)}
+                onUpdateSceneImage={(ai, si, imageId) =>
+                  updateScriptField(`acts[${ai}].scenes[${si}].generatedImageId`, imageId)
+                }
+                onUpdateSceneVideo={(ai, si, videoId) =>
+                  updateScriptField(`acts[${ai}].scenes[${si}].generatedVideoId`, videoId)
+                }
+                onGenerateVideo={(ai, si, ar) =>
+                  generateSceneVideo(
+                    activeScript!,
+                    ai,
+                    si,
+                    activeScript?.setting.defaultVideoModel || VIDEO_GENERATION_MODEL,
+                    ar,
+                  )
+                }
+                onDeleteVideo={(ai, si) => deleteSceneVideo(activeScript!, ai, si)}
+                defaultAspectRatio={defaultAspectRatio}
+                isApiKeySet={isApiKeySet}
+              />
+            </CardContent>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-slate-500 dark:text-slate-400">
+            <p>Chọn một cảnh để quản lý tài sản hình ảnh và video.</p>
+          </div>
+        )}
+        <div className="border-t border-slate-200 dark:border-slate-700"></div>
+        <div className="p-6">
+          <ScriptTtsAssetCard
+            onGenerateTts={onGenerateTts}
+            script={activeScript}
+            onSave={saveActiveScript}
+            onUpdateField={updateScriptField}
           />
-        </CardContent>
+        </div>
       </Card>
     </>
   );

@@ -1,9 +1,11 @@
 import { withErrorBoundary, withSuspense } from '@extension/shared';
 import { Button, ErrorDisplay, LoadingSpinner } from '@extension/ui';
+import AudioPlayer from '@src/components/script/audio-player';
 import ModelSettingsModal from '@src/components/script/model-settings-modal';
 import AssetDisplay from '@src/components/script/script-asset-display';
 import ScriptDisplay from '@src/components/script/script-display';
 import ScriptHeader from '@src/components/script/script-header';
+import ScriptTtsExportModal from '@src/components/script/script-tts-export-modal';
 import { useAssets } from '@src/hooks/use-assets';
 import { useRouteSync, writeRouteState } from '@src/hooks/use-route-state';
 import { useApiKey } from '@src/stores/use-api-key';
@@ -26,6 +28,7 @@ const NewTab = () => {
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
   const [error, setError] = useState<string | null>(null);
 
+  const [isTtsModalOpen, setIsTtsModalOpen] = useState(false);
   // initialize asset helpers (we don't need the returned functions here)
   void useAssets(setActiveScript, saveActiveScript, setError);
 
@@ -81,6 +84,7 @@ const NewTab = () => {
 
   return (
     <div>
+      <AudioPlayer />
       {activeScript && (
         <ModelSettingsModal
           isOpen={isModelSettingsOpen}
@@ -88,6 +92,10 @@ const NewTab = () => {
           onSave={() => {}}
         />
       )}
+      {activeScript && (
+        <ScriptTtsExportModal isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} script={activeScript} />
+      )}
+
       <ScriptHeader />
       {error && <div className="error">{error}</div>}
       {isImporting && (
@@ -115,9 +123,9 @@ const NewTab = () => {
 
           {activeScript && (
             <aside
-              className="sticky top-0 h-[calc(100vh-4rem)] w-[450px] flex-shrink-0 overflow-y-auto p-6"
+              className="sticky top-0 h-[calc(100vh-4rem)] w-[500px] flex-shrink-0 overflow-y-auto p-6"
               style={{ alignSelf: 'flex-start' }}>
-              <AssetDisplay />
+              <AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />
             </aside>
           )}
         </div>

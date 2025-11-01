@@ -16,6 +16,13 @@ export interface VideoRecord {
   data: Blob;
 }
 
+// Interface for the new audio table records
+export interface AudioRecord {
+  id?: number; // Primary key
+  scriptId: number; // Foreign key to the script
+  data: Blob;
+}
+
 /**
  * Defines the structure of our IndexedDB database using Dexie.
  * This class sets up tables for 'scripts', 'images', and 'videos'.
@@ -24,6 +31,7 @@ export class CineGenieDB extends Dexie {
   scripts!: Table<Root, number>;
   images!: Table<ImageRecord, number>;
   videos!: Table<VideoRecord, number>;
+  audios!: Table<AudioRecord, number>;
 
   constructor() {
     super('cineGenieDatabase'); // Database name
@@ -41,6 +49,13 @@ export class CineGenieDB extends Dexie {
       images: '++id, scriptId', // Index scriptId for efficient lookups
       videos: '++id, scriptId',
     });
+
+    this.version(5).stores({
+      scripts: '++id, title',
+      images: '++id, scriptId',
+      videos: '++id, scriptId',
+      audios: '++id, scriptId', // Add audios table with scriptId index
+    });
   }
 
   /**
@@ -49,10 +64,11 @@ export class CineGenieDB extends Dexie {
    */
   async clearAllData(): Promise<void> {
     // Use a transaction to ensure all tables are cleared atomically.
-    await this.transaction('rw', this.scripts, this.images, this.videos, async () => {
+    await this.transaction('rw', this.scripts, this.images, this.videos, this.audios, async () => {
       await this.scripts.clear();
       await this.images.clear();
       await this.videos.clear();
+      await this.audios.clear();
     });
   }
 }

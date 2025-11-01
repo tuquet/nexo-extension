@@ -1,19 +1,22 @@
 import { db } from '../../db';
 import { useAssets } from '../../hooks/use-assets';
 import { useScriptsStore } from '../../stores/use-scripts-store';
+import { Button } from '@extension/ui';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type React from 'react';
 
 interface Asset {
   id: number;
   scriptId: number;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'audio';
   url: string;
+  scriptTitle?: string;
   dataType: string; // mime type
 }
 
 const AssetGalleryPage: React.FC = () => {
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
+  const savedScripts = useScriptsStore(s => s.savedScripts);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
   const { deleteAssetFromGallery } = useAssets(setActiveScript, saveActiveScript, () => {});
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -27,9 +30,10 @@ const AssetGalleryPage: React.FC = () => {
     objectUrlsRef.current = [];
 
     try {
+      const scriptMap = new Map(savedScripts.map(script => [script.id, script.title]));
       const imageRecords = await db.images.toArray();
       const videoRecords = await db.videos.toArray();
-
+      const audioRecords = await db.audios.toArray();
       const loadedAssets: Asset[] = [];
       const newUrls: string[] = [];
 
@@ -42,6 +46,7 @@ const AssetGalleryPage: React.FC = () => {
             scriptId: record.scriptId,
             type: 'image',
             url: url,
+            scriptTitle: scriptMap.get(record.scriptId),
             dataType: record.data.type,
           });
         }
@@ -56,6 +61,22 @@ const AssetGalleryPage: React.FC = () => {
             scriptId: record.scriptId,
             type: 'video',
             url: url,
+            scriptTitle: scriptMap.get(record.scriptId),
+            dataType: record.data.type,
+          });
+        }
+      });
+
+      audioRecords.forEach(record => {
+        if (record.id && record.scriptId) {
+          const url = URL.createObjectURL(record.data);
+          newUrls.push(url);
+          loadedAssets.push({
+            id: record.id,
+            scriptId: record.scriptId,
+            type: 'audio',
+            url: url,
+            scriptTitle: scriptMap.get(record.scriptId),
             dataType: record.data.type,
           });
         }
@@ -68,7 +89,7 @@ const AssetGalleryPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [savedScripts]);
 
   useEffect(() => {
     fetchAssets();
@@ -114,22 +135,31 @@ const AssetGalleryPage: React.FC = () => {
   return (
     <div>
       <h2 className="mb-6 text-2xl font-bold text-slate-800 dark:text-slate-100">Thư viện tài sản</h2>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
         {assets.map(asset => (
           <div
             key={`${asset.type}-${asset.id}`}
-            className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            className="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             {asset.type === 'image' ? (
-              <img src={asset.url} alt={`Asset ${asset.id}`} className="h-full w-full object-cover" />
-            ) : (
-              <video src={asset.url} controls className="h-full w-full object-cover">
-                <track kind="captions" label="No captions" />
+              <img src={asset.url} alt={`Asset ${asset.id}`} className="aspect-square h-full w-full object-cover" />
+            ) : asset.type === 'video' ? (
+              <video src={asset.url} controls className="aspect-video h-full w-full object-cover">
+                <track kind="captions" />
               </video>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-4">
+                <p className="mb-3 font-mono text-xs text-slate-500">Audio Asset</p>
+                <audio controls src={asset.url} className="w-full">
+                  <track kind="captions" />
+                </audio>
+              </div>
             )}
             <div className="absolute right-0 top-0 p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-              <button
+              <Button
+                variant="destructive"
+                size="icon"
                 onClick={() => handleDeleteClick(asset)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white hover:bg-red-600"
+                className="h-7 w-7"
                 title="Xóa vĩnh viễn tài sản">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -139,10 +169,11 @@ const AssetGalleryPage: React.FC = () => {
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                   />
                 </svg>
-              </button>
+              </Button>
             </div>
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-              <p className="truncate font-mono text-xs text-white">{asset.dataType}</p>
+              <p className="truncate text-sm font-semibold text-white">{asset.scriptTitle || 'Kịch bản không rõ'}</p>
+              <p className="truncate font-mono text-xs text-slate-300">{asset.dataType}</p>
             </div>
           </div>
         ))}

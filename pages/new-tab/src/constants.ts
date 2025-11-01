@@ -1,6 +1,8 @@
 import type { AspectRatio } from './types';
 
 // Tên các model của Gemini
+export const VBEE_API_BASE_URL = 'https://vbee.vn/api/v1';
+export const VBEE_PROJECT_URL = 'https://studio.vbee.vn/projects';
 export const SCRIPT_GENERATION_MODEL = 'gemini-2.5-flash';
 export const PLOT_SUGGESTION_MODEL = 'gemini-2.5-flash';
 export const TEXT_ENHANCEMENT_MODEL = 'gemini-2.5-flash';
@@ -28,7 +30,16 @@ export const AVAILABLE_LIVE_MODELS = [
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Nhanh & Tiết kiệm)' },
 ];
 
-export const AVAILABLE_TTS_MODELS: { value: string; label: string }[] = [];
+export const AVAILABLE_TTS_MODELS: { value: string; label: string }[] = [
+  { value: 'n_hanoi_male_baotrungreviewphim_review_vc', label: 'Bảo Trung Review Phim (Nam HN)' },
+  { value: 'n_hanoi_male_baotrungdoctruyen_story_vc', label: 'Bảo Trung Đọc Truyện (Nam HN)' },
+  { value: 'n_backan_male_khanhdoctruyen_story_vc', label: 'Khánh Đọc Truyện (Nam HN)' },
+  { value: 'n_hn_male_ngankechuyen_ytstable_vc', label: 'Ngạn Kể Chuyện (Nam HN)' },
+  { value: 'n_thainguyen_male_huisheng_story_vc', label: 'Huisheng Đọc Truyện (Nam HN)' },
+  { value: 'n_hn_male_duyonyx_oaistable_vc', label: 'Duyonyx Đọc Truyện (Nam HN)' },
+  { value: 'n_hanoi_female_dieuanhn2_story_vc', label: 'Diệu Anh Đọc Truyện (Nữ HN)' },
+  { value: 'n_hanoi_female_tranngocaudio_book_vc', label: 'Trần Ngọc Sách Nói (Nữ HN)' },
+];
 
 // Các thể loại phim được định nghĩa trước cho UI
 export const PREDEFINED_GENRES = [

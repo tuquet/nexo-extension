@@ -1,7 +1,17 @@
 import EditableField from './editable-field';
 import { db } from '../../db';
-import { Card, CardHeader, CardAction, CardTitle, CardDescription, CardContent, CardFooter } from '@extension/ui';
-import { Video, Headphones } from 'lucide-react';
+import {
+  Card,
+  CardHeader,
+  CardAction,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  Button,
+} from '@extension/ui';
+import { useAudioPlayerStore } from '@src/stores/use-audio-player-store';
+import { Video, Headphones, PlayCircle, PauseCircle, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Scene } from '../../types';
 import type React from 'react';
@@ -10,6 +20,7 @@ interface SceneCardProps {
   scene: Scene;
   onUpdateField: (path: string, value: string | number) => void;
   language: 'en-US' | 'vi-VN';
+  scriptUpdatedAt?: number; // Prop mới để trigger re-render
 }
 
 const InfoPill: React.FC<{
@@ -39,6 +50,7 @@ const InfoPill: React.FC<{
 
 const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const { playingSource, isPlaying, isLoading, togglePlay } = useAudioPlayerStore();
 
   useEffect(() => {
     let objectUrl: string | null = null;
@@ -61,7 +73,6 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
       }
     };
     loadImage();
-    // Cleanup function to revoke the object URL and prevent memory leaks
     return () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
@@ -115,13 +126,29 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
                   <div className="text-left font-semibold uppercase text-slate-800 dark:text-slate-200">
                     {dialogue.role}
                   </div>
-                  <EditableField
-                    initialValue={dialogue.line}
-                    onSave={v => onUpdateField(`dialogues[${index}].line`, v)}
-                    context={`Dialogue line for ${dialogue.role}`}
-                    language={language}
-                    textClassName="text-slate-700 dark:text-slate-300"
-                  />
+                  <div className="group relative flex items-start gap-2">
+                    {dialogue.audioLink && ( // Điều kiện này vẫn đúng, nhưng component sẽ re-render
+                      <Button
+                        variant={'ghost'}
+                        onClick={() => togglePlay(dialogue.audioLink!)}
+                        aria-label="Play dialogue">
+                        {isLoading && playingSource === dialogue.audioLink ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                        ) : isPlaying && playingSource === dialogue.audioLink ? (
+                          <PauseCircle className="h-5 w-5 text-blue-500" />
+                        ) : (
+                          <PlayCircle className="h-5 w-5" />
+                        )}
+                      </Button>
+                    )}
+                    <EditableField
+                      initialValue={dialogue.line}
+                      onSave={v => onUpdateField(`dialogues[${index}].line`, v)}
+                      context={`Dialogue line for ${dialogue.role}`}
+                      language={language}
+                      textClassName="text-slate-700 dark:text-slate-300"
+                    />
+                  </div>
                 </div>
               ))}
             </div>

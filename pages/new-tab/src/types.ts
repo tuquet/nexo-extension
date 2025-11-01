@@ -13,7 +13,6 @@ export interface Root {
   characters: Character[];
   acts: Act[];
   buildMeta?: BuildMeta | null;
-  // Optional field for generated assets
   titleImage?: string; // Base64 string for the title image
 }
 
@@ -42,6 +41,8 @@ export interface Scene {
 export interface Dialogue {
   role: 'Mentor' | 'Protagonist' | 'Narrator';
   line: string;
+  vbeeBlockId?: string; // To map with Vbee's response
+  audioLink?: string; // The generated audio link from Vbee
 }
 
 export interface Character {
@@ -53,12 +54,13 @@ export interface Character {
 export interface Setting {
   time: string;
   location: string;
-  defaultAspectRatio?: AspectRatio; // Thêm dòng này
-  defaultImageModel?: string; // Thêm dòng này
-  defaultVideoModel?: string; // Thêm dòng này
+  defaultAspectRatio?: AspectRatio;
+  defaultImageModel?: string;
+  defaultVideoModel?: string;
 }
 
 export interface BuildMeta {
+  vbeeProjectId?: string | number;
   is_video_generated?: boolean;
   is_audio_generated?: boolean;
   is_image_generated?: boolean;

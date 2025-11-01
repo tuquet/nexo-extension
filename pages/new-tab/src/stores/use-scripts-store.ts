@@ -45,20 +45,29 @@ const setNestedValue = (obj: Record<string, unknown> | unknown[], path: string, 
 
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
-    if (typeof current !== 'object' || current === null) return obj;
-    const currObj = current as Record<string, unknown> & { [k: string]: unknown };
-    if (!(key in currObj)) return obj;
+    const nextKey = keys[i + 1];
+    const isNextKeyNumeric = !isNaN(parseInt(nextKey, 10));
+
+    if (typeof current !== 'object' || current === null) {
+      // Không thể đi sâu hơn, dừng lại.
+      return obj;
+    }
+
+    const currObj = current as Record<string, unknown>;
+
+    // Nếu key không tồn tại hoặc là null/undefined, tạo object/array mới
+    if (currObj[key] === undefined || currObj[key] === null) {
+      currObj[key] = isNextKeyNumeric ? [] : {};
+    }
     current = currObj[key];
   }
 
-  if (typeof current === 'object' && current !== null) {
-    (current as Record<string, unknown>)[keys[keys.length - 1]] = value;
-  }
-
+  (current as Record<string, unknown>)[keys[keys.length - 1]] = value;
   return obj;
 };
 
 const useScriptsStore = create<ScriptsState>((set, get) => ({
+  // NOSONAR
   savedScripts: [],
   activeScript: null,
   activeSceneIdentifier: null,

@@ -150,9 +150,13 @@ export const useAssets = (
     }
   };
 
-  const deleteAssetFromGallery = async (type: 'image' | 'video', assetId: number, scriptId: number) => {
+  const deleteAssetFromGallery = async (type: 'image' | 'video' | 'audio', assetId: number, scriptId: number) => {
     try {
-      await (type === 'image' ? db.images.delete(assetId) : db.videos.delete(assetId));
+      await (type === 'image'
+        ? db.images.delete(assetId)
+        : type === 'video'
+          ? db.videos.delete(assetId)
+          : db.audios.delete(assetId));
       const script = await db.scripts.get(scriptId);
       if (!script) return;
 
