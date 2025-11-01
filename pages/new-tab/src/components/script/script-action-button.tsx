@@ -93,7 +93,7 @@ const ScriptActionButton = () => {
                 onClick={() => handleDestructiveActionClick('cleanScript')}
                 disabled={!activeScript}>
                 <Wand2 className="mr-2 h-4 w-4" />
-                {confirmationPending === 'cleanScript' ? 'Bạn chắc chắn?' : 'Dọn dẹp kịch bản'}
+                {confirmationPending === 'cleanScript' ? 'Bạn chắc chắn?' : 'Làm sạch kịch bản'}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

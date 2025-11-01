@@ -17,11 +17,12 @@ import {
   AlertDialogAction,
   LoadingSpinner,
 } from '@extension/ui';
+import ScriptCreateButton from '@src/components/script/script-create-button';
 import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Trash2, Edit } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Root } from '@src/types';
+import type { ScriptStory } from '@src/types';
 
 const ScriptListPage = () => {
   const navigate = useNavigate();
@@ -30,13 +31,11 @@ const ScriptListPage = () => {
   const deleteActiveScript = useScriptsStore(s => s.deleteActiveScript);
   const hasHydrated = useStoreHydration();
 
-  const handleDelete = (script: Root) => {
+  const handleDelete = async (script: ScriptStory) => {
     // `deleteActiveScript` works on the active script, so we select it first
     selectScript(script.id as number);
-    // A small delay to ensure the state is updated before deleting
-    setTimeout(() => {
-      void deleteActiveScript();
-    }, 50);
+    // Now that the script is active, delete it.
+    await deleteActiveScript();
   };
 
   if (!hasHydrated) {
@@ -44,15 +43,10 @@ const ScriptListPage = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="mx-auto">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Danh sách Kịch bản</h1>
-        <Link to="/script/new">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Tạo kịch bản mới
-          </Button>
-        </Link>
+        <ScriptCreateButton />
       </div>
       <div className="rounded-lg border">
         <Table>
@@ -93,7 +87,7 @@ const ScriptListPage = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Hủy</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(script)}>Xóa</AlertDialogAction>
+                          <AlertDialogAction onClick={() => void handleDelete(script)}>Xóa</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>

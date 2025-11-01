@@ -16,9 +16,18 @@ import {
   DialogTitle,
   DialogFooter,
   Card,
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from '@extension/ui';
 import { ASSET_EVENTS } from '@src/hooks/use-assets';
-import { Search, Download, Trash2, ExternalLink, Eye, Music, Image } from 'lucide-react';
+import { Search, Download, Trash2, ExternalLink, Eye, Music, Image, CheckCircle2, X } from 'lucide-react';
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type React from 'react';
@@ -50,6 +59,11 @@ const AssetGalleryPage: React.FC = () => {
   const [filterScriptId, setFilterScriptId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  // State for selection mode
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedAssetKeys, setSelectedAssetKeys] = useState<Set<string>>(new Set());
+  const getAssetKey = (asset: Asset) => `${asset.type}-${asset.id}`;
 
   const fetchAssets = useCallback(async () => {
     setIsLoading(true);
@@ -138,9 +152,37 @@ const AssetGalleryPage: React.FC = () => {
     }
   }, [fetchAssets, hasHydrated]);
 
-  const handleDeleteClick = async (asset: Asset) => {
-    await deleteAssetFromGallery(asset.type, asset.id, asset.scriptId);
-    setSelectedAsset(null); // Close modal after deletion
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedAssetKeys(new Set()); // Clear selection when toggling mode
+  };
+
+  const handleAssetClick = (asset: Asset) => {
+    if (isSelectionMode) {
+      const key = getAssetKey(asset);
+      const newSelection = new Set(selectedAssetKeys);
+      if (newSelection.has(key)) {
+        newSelection.delete(key);
+      } else {
+        newSelection.add(key);
+      }
+      setSelectedAssetKeys(newSelection);
+    } else {
+      setSelectedAsset(asset); // Open modal in normal mode
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const deletePromises = Array.from(selectedAssetKeys).map(key => {
+      const [type, idStr] = key.split('-');
+      const asset = assets.find(a => getAssetKey(a) === key);
+      if (asset) {
+        return deleteAssetFromGallery(type as 'image' | 'video' | 'audio', parseInt(idStr, 10), asset.scriptId);
+      }
+      return Promise.resolve();
+    });
+    await Promise.all(deletePromises);
+    toggleSelectionMode(); // Exit selection mode after deletion
   };
 
   const handleDownloadAsset = (asset: Asset) => {
@@ -194,7 +236,38 @@ const AssetGalleryPage: React.FC = () => {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Thư viện tài sản</h2>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+          {isSelectionMode ? (
+            <>
+              <span className="text-sm text-slate-500">{selectedAssetKeys.size} mục đã chọn</span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={selectedAssetKeys.size === 0}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Xóa mục đã chọn
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Hành động này sẽ xóa vĩnh viễn {selectedAssetKeys.size} tài sản đã chọn. Không thể hoàn tác.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Hủy</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteSelected}>Xóa</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button variant="ghost" onClick={toggleSelectionMode}>
+                <X className="mr-2 h-4 w-4" /> Hủy
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={toggleSelectionMode}>
+              Chọn để xóa
+            </Button>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -244,13 +317,13 @@ const AssetGalleryPage: React.FC = () => {
             key={`${asset.type}-${asset.id}`}
             role="button"
             tabIndex={0}
-            aria-label={`Xem chi tiết tài sản ${asset.type} #${asset.id}`}
-            className="group relative cursor-pointer overflow-hidden shadow-sm transition-shadow duration-200 hover:shadow-md"
-            onClick={() => setSelectedAsset(asset)}
+            aria-label={`Chọn tài sản ${asset.type} #${asset.id}`}
+            className={`group relative cursor-pointer overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md ${selectedAssetKeys.has(getAssetKey(asset)) ? 'ring-2 ring-blue-500' : ''}`}
+            onClick={() => handleAssetClick(asset)}
             onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                setSelectedAsset(asset);
+                handleAssetClick(asset);
               }
             }}>
             <div className="relative">
@@ -266,8 +339,13 @@ const AssetGalleryPage: React.FC = () => {
                   <p className="mt-3 font-mono text-xs text-slate-500">Audio Asset</p>
                 </div>
               )}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <div
+                className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${isSelectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
                 <Eye className="h-8 w-8 text-white" />
+              </div>
+              <div
+                className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-white/80 text-blue-600 backdrop-blur-sm transition-opacity ${selectedAssetKeys.has(getAssetKey(asset)) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                {selectedAssetKeys.has(getAssetKey(asset)) && <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />}
               </div>
             </div>
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-12">
@@ -309,7 +387,7 @@ const AssetGalleryPage: React.FC = () => {
             </div>
             <DialogFooter className="sm:justify-between">
               <div className="flex items-center gap-2">
-                <Button variant="destructive" onClick={() => handleDeleteClick(selectedAsset)}>
+                <Button variant="destructive" onClick={() => {}}>
                   <Trash2 className="mr-2 h-4 w-4" /> Xóa
                 </Button>
               </div>

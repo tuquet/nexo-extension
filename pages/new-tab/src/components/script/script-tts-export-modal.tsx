@@ -26,13 +26,13 @@ import { useScriptsStore, selectActiveScriptCharacters, selectAllDialogueLines }
 import { Copy, Check } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import type { VbeeTransformationResult } from '@src/services/vbee-service';
-import type { Root } from '@src/types';
+import type { ScriptStory } from '@src/types';
 import type React from 'react';
 
 interface ScriptTtsExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  script: Root | null;
+  script: ScriptStory | null;
 }
 
 const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onClose, script }) => {

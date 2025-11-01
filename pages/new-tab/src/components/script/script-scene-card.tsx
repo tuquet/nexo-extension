@@ -80,12 +80,47 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
     };
   }, [scene.generatedImageId]);
 
+  const handlePlayDialogue = async (dialogue: Scene['dialogues'][0]) => {
+    const audioId = dialogue.generatedAudioId;
+    if (!audioId) return;
+
+    // Nếu đang phát chính audio này, chỉ cần toggle play/pause
+    if (playingSource?.startsWith(`blob:`) && playingSource.includes(audioId.toString())) {
+      togglePlay(playingSource);
+      return;
+    }
+
+    try {
+      useAudioPlayerStore.getState().setLoading(true);
+      const audioRecord = await db.audios.get(audioId);
+      if (audioRecord?.data) {
+        const objectUrl = URL.createObjectURL(audioRecord.data);
+        // Thêm ID vào URL để có thể xác định nguồn phát
+        const urlWithId = `${objectUrl}#${audioId}`;
+        togglePlay(urlWithId);
+      } else {
+        throw new Error('Audio record not found in DB.');
+      }
+    } catch (error) {
+      console.error('Error playing audio from DB:', error);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>CẢNH {scene.scene_number}</CardTitle>
-        <CardDescription>
-          {scene.location} - {scene.time}
+        <CardTitle className="flex items-baseline justify-between">
+          <span>CẢNH {scene.scene_number}</span>
+        </CardTitle>
+        <CardDescription className="mt-2 space-y-1 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-20 flex-shrink-0 font-semibold text-slate-500 dark:text-slate-400">Địa điểm:</span>
+            <span className="capitalize">{scene.location.toLowerCase()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-20 flex-shrink-0 font-semibold text-slate-500 dark:text-slate-400">Thời gian:</span>
+            <span className="capitalize">{scene.time.toLowerCase()}</span>
+          </div>
         </CardDescription>
         <CardAction>
           {scene.generatedImageId && <span title="Đã tạo ảnh">📷</span>}
@@ -107,7 +142,7 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
         <h5 className="mb-2 mt-6 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
           Hành động
         </h5>
-        <blockquote className="mt-6 border-l-2 pl-6 italic">
+        <blockquote className="mt-6 border-l-2 pl-6">
           <EditableField
             initialValue={scene.action}
             onSave={v => onUpdateField('action', v)}
@@ -119,23 +154,28 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
 
         {scene.dialogues.length > 0 && (
           <div className="mt-8">
-            <h5 className="mb-2 text-xs font-bold tracking-widest text-slate-500 dark:text-slate-400">Hội thoại</h5>
+            <h5 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Hội thoại
+            </h5>
             <div className="mt-4 space-y-6">
               {scene.dialogues.map((dialogue, index) => (
                 <div key={index} className="relative pl-4">
                   <div className="absolute left-0 top-0 h-full w-0.5 rounded-full bg-slate-200 dark:bg-slate-700"></div>
                   <div className="flex items-center gap-2">
-                    <div className="font-semibold uppercase text-slate-800 dark:text-slate-200">{dialogue.roleId}</div>
-                    {dialogue.audioLink && (
+                    <div className="font-semibold text-slate-800 dark:text-slate-200">{dialogue.roleId}</div>
+                    {dialogue.generatedAudioId && (
                       <Button
                         variant={'ghost'}
                         size="icon"
-                        onClick={() => togglePlay(dialogue.audioLink!)}
+                        onClick={() => handlePlayDialogue(dialogue)}
                         aria-label="Play dialogue"
-                        className="h-6 w-6">
-                        {isLoading && playingSource === dialogue.audioLink ? (
+                        className="h-6 w-6"
+                        disabled={dialogue.isGeneratingAudio}>
+                        {dialogue.isGeneratingAudio ? (
                           <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                        ) : isPlaying && playingSource === dialogue.audioLink ? (
+                        ) : isLoading && playingSource?.includes(dialogue.generatedAudioId.toString()) ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                        ) : isPlaying && playingSource?.includes(dialogue.generatedAudioId.toString()) ? (
                           <PauseCircle className="h-4 w-4 text-blue-500" />
                         ) : (
                           <PlayCircle className="h-4 w-4 text-slate-500" />

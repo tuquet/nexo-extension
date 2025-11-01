@@ -1,5 +1,5 @@
 import Dexie from 'dexie';
-import type { Root } from './types';
+import type { ScriptStory } from './types';
 import type { Table } from 'dexie';
 
 // Interface for the image table records
@@ -28,7 +28,7 @@ export interface AudioRecord {
  * This class sets up tables for 'scripts', 'images', and 'videos'.
  */
 export class CineGenieDB extends Dexie {
-  scripts!: Table<Root, number>;
+  scripts!: Table<ScriptStory, number>;
   images!: Table<ImageRecord, number>;
   videos!: Table<VideoRecord, number>;
   audios!: Table<AudioRecord, number>;

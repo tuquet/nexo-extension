@@ -25,7 +25,7 @@ export const useAudioPlayerStore = create<AudioPlayerState>(set => ({
         return { isPlaying: !state.isPlaying };
       } else {
         // Play new source
-        return { playingSource: source, isPlaying: true, isLoading: true };
+        return { playingSource: source, isPlaying: true, isLoading: false }; // isLoading sẽ được quản lý bởi component gọi
       }
     }),
   setPlaying: isPlaying => set({ isPlaying }),

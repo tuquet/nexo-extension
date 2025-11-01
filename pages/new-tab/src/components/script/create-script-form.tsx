@@ -1,89 +1,111 @@
 import ScriptSettingModal from '@src/components/common/app-setting-modal';
 import CreationForm from '@src/components/script/creation-form';
-import ScriptLoader from '@src/components/script/script-loader';
-import {
-  SCRIPT_GENERATION_MODEL,
-  IMAGE_GENERATION_MODEL,
-  VIDEO_GENERATION_MODEL,
-  DEFAULT_ASPECT_RATIO,
-} from '@src/constants';
 import { generateScript } from '@src/services/gemini-service';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { AspectRatio } from '@src/types';
 
 const CreateScriptForm = () => {
   const { apiKey } = useApiKey();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const addScript = useScriptsStore(s => s.addScript);
+  const importDataFromString = useScriptsStore(s => s.importDataFromString);
+  const importData = useScriptsStore(s => s.importData);
   const newScript = useScriptsStore(s => s.newScript);
   const isSettingsModalOpen = useScriptsStore(s => s.settingsModalOpen);
   const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
   const navigate = useNavigate();
   const isCancelledRef = useRef(false);
 
+  // Dọn dẹp trạng thái activeScript khi vào trang tạo mới
+  useEffect(() => {
+    newScript();
+  }, [newScript]);
+
   const handleGenerateScript = async (
     prompt: string,
     language: 'en-US' | 'vi-VN',
-    aspectRatio: AspectRatio,
     scriptModel: string,
-    imageModel: string,
-    videoModel: string,
     temperature: number,
     topP: number,
   ) => {
     setIsLoading(true);
     setError(null);
     isCancelledRef.current = false;
-    newScript(); // Reset active script state before generation
 
     try {
       if (!apiKey) throw new Error('API key is not set.');
-      const generatedScript = await generateScript(
-        prompt,
-        language,
-        apiKey,
-        scriptModel || SCRIPT_GENERATION_MODEL,
-        temperature,
-        topP,
-      );
+      const generatedScript = await generateScript(prompt, language, apiKey, scriptModel, temperature, topP);
 
       if (isCancelledRef.current) return; // Dừng xử lý nếu người dùng đã hủy
 
-      generatedScript.setting.defaultAspectRatio = aspectRatio || DEFAULT_ASPECT_RATIO;
-      generatedScript.setting.defaultImageModel = imageModel || IMAGE_GENERATION_MODEL;
-      generatedScript.setting.defaultVideoModel = videoModel || VIDEO_GENERATION_MODEL;
-
       // After generating, add the script to the store. This will also set it as active.
-      const newScript = await addScript(generatedScript);
-      // Navigate to the main script view to see the result
-      navigate(`/script?id=${newScript.id}`);
+      const newAddedScript = await addScript(generatedScript);
+      if (newAddedScript?.id) {
+        // Navigate to the main script view to see the result
+        navigate(`/script/${newAddedScript.id}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.');
-      setIsLoading(false); // Stop loading on error to show the form again
+    } finally {
+      // Luôn đặt lại trạng thái loading sau khi hoàn tất, bất kể thành công hay thất bại.
+      // Điều này đảm bảo spinner được gỡ bỏ.
+      setIsLoading(false);
     }
     // Don't set isLoading to false on success, as we are navigating away.
   };
 
-  const handleCancelGeneration = () => {
-    isCancelledRef.current = true;
-    setIsLoading(false);
+  const handleImportJson = async (jsonString: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const lastImportedId = await importDataFromString(jsonString);
+      console.log(lastImportedId, 'lastImportedId');
+      if (lastImportedId) {
+        navigate(`/script/${lastImportedId}`);
+      } else {
+        navigate('/script');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định khi nhập.');
+      // Không cần setIsLoading(false) ở đây vì đã có trong finally
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const lastImportedId = await importData(event);
+      if (lastImportedId) {
+        // Điều hướng đến kịch bản cuối cùng vừa được import
+        navigate(`/script/${lastImportedId}`);
+      } else {
+        navigate('/script'); // Nếu không có ID, quay về trang danh sách
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi nhập file.');
+      // Không cần setIsLoading(false) ở đây vì đã có trong finally
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <>
       <main className="flex-1 p-6">
-        <div className="mx-auto max-w-2xl">
-          {isLoading ? (
-            <div className="flex h-full items-center justify-center">
-              <ScriptLoader onCancel={handleCancelGeneration} />
-            </div>
-          ) : (
-            <CreationForm onGenerate={handleGenerateScript} isLoading={isLoading} onCancel={() => navigate(-1)} />
-          )}
+        <div className="mx-auto max-w-4xl">
+          <CreationForm
+            onGenerate={handleGenerateScript}
+            onImportJson={handleImportJson}
+            onImportFile={handleImportFile}
+            isLoading={isLoading}
+            onCancel={() => navigate(-1)}
+          />
           {error && <div className="error mt-4 text-red-500">{error}</div>}
         </div>
       </main>

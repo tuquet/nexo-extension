@@ -15,7 +15,7 @@ import { getVbeeProjectStatus } from '@src/services/vbee-service';
 import { formatSrtTime, getAudioDuration, useScriptsStore, selectAllDialogues } from '@src/stores/use-scripts-store'; // Assuming DownloadCloud is exported from here
 import { Mic, Link, Download, RefreshCw, AlertTriangle, Hourglass, Check, FileText } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Root } from '@src/types';
+import type { ScriptStory } from '@src/types';
 import type React from 'react';
 
 interface VbeeProjectStatus {
@@ -32,11 +32,11 @@ interface VbeeProjectStatus {
 
 interface ScriptTtsAssetCardProps {
   onGenerateTts: () => void;
-  script: Root | null;
-  onSave: (script: Root) => Promise<void>;
+  script: ScriptStory | null;
+  onSave: (script: ScriptStory) => Promise<void>;
 }
 
-const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script, onSave }) => {
+const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script }) => {
   // Always call hooks at the top level
   const vbeeProjectId = script?.buildMeta?.vbeeProjectId;
 
@@ -49,6 +49,52 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   const [isGeneratingSrt, setIsGeneratingSrt] = useState(false);
   const audioUrlRef = useRef<string | null>(null);
   const allDialogues = useScriptsStore(selectAllDialogues);
+
+  const downloadAndSaveAudio = useCallback(
+    async (scriptId: number, actIndex: number, sceneIndex: number, dialogueIndex: number, audioUrl: string) => {
+      const updateField = useScriptsStore.getState().updateScriptField;
+
+      try {
+        // 1. Set loading state
+        await updateField(
+          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].isGeneratingAudio`,
+          true,
+        );
+
+        // 2. Fetch audio
+        const response = await fetch(audioUrl);
+        if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
+        const audioBlob = await response.blob();
+
+        // 3. Save to DB
+        const audioId = await db.audios.add({
+          scriptId: scriptId,
+          data: audioBlob,
+        });
+
+        // 4. Update script with DB ID
+        await updateField(
+          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].generatedAudioId`,
+          audioId,
+        );
+      } catch (e) {
+        console.error(`Failed to download/save audio for dialogue ${dialogueIndex}:`, e);
+        toast.error(`Lỗi tải âm thanh cho câu thoại ${dialogueIndex + 1}.`);
+        // Optionally clear the ID if it fails
+        await updateField(
+          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].generatedAudioId`,
+          undefined,
+        );
+      } finally {
+        // 5. Unset loading state
+        await updateField(
+          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].isGeneratingAudio`,
+          false,
+        );
+      }
+    },
+    [],
+  );
 
   const fetchStatus = useCallback(async () => {
     // We get the script from the store directly inside the fetch function
@@ -72,33 +118,31 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
 
       // Always try to update any available audio links, don't wait for all to be "done".
       if (project.blocks?.length > 0) {
-        const audioLinkMap = new Map(project.blocks.filter(b => b.audio_link).map(b => [b.id, b.audio_link as string]));
+        const projectBlockAudioLinkMap = new Map(
+          project.blocks.filter(b => b.audio_link).map(b => [b.id, b.audio_link as string]),
+        );
 
-        if (audioLinkMap.size === 0) {
+        if (projectBlockAudioLinkMap.size === 0) {
           toast.info('Vbee chưa xử lý xong. Vui lòng thử lại sau ít phút.');
           return;
         }
         const updatedScript = structuredClone(currentScript);
-        let hasChanges = false;
 
         updatedScript.acts.forEach((act, actIndex) => {
           act.scenes.forEach((scene, sceneIndex) => {
             scene.dialogues?.forEach((dialogue, dialogueIndex) => {
-              if (dialogue.vbeeBlockId && audioLinkMap.has(dialogue.vbeeBlockId)) {
-                const newAudioLink = audioLinkMap.get(dialogue.vbeeBlockId)!;
-                if (dialogue.audioLink !== newAudioLink) {
-                  // Cập nhật trực tiếp trên bản sao thay vì gọi onUpdateField
-                  updatedScript.acts[actIndex].scenes[sceneIndex].dialogues[dialogueIndex].audioLink = newAudioLink;
-                  hasChanges = true;
+              if (dialogue.projectBlockItemId && projectBlockAudioLinkMap.has(dialogue.projectBlockItemId)) {
+                const newAudioLink = projectBlockAudioLinkMap.get(dialogue.projectBlockItemId)!;
+                // If there's no audio ID yet, start the download process.
+                // We don't check for changes, we just trigger the download if an ID is missing.
+                if (!dialogue.generatedAudioId) {
+                  // Don't await this, let it run in the background
+                  void downloadAndSaveAudio(updatedScript.id!, actIndex, sceneIndex, dialogueIndex, newAudioLink);
                 }
               }
             });
           });
         });
-
-        if (hasChanges) {
-          await onSave(updatedScript);
-        }
         setLastSyncTime(new Date());
       }
     } catch (e) {
@@ -107,7 +151,7 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
     } finally {
       setIsLoading(false);
     }
-  }, [vbeeProjectId, onSave]);
+  }, [vbeeProjectId, downloadAndSaveAudio]);
 
   const handleDownload = useCallback(async () => {
     if (!vbeeProjectId || !script?.id) return;

@@ -5,7 +5,7 @@ import {
   blobToBase64,
 } from '../services/gemini-service';
 import { useApiKey } from '../stores/use-api-key';
-import type { Root, AspectRatio } from '../types';
+import type { ScriptStory, AspectRatio } from '../types';
 
 const base64ToBlob = async (base64: string) => (await fetch(base64)).blob();
 
@@ -18,21 +18,21 @@ const clone = <T>(v: T): T =>
     : JSON.parse(JSON.stringify(v));
 
 type Callbacks = {
-  setActiveScript: (script: Root) => void;
-  saveActiveScript: (script: Root) => Promise<void>;
+  setActiveScript: (script: ScriptStory) => void;
+  saveActiveScript: (script: ScriptStory) => Promise<void>;
   setError: (error: string | null) => void;
 };
 
 export const useAssets = (
-  setActiveScript: (script: Root) => void,
-  saveActiveScript: (script: Root) => Promise<void>,
+  setActiveScript: (script: ScriptStory) => void,
+  saveActiveScript: (script: ScriptStory) => Promise<void>,
   setError: (error: string | null) => void,
 ) => {
   const cb: Callbacks = { setActiveScript, saveActiveScript, setError };
   const getApiKey = () => useApiKey.getState().apiKey;
 
   const generateSceneImage = async (
-    script: Root,
+    script: ScriptStory,
     actIndex: number,
     sceneIndex: number,
     prompt: string,
@@ -68,7 +68,7 @@ export const useAssets = (
     }
   };
 
-  const cancelGenerateSceneImage = (script: Root, actIndex: number, sceneIndex: number) => {
+  const cancelGenerateSceneImage = (script: ScriptStory, actIndex: number, sceneIndex: number) => {
     const updated = clone(script);
     const scene = updated.acts?.[actIndex]?.scenes?.[sceneIndex];
     if (scene) scene.isGeneratingImage = false;
@@ -76,7 +76,7 @@ export const useAssets = (
   };
 
   const generateSceneVideo = async (
-    script: Root,
+    script: ScriptStory,
     actIndex: number,
     sceneIndex: number,
     modelName: string,
@@ -118,7 +118,7 @@ export const useAssets = (
     }
   };
 
-  const deleteSceneImage = async (script: Root, actIndex: number, sceneIndex: number) => {
+  const deleteSceneImage = async (script: ScriptStory, actIndex: number, sceneIndex: number) => {
     const updated = clone(script);
     const scene = updated.acts[actIndex].scenes[sceneIndex];
     if (!scene.generatedImageId) return;
@@ -134,7 +134,7 @@ export const useAssets = (
     }
   };
 
-  const deleteSceneVideo = async (script: Root, actIndex: number, sceneIndex: number) => {
+  const deleteSceneVideo = async (script: ScriptStory, actIndex: number, sceneIndex: number) => {
     const updated = clone(script);
     const scene = updated.acts[actIndex].scenes[sceneIndex];
     if (!scene.generatedVideoId) return;

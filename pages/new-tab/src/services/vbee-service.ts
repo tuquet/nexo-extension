@@ -1,5 +1,5 @@
 import { VBEE_API_BASE_URL } from '@src/constants';
-import type { Root } from '../types';
+import type { ScriptStory } from '../types';
 
 /**
  * Represents a block in a Vbee project, analogous to a scene in our script.
@@ -44,7 +44,7 @@ export interface VbeeProjectStatusResponse {
 
 export interface VbeeTransformationResult {
   payload: CreateVbeeProjectPayload;
-  updatedScript: Root;
+  updatedScript: ScriptStory;
 }
 
 /**
@@ -55,7 +55,7 @@ export interface VbeeTransformationResult {
  * @param characterVoiceMap A map of character roleIds to their assigned Vbee voice codes. * @returns An object containing the payload for Vbee and the updated script with vbeeBlockIds.
  */
 export const transformScriptToVbeeProject = (
-  script: Root,
+  script: ScriptStory,
   defaultVoiceCode: string,
   characterVoiceMap: Record<string, string> = {},
 ): VbeeTransformationResult => {
@@ -68,8 +68,8 @@ export const transformScriptToVbeeProject = (
         if (dialogue.line && dialogue.line.trim() !== '') {
           // Chỉ tạo blockId mới nếu nó chưa tồn tại.
           // Điều này đảm bảo ID không thay đổi giữa các lần tạo payload.
-          const blockId = dialogue.vbeeBlockId ?? crypto.randomUUID();
-          dialogue.vbeeBlockId = blockId;
+          const blockId = dialogue.projectBlockItemId ?? crypto.randomUUID();
+          dialogue.projectBlockItemId = blockId;
 
           const voiceCode = characterVoiceMap[dialogue.roleId] || defaultVoiceCode;
           vbeeBlocks.push({

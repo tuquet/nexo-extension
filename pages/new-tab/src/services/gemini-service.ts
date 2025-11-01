@@ -1,6 +1,6 @@
 import { TEXT_ENHANCEMENT_MODEL } from '../constants';
 import { GoogleGenAI, Type } from '@google/genai';
-import type { Root, AspectRatio } from '../types';
+import type { ScriptStory, AspectRatio } from '../types';
 
 const getAiClient = (apiKey: string) => {
   if (!apiKey) {
@@ -12,7 +12,7 @@ const getAiClient = (apiKey: string) => {
 const scriptSchema = {
   type: Type.OBJECT,
   properties: {
-    title: { type: Type.STRING, description: 'The title of the movie.' },
+    title: { type: Type.STRING, description: 'The hook title of the movie. (capitalize)' },
     alias: { type: Type.STRING, description: 'the-title-alias-webfriendly' },
     logline: { type: Type.STRING, description: 'A one-sentence summary of the story.' },
     genre: {
@@ -40,18 +40,6 @@ const scriptSchema = {
         location: {
           type: Type.STRING,
           description: "The primary physical location of the story (e.g., 'A remote space station').",
-        },
-        defaultAspectRatio: {
-          type: Type.STRING,
-          description: "The default aspect ratio for generated assets, e.g., '16:9'. Can be left empty.",
-        },
-        defaultImageModel: {
-          type: Type.STRING,
-          description: 'The default model for image generation. Can be left empty.',
-        },
-        defaultVideoModel: {
-          type: Type.STRING,
-          description: 'The default model for video generation. Can be left empty.',
         },
       },
       required: ['time', 'location'],
@@ -129,6 +117,29 @@ const scriptSchema = {
   required: ['title', 'alias', 'logline', 'genre', 'tone', 'themes', 'notes', 'setting', 'characters', 'acts'],
 };
 
+interface ScriptGenerationPayload {
+  systemInstruction: string;
+  userPrompt: string;
+  schema: object;
+}
+
+/**
+ * Chuẩn bị payload (system instruction, user prompt, và schema) để tạo kịch bản.
+ * Hàm này tách biệt logic tạo prompt khỏi lời gọi API, giúp dễ dàng debug và tái sử dụng.
+ * @param userPrompt - Lời nhắc của người dùng.
+ * @param language - Ngôn ngữ cho kịch bản.
+ * @returns Một đối tượng chứa systemInstruction, userPrompt, và schema.
+ */
+const getScriptGenerationPayload = (userPrompt: string, language: 'en-US' | 'vi-VN'): ScriptGenerationPayload => {
+  const systemInstruction = `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${language}.
+        The script must follow the three-act structure.
+        Ensure every field in the provided JSON schema is filled with creative, relevant, and well-written content.
+        The 'roleId' in dialogue must correspond to one of the character roleIds defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roleIds for dialogue.
+        For each dialogue 'line', provide only the spoken words. Do not include parenthetical remarks, actions, or context like '(internal monologue)' or '(shouting)'.
+        IMPORTANT RULE: Always include a character with the roleId 'narrator' in the 'characters' list. For any scene that has no character dialogue, you MUST create a single entry in the 'dialogues' array. This entry will have the 'roleId' set to 'narrator' and the 'line' will be the exact content of the 'action' field for that scene. This ensures every scene has content for voice-over.`;
+  return { systemInstruction, userPrompt, schema: scriptSchema };
+};
+
 const generateScript = async (
   prompt: string,
   language: 'en-US' | 'vi-VN',
@@ -136,21 +147,18 @@ const generateScript = async (
   modelName: string,
   temperature: number,
   topP: number,
-): Promise<Root> => {
+): Promise<ScriptStory> => {
   try {
     const ai = getAiClient(apiKey);
-    const systemInstruction = `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${language}.
-        The script must follow the three-act structure.
-        Ensure every field in the provided JSON schema is filled with creative, relevant, and well-written content.
-        The 'roleId' in dialogue must correspond to one of the character roleIds defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roleIds for dialogue.`;
+    const { systemInstruction, userPrompt, schema } = getScriptGenerationPayload(prompt, language);
 
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: prompt,
+      contents: userPrompt,
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: 'application/json',
-        responseSchema: scriptSchema,
+        responseSchema: schema,
         temperature: temperature,
         topP: topP,
       },
@@ -161,7 +169,7 @@ const generateScript = async (
       throw new Error('API returned an empty response.');
     }
 
-    return JSON.parse(text) as Root;
+    return JSON.parse(text) as ScriptStory;
   } catch (error) {
     console.error('Lỗi tạo kịch bản:', error);
     throw new Error(
@@ -370,5 +378,13 @@ const generateSceneVideo = async (
     throw error;
   }
 };
-
-export { generateScript, generateSceneVideo, suggestPlotPoints, generateSceneImage, enhanceText, blobToBase64 };
+export type { ScriptGenerationPayload };
+export {
+  generateScript,
+  generateSceneVideo,
+  suggestPlotPoints,
+  generateSceneImage,
+  enhanceText,
+  blobToBase64,
+  getScriptGenerationPayload,
+};

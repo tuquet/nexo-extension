@@ -1,6 +1,6 @@
 export type AspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
 
-export interface Root {
+export interface ScriptStory {
   id?: number; // Unique identifier for the script
   title: string;
   genre: string[];
@@ -41,8 +41,9 @@ export interface Scene {
 export interface Dialogue {
   roleId: string;
   line: string;
-  vbeeBlockId?: string; // To map with Vbee's response
-  audioLink?: string; // The generated audio link from Vbee
+  projectBlockItemId?: string; // To map with Vbee's response
+  generatedAudioId?: number; // The ID of the audio in IndexedDB
+  isGeneratingAudio?: boolean; // To show loading state
 }
 
 export interface Character {
@@ -54,9 +55,6 @@ export interface Character {
 export interface Setting {
   time: string;
   location: string;
-  defaultAspectRatio?: AspectRatio;
-  defaultImageModel?: string;
-  defaultVideoModel?: string;
 }
 
 export interface BuildMeta {

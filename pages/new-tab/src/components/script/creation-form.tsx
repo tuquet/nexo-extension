@@ -1,20 +1,28 @@
 import { ModelSettings } from './model-settings';
-import {
-  PREDEFINED_GENRES,
-  DEFAULT_ASPECT_RATIO,
-  PLOT_SUGGESTION_MODEL,
-  IMAGE_GENERATION_MODEL,
-  VIDEO_GENERATION_MODEL,
-} from '../../constants';
-import { suggestPlotPoints } from '../../services/gemini-service';
+import { PREDEFINED_GENRES, PLOT_SUGGESTION_MODEL } from '../../constants';
+import { suggestPlotPoints, getScriptGenerationPayload } from '../../services/gemini-service';
 import { useApiKey } from '../../stores/use-api-key';
 import CreatableSelect from '../script/creatable-select';
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@extension/ui';
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+  toast,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@extension/ui';
 import usePersistentState from '@src/hooks/use-persistent-state';
 import { useModelSettings } from '@src/stores/use-model-settings';
+import { usePreferencesStore } from '@src/stores/use-preferences-store';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { AlertCircle, Copy } from 'lucide-react';
+import { useState, useRef } from 'react';
 import type { AspectRatio } from '../../types';
 import type { FormEvent } from 'react';
 
@@ -24,21 +32,22 @@ interface CreationFormProps {
   onGenerate: (
     prompt: string,
     language: 'en-US' | 'vi-VN',
-    aspectRatio: AspectRatio,
     scriptModel: string,
-    imageModel: string,
-    videoModel: string,
     temperature: number,
     topP: number,
   ) => void;
+  onImportJson: (jsonString: string) => void;
+  onImportFile: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isLoading: boolean;
   onCancel: () => void;
 }
 
-const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) => {
+const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, onImportJson, onImportFile, isLoading }) => {
   const { apiKey, isApiKeySet } = useApiKey();
   const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
   const { model, temperature, topP } = useModelSettings();
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const { defaultAspectRatio, setDefaultAspectRatio } = usePreferencesStore();
 
   const [logline, setLogline] = usePersistentState<string>(`${FORM_STORAGE_KEY}_logline`, '');
   const [genres, setGenres] = usePersistentState<string[]>(`${FORM_STORAGE_KEY}_genres`, []);
@@ -47,18 +56,14 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
     `${FORM_STORAGE_KEY}_scriptLength`,
     'short',
   );
-  const [defaultAspectRatio, setDefaultAspectRatio] = usePersistentState<AspectRatio>(
-    `${FORM_STORAGE_KEY}_aspectRatio`,
-    DEFAULT_ASPECT_RATIO,
-  );
   const [suggestionModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_suggestionModel`, PLOT_SUGGESTION_MODEL);
-  const [imageModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_imageModel`, IMAGE_GENERATION_MODEL);
-  const [videoModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_videoModel`, VIDEO_GENERATION_MODEL);
 
   const [plotSuggestions, setPlotSuggestions] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState<boolean>(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('ai');
+  const [jsonText, setJsonText] = useState('');
 
   const handleGenerateScript = (e: FormEvent) => {
     e.preventDefault();
@@ -78,7 +83,7 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, isLoading }) =>
       **Desired Script Length:** ${scriptLength}
       Based on the provided logline, genres, and desired length, please generate a full movie script.`.trim();
 
-    onGenerate(finalPrompt, language, defaultAspectRatio, model, imageModel, videoModel, temperature, topP);
+    onGenerate(finalPrompt, language, model, temperature, topP);
     clearPersistedForm();
   };
 
@@ -114,6 +119,36 @@ ${genres.join(', ')}`.trim();
     );
   };
 
+  const handleCopyPrompt = () => {
+    const finalPrompt = `
+      **Logline / Core Idea:** ${logline}
+      **Genres:** ${genres.join(', ')}
+      **Desired Script Length:** ${scriptLength}
+      Based on the provided logline, genres, and desired length, please generate a full movie script.`.trim();
+
+    const { systemInstruction, userPrompt, schema } = getScriptGenerationPayload(finalPrompt, language);
+
+    const fullPromptText = `--- SYSTEM PROMPT ---\n${systemInstruction}\n\n--- USER PROMPT ---\n${userPrompt}\n\n--- JSON SCHEMA ---\n${JSON.stringify(schema, null, 2)}`;
+
+    void navigator.clipboard.writeText(fullPromptText).then(() => {
+      toast.success('Đã sao chép toàn bộ prompt vào clipboard!');
+    });
+  };
+
+  const handleImportClick = () => {
+    setFormError(null);
+    if (!jsonText.trim()) {
+      setFormError('Vui lòng dán nội dung JSON vào ô bên dưới.');
+      return;
+    }
+    try {
+      JSON.parse(jsonText); // Thử parse để kiểm tra JSON hợp lệ
+      onImportJson(jsonText);
+    } catch {
+      setFormError('Nội dung JSON không hợp lệ. Vui lòng kiểm tra lại.');
+    }
+  };
+
   const clearPersistedForm = () => {
     Object.keys(sessionStorage).forEach(key => {
       if (key.startsWith(FORM_STORAGE_KEY)) {
@@ -121,8 +156,9 @@ ${genres.join(', ')}`.trim();
       }
     });
   };
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700/50 dark:bg-slate-800/50">
+    <div className="relative rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700/50 dark:bg-slate-800/50">
       <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Tạo kịch bản mới</h2>
       <p className="mb-8 text-slate-500 dark:text-slate-400">Bắt đầu bằng cách điền vào các chi tiết bên dưới.</p>
 
@@ -141,145 +177,215 @@ ${genres.join(', ')}`.trim();
         </div>
       )}
 
-      <form onSubmit={handleGenerateScript} className="space-y-6">
-        <div>
-          <label htmlFor="logline" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Tóm tắt / Ý tưởng chính
-          </label>
-          <Textarea
-            id="logline"
-            rows={5}
-            className="focus:border-primary focus:ring-primary/20 block w-full rounded-lg border-slate-300 bg-white shadow-sm transition placeholder:text-slate-400 focus:ring-2 disabled:bg-slate-100 disabled:opacity-70 sm:text-sm dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 dark:disabled:bg-slate-700"
-            value={logline}
-            onChange={e => setLogline(e.target.value)}
-            placeholder="VD: Một thám tử trong thành phố cyberpunk đuổi theo một AI nổi loạn..."
-            disabled={isLoading}
-          />
-        </div>
-        <div>
-          <label htmlFor="genres" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Thể loại
-          </label>
-          <CreatableSelect
-            options={PREDEFINED_GENRES}
-            value={genres}
-            onChange={setGenres}
-            placeholder="Chọn hoặc tạo thể loại..."
-            disabled={isLoading}
-          />
-        </div>
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleSuggestPlotPoints}
-            disabled={!logline.trim() || isLoading || isSuggesting || !isApiKeySet}
-            title={!isApiKeySet ? 'Vui lòng đặt khóa API trong cài đặt để sử dụng' : ''}>
-            {isSuggesting ? 'Đang gợi ý...' : 'Gợi ý tình tiết'}
-          </Button>
-        </div>
-        {suggestionError && (
-          <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-            🚨 {suggestionError}
-          </div>
-        )}
-        {plotSuggestions.length > 0 && (
-          <div>
-            <label
-              htmlFor="plot-suggestions-list"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Gợi ý (nhấp để thêm vào tóm tắt)
-            </label>
-            <div
-              id="plot-suggestions-list"
-              className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-              {plotSuggestions.map((item, index) => (
-                <div key={index}>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSuggestionToLogline(item)}
-                    className="text-primary block w-full cursor-pointer p-3 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                    {item}
-                  </button>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6 w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="ai">Tạo bằng AI</TabsTrigger>
+          <TabsTrigger value="json">Nhập từ JSON</TabsTrigger>
+        </TabsList>
+        <TabsContent value="ai" className="mt-6">
+          <form onSubmit={handleGenerateScript} className="space-y-6">
+            <div>
+              <label htmlFor="logline" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Tóm tắt / Ý tưởng chính
+              </label>
+              <Textarea
+                id="logline"
+                rows={5}
+                className="focus:border-primary focus:ring-primary/20 block w-full rounded-lg border-slate-300 bg-white shadow-sm transition placeholder:text-slate-400 focus:ring-2 disabled:bg-slate-100 disabled:opacity-70 sm:text-sm dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 dark:disabled:bg-slate-700"
+                value={logline}
+                onChange={e => setLogline(e.target.value)}
+                placeholder="VD: Một thám tử trong thành phố cyberpunk đuổi theo một AI nổi loạn..."
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="genres" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Thể loại
+              </label>
+              <CreatableSelect
+                options={PREDEFINED_GENRES}
+                value={genres}
+                onChange={setGenres}
+                placeholder="Chọn hoặc tạo thể loại..."
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-grow">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleSuggestPlotPoints}
+                  disabled={!logline.trim() || isLoading || isSuggesting || !isApiKeySet}
+                  title={!isApiKeySet ? 'Vui lòng đặt khóa API trong cài đặt để sử dụng' : ''}>
+                  {isSuggesting ? 'Đang gợi ý...' : 'Gợi ý tình tiết'}
+                </Button>
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={handleCopyPrompt} title="Sao chép Prompt">
+                <Copy className="h-5 w-5" />
+                <span className="sr-only">Sao chép Prompt</span>
+              </Button>
+            </div>
+            {suggestionError && (
+              <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                🚨 {suggestionError}
+              </div>
+            )}
+            {plotSuggestions.length > 0 && (
+              <div>
+                <label
+                  htmlFor="plot-suggestions-list"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Gợi ý (nhấp để thêm vào tóm tắt)
+                </label>
+                <div
+                  id="plot-suggestions-list"
+                  className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                  {plotSuggestions.map((item, index) => (
+                    <div key={index}>
+                      <button
+                        type="button"
+                        onClick={() => handleAddSuggestionToLogline(item)}
+                        className="text-primary block w-full cursor-pointer p-3 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        {item}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="language" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Ngôn ngữ
+                </label>
+                <Select
+                  value={language}
+                  onValueChange={val => setLanguage(val as 'en-US' | 'vi-VN')}
+                  disabled={isLoading}>
+                  <SelectTrigger id="language" className="focus:border-primary focus:ring-primary/20 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vi-VN">Tiếng Việt</SelectItem>
+                    <SelectItem value="en-US">Tiếng Anh (Mỹ)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label htmlFor="length" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Độ dài kịch bản
+                </label>
+                <Select
+                  value={scriptLength}
+                  onValueChange={val => setScriptLength(val as 'short' | 'medium' | 'long')}
+                  disabled={isLoading}>
+                  <SelectTrigger id="length" className="focus:border-primary focus:ring-primary/20 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short">Ngắn</SelectItem>
+                    <SelectItem value="medium">Trung bình</SelectItem>
+                    <SelectItem value="long">Dài</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="aspectRatio"
+                className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Định dạng Video (Mặc định)
+              </label>
+              <Select
+                value={defaultAspectRatio}
+                onValueChange={val => setDefaultAspectRatio(val as AspectRatio)}
+                disabled={isLoading}>
+                <SelectTrigger id="aspectRatio" className="focus:border-primary focus:ring-primary/20 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="16:9">16:9 (Ngang)</SelectItem>
+                  <SelectItem value="9:16">9:16 (Dọc)</SelectItem>
+                  <SelectItem value="1:1">1:1 (Vuông)</SelectItem>
+                  <SelectItem value="4:3">4:3 (Cổ điển)</SelectItem>
+                  <SelectItem value="3:4">3:4 (Chân dung)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Tùy chọn nâng cao</div>
+              <ModelSettings disabled={isLoading} />
+            </div>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || !isApiKeySet}
+                title={!isApiKeySet ? 'Vui lòng đặt khóa API trong cài đặt để tạo kịch bản' : ''}>
+                {isLoading ? 'Đang tạo...' : 'Tạo kịch bản'}
+              </Button>
+            </div>
+          </form>
+        </TabsContent>
+        <TabsContent value="json" className="mt-6">
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="json-input" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Nội dung JSON kịch bản
+              </label>
+              <Textarea
+                id="json-input"
+                value={jsonText}
+                onChange={e => setJsonText(e.target.value)}
+                placeholder='[{"title": "My Movie", "acts": [...]}]'
+                rows={20}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleImportClick} className="flex-1" disabled={isLoading}>
+                {isLoading ? 'Đang nhập...' : 'Nhập từ văn bản'}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => importFileRef.current?.click()}
+                disabled={isLoading}>
+                Nhập từ File
+              </Button>
+              <input
+                type="file"
+                ref={importFileRef}
+                className="hidden"
+                accept=".json"
+                multiple
+                onChange={onImportFile}
+              />
             </div>
           </div>
-        )}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="language" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Ngôn ngữ
-            </label>
-            <Select value={language} onValueChange={val => setLanguage(val as 'en-US' | 'vi-VN')} disabled={isLoading}>
-              <SelectTrigger id="language" className="focus:border-primary focus:ring-primary/20 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vi-VN">Tiếng Việt</SelectItem>
-                <SelectItem value="en-US">Tiếng Anh (Mỹ)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label htmlFor="length" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Độ dài kịch bản
-            </label>
-            <Select
-              value={scriptLength}
-              onValueChange={val => setScriptLength(val as 'short' | 'medium' | 'long')}
-              disabled={isLoading}>
-              <SelectTrigger id="length" className="focus:border-primary focus:ring-primary/20 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="short">Ngắn</SelectItem>
-                <SelectItem value="medium">Trung bình</SelectItem>
-                <SelectItem value="long">Dài</SelectItem>
-              </SelectContent>
-            </Select>
+        </TabsContent>
+      </Tabs>
+
+      {formError && (
+        <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+          {formError}
+        </div>
+      )}
+      {isLoading && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-slate-600 dark:border-slate-600 dark:border-t-slate-300"></div>
+            <h4 className="mt-6 text-lg font-semibold text-slate-800 dark:text-slate-200">
+              Đang tạo kịch bản của bạn...
+            </h4>
+            <p className="text-slate-500 dark:text-slate-400">
+              AI đang làm việc. Quá trình này có thể mất một chút thời gian.
+            </p>
           </div>
         </div>
-        <div>
-          <label htmlFor="aspectRatio" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Định dạng Video (Mặc định)
-          </label>
-          <Select
-            value={defaultAspectRatio}
-            onValueChange={val => setDefaultAspectRatio(val as AspectRatio)}
-            disabled={isLoading}>
-            <SelectTrigger id="aspectRatio" className="focus:border-primary focus:ring-primary/20 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="16:9">16:9 (Ngang)</SelectItem>
-              <SelectItem value="9:16">9:16 (Dọc)</SelectItem>
-              <SelectItem value="1:1">1:1 (Vuông)</SelectItem>
-              <SelectItem value="4:3">4:3 (Cổ điển)</SelectItem>
-              <SelectItem value="3:4">3:4 (Chân dung)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Tùy chọn nâng cao</div>
-          <ModelSettings disabled={isLoading} />
-        </div>
-        <div className="pt-2">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading || !isApiKeySet}
-            title={!isApiKeySet ? 'Vui lòng đặt khóa API trong cài đặt để tạo kịch bản' : ''}>
-            {isLoading ? 'Đang tạo...' : 'Tạo kịch bản'}
-          </Button>
-        </div>
-        {formError && (
-          <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-            {formError}
-          </div>
-        )}
-      </form>
+      )}
     </div>
   );
 };

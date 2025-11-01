@@ -3,36 +3,47 @@ import { useEffect, useRef } from 'react';
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const currentObjectUrl = useRef<string | null>(null);
   const { playingSource, isPlaying, setPlaying, pause, setLoading } = useAudioPlayerStore();
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (playingSource) {
-      if (audio.src !== playingSource) {
-        audio.src = playingSource;
-      }
+    // Dọn dẹp Object URL cũ nếu nguồn phát thay đổi
+    if (currentObjectUrl.current && currentObjectUrl.current !== playingSource) {
+      URL.revokeObjectURL(currentObjectUrl.current);
+      currentObjectUrl.current = null;
+    }
 
-      if (isPlaying) {
-        void audio.play().catch(() => {
-          // Playback failed, likely due to user not interacting with the page yet.
-          // We can inform the user or just pause the state.
-          pause();
-        });
-      } else {
-        audio.pause();
+    // Gán nguồn phát mới
+    if (playingSource && audio.src !== playingSource) {
+      audio.src = playingSource;
+      if (playingSource.startsWith('blob:')) {
+        currentObjectUrl.current = playingSource;
       }
+    }
+
+    // Xử lý play/pause
+    if (isPlaying) {
+      void audio.play().catch(() => {
+        pause(); // Tự động pause nếu không thể phát
+      });
     } else {
       audio.pause();
     }
 
-    const handleEnded = () => {
-      setPlaying(false);
-      setLoading(false); // Reset loading state on end
-    };
+    // Event listeners
+    const handleEnded = () => setPlaying(false);
+    const handleCanPlay = () => setLoading(false);
+
     audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
   }, [playingSource, isPlaying, setPlaying, pause, setLoading]);
 
   return (

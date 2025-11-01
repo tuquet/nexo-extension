@@ -1,14 +1,14 @@
 import { db } from '../db';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Root } from '../types';
+import type { ScriptStory } from '../types';
 import type React from 'react';
 
 type ActiveSceneIdentifier = { actIndex: number; sceneIndex: number } | null;
 
 type ScriptsState = {
-  savedScripts: Root[];
-  activeScript: Root | null;
+  savedScripts: ScriptStory[];
+  activeScript: ScriptStory | null;
   activeSceneIdentifier: ActiveSceneIdentifier;
   scriptsError: string | null;
   currentView: 'script' | 'assets';
@@ -21,21 +21,21 @@ type ScriptsState = {
   modelSettingsModalOpen: boolean;
   setModelSettingsModalOpen: (v: boolean) => void;
   setSettingsModalOpen: (v: boolean) => void;
-  importData: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  importDataFromString: (jsonString: string) => Promise<void>;
+  importData: (event: React.ChangeEvent<HTMLInputElement>) => Promise<number | undefined>;
+  importDataFromString: (jsonString: string) => Promise<number | undefined>;
   exportData: () => Promise<void>;
   exportZip: () => Promise<void>;
   init: () => Promise<void>;
   selectScript: (id: number) => void;
   newScript: () => void;
-  saveActiveScript: (script: Root) => Promise<void>;
+  saveActiveScript: (script: ScriptStory) => Promise<void>;
   deleteActiveScript: () => Promise<void>;
   cleanActiveScript: () => Promise<void>;
   clearAllData: () => Promise<void>;
   updateScriptField: (path: string, value: unknown) => Promise<void>;
-  addScript: (script: Root) => Promise<Root>;
+  addScript: (script: ScriptStory) => Promise<ScriptStory>;
   setActiveSceneIdentifier: (id: ActiveSceneIdentifier) => void;
-  setActiveScript: (s: Root | null) => void;
+  setActiveScript: (s: ScriptStory | null) => void;
 };
 
 const setNestedValue = (obj: Record<string, unknown> | unknown[], path: string, value: unknown) => {
@@ -84,20 +84,25 @@ const useScriptsStore = create<ScriptsState>()(
       modelSettingsModalOpen: false,
 
       init: async () => {
+        if (useScriptsStore.persist.hasHydrated() && get().activeScript) return;
         const scripts = get().savedScripts;
         if (scripts.length > 0 && !get().activeScript) {
           const latest = scripts[scripts.length - 1];
-          set({ activeScript: latest });
-          if (latest.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
+          get().selectScript(latest.id as number);
         }
       },
 
       selectScript: id => {
         const script = get().savedScripts.find(s => s.id === id);
+        // Chỉ cập nhật nếu kịch bản được chọn khác với kịch bản đang hoạt động
+        // Điều này ngăn chặn việc re-render và các hiệu ứng phụ không cần thiết.
+        if (script && script.id === get().activeScript?.id) return;
         if (script) {
-          set({ activeScript: script });
-          if (script.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
-          else set({ activeSceneIdentifier: null });
+          const newActiveSceneIdentifier = script.acts?.[0]?.scenes?.[0] ? { actIndex: 0, sceneIndex: 0 } : null;
+          set({
+            activeScript: script,
+            activeSceneIdentifier: newActiveSceneIdentifier,
+          });
         }
       },
 
@@ -125,15 +130,12 @@ const useScriptsStore = create<ScriptsState>()(
           await db.images.where({ scriptId: id }).delete();
           await db.videos.where({ scriptId: id }).delete();
           const remaining = get().savedScripts.filter(s => s.id !== id);
-          set({ savedScripts: remaining });
+          let nextActive = null;
           if (remaining.length > 0) {
-            const first = remaining[0];
-            set({ activeScript: first });
-            if (first.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
-            else set({ activeSceneIdentifier: null });
-          } else {
-            set({ activeScript: null, activeSceneIdentifier: null });
+            nextActive = remaining[0];
           }
+          // Gộp các lệnh set để đảm bảo tính nguyên tử
+          set({ savedScripts: remaining, activeScript: nextActive, activeSceneIdentifier: null });
           window.dispatchEvent(new CustomEvent('assets-changed'));
         } catch (err) {
           console.error('Failed to delete script', err);
@@ -165,8 +167,15 @@ const useScriptsStore = create<ScriptsState>()(
               // Clean dialogue properties
               if (scene.dialogues) {
                 scene.dialogues.forEach(dialogue => {
-                  delete (dialogue as { vbeeBlockId?: unknown }).vbeeBlockId;
-                  delete (dialogue as { audioLink?: unknown }).audioLink;
+                  delete (dialogue as { projectBlockItemId?: unknown }).projectBlockItemId;
+                  delete (dialogue as { generatedAudioId?: unknown }).generatedAudioId;
+                  delete (dialogue as { isGeneratingAudio?: unknown }).isGeneratingAudio;
+                  if (Object.keys(dialogue).length === 0) {
+                    const index = scene.dialogues?.indexOf(dialogue);
+                    if (index !== undefined && index > -1) {
+                      scene.dialogues?.splice(index, 1);
+                    }
+                  }
                 });
               }
             });
@@ -193,12 +202,12 @@ const useScriptsStore = create<ScriptsState>()(
 
       importData: async event => {
         const files = event.target.files;
-        if (!files || files.length === 0) return;
+        if (!files || files.length === 0) return undefined;
 
         try {
           set({ isImporting: true, scriptsError: null });
 
-          const allScriptsToImport: Root[] = [];
+          const allScriptsToImport: ScriptStory[] = [];
 
           const readFileAsText = (file: File): Promise<string> =>
             new Promise((resolve, reject) => {
@@ -214,7 +223,7 @@ const useScriptsStore = create<ScriptsState>()(
             const importedData = JSON.parse(text);
             const scriptsFromFile = Array.isArray(importedData) ? importedData : [importedData];
 
-            const isValidScript = (script: unknown): script is Root =>
+            const isValidScript = (script: unknown): script is ScriptStory =>
               script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
 
             if (!scriptsFromFile.every(isValidScript)) {
@@ -223,27 +232,32 @@ const useScriptsStore = create<ScriptsState>()(
             }
 
             const scriptsToAdd = scriptsFromFile.map(s => {
-              const { id: _id, ...rest } = s as Root & { id?: number };
+              const { id: _id, ...rest } = s as ScriptStory & { id?: number };
               void _id;
-              return rest as Root;
+              return rest as ScriptStory;
             });
             allScriptsToImport.push(...scriptsToAdd);
           }
 
           if (allScriptsToImport.length > 0) {
-            await db.scripts.bulkAdd(allScriptsToImport);
+            const newIds = (await db.scripts.bulkAdd(allScriptsToImport, { allKeys: true })) as number[];
             const allScripts = await db.scripts.toArray();
-            set({ savedScripts: allScripts }); // Update store state
+            const lastImportedId = newIds[newIds.length - 1];
+            const lastScript = allScripts.find(s => s.id === lastImportedId);
+            set({ savedScripts: allScripts, activeScript: lastScript, isImporting: false }); // Đặt activeScript ở đây
+            return lastImportedId;
           }
           set({ isImporting: false });
+          return undefined;
         } catch (err) {
           console.error('Lỗi nhập dữ liệu:', err);
           set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+          throw err; // Ném lỗi ra ngoài để component có thể bắt
         }
       },
 
       importDataFromString: async jsonString => {
-        if (!jsonString.trim()) return;
+        if (!jsonString.trim()) return undefined;
 
         try {
           set({ isImporting: true, scriptsError: null });
@@ -251,7 +265,7 @@ const useScriptsStore = create<ScriptsState>()(
           const importedData = JSON.parse(jsonString);
           const scriptsToImport = Array.isArray(importedData) ? importedData : [importedData];
 
-          const isValidScript = (script: unknown): script is Root =>
+          const isValidScript = (script: unknown): script is ScriptStory =>
             script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
 
           if (!scriptsToImport.every(isValidScript)) {
@@ -259,20 +273,25 @@ const useScriptsStore = create<ScriptsState>()(
           }
 
           const scriptsToAdd = scriptsToImport.map(s => {
-            const { id: _id, ...rest } = s as Root & { id?: number };
+            const { id: _id, ...rest } = s as ScriptStory & { id?: number };
             void _id;
-            return rest as Root;
+            return rest as ScriptStory;
           });
 
           if (scriptsToAdd.length > 0) {
-            await db.scripts.bulkAdd(scriptsToAdd);
+            const newIds = (await db.scripts.bulkAdd(scriptsToAdd, { allKeys: true })) as number[];
             const allScripts = await db.scripts.toArray();
-            set({ savedScripts: allScripts }); // Update store state
+            const lastImportedId = newIds[newIds.length - 1];
+            const lastScript = allScripts.find(s => s.id === lastImportedId);
+            set({ savedScripts: allScripts, activeScript: lastScript, isImporting: false }); // Đặt activeScript ở đây
+            return lastImportedId;
           }
           set({ isImporting: false });
+          return undefined;
         } catch (err) {
           console.error('Lỗi nhập dữ liệu từ chuỗi:', err);
           set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+          throw err;
         }
       },
 
@@ -328,11 +347,20 @@ const useScriptsStore = create<ScriptsState>()(
                 }
               }
               for (const [dialogueIndex, dialogue] of scene.dialogues.entries()) {
-                if (dialogue.audioLink) {
+                if (dialogue.generatedAudioId) {
                   try {
-                    const audioResponse = await fetch(dialogue.audioLink);
-                    const audioBlob = await audioResponse.blob();
-                    zip.file(`scene_${scene.scene_number}_dialogue_${dialogueIndex + 1}.mp3`, audioBlob);
+                    // Fetch audio blob from IndexedDB using the ID
+                    const audioRecord = await db.audios.get(dialogue.generatedAudioId);
+                    if (audioRecord?.data) {
+                      zip.file(
+                        `scene_${scene.scene_number}_dialogue_${dialogueIndex + 1}.mp3`,
+                        audioRecord.data as Blob,
+                      );
+                    } else {
+                      console.warn(
+                        `No audio found for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1} (ID: ${dialogue.generatedAudioId})`,
+                      );
+                    }
                   } catch (e) {
                     console.warn(
                       `Could not fetch audio for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1}:`,
@@ -365,7 +393,7 @@ const useScriptsStore = create<ScriptsState>()(
       updateScriptField: async (path: string, value: unknown) => {
         const active = get().activeScript;
         if (!active) return;
-        const updated = structuredClone(active) as Root;
+        const updated = structuredClone(active) as ScriptStory;
         setNestedValue(updated as unknown as Record<string, unknown>, path, value);
         set({ activeScript: updated });
         await get().saveActiveScript(updated);
@@ -374,9 +402,17 @@ const useScriptsStore = create<ScriptsState>()(
       addScript: async script => {
         try {
           const newId = await db.scripts.add(script);
-          const scriptWithId = { ...script, id: newId } as Root;
-          set(state => ({ savedScripts: [...state.savedScripts, scriptWithId], activeScript: scriptWithId }));
-          if (scriptWithId.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
+          const scriptWithId = { ...script, id: newId } as ScriptStory;
+          set(state => {
+            const newActiveSceneIdentifier = scriptWithId.acts?.[0]?.scenes?.[0]
+              ? { actIndex: 0, sceneIndex: 0 }
+              : null;
+            return {
+              savedScripts: [...state.savedScripts, scriptWithId],
+              activeScript: scriptWithId,
+              activeSceneIdentifier: newActiveSceneIdentifier,
+            };
+          });
           return scriptWithId;
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : 'Không thể lưu kịch bản mới.';

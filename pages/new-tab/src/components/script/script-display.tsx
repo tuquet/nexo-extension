@@ -3,13 +3,13 @@ import SceneCard from './script-scene-card';
 import { useScriptsStore } from '../../stores/use-scripts-store';
 import { Badge, Button, Textarea } from '@extension/ui';
 import { useEffect, useState, useRef } from 'react';
-import type { Root } from '../../types';
+import type { ScriptStory } from '../../types';
 import type { FC } from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
 
 interface ScriptDisplayProps {
-  script: Root;
+  script: ScriptStory;
   language: 'en-US' | 'vi-VN';
   viewMode: ScriptViewMode;
 }
@@ -36,12 +36,12 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
 
   const handleSaveJson = async () => {
     try {
-      const parsed = JSON.parse(jsonText) as Root | Root[];
+      const parsed = JSON.parse(jsonText) as ScriptStory | ScriptStory[];
       if (Array.isArray(parsed)) {
         if (parsed.length === 0) throw new Error('Array empty');
-        await saveActiveScript(parsed[0] as Root);
+        await saveActiveScript(parsed[0] as ScriptStory);
       } else {
-        await saveActiveScript(parsed as Root);
+        await saveActiveScript(parsed as ScriptStory);
       }
       setJsonError(null);
     } catch (err) {

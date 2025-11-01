@@ -18,7 +18,6 @@ import { Link } from 'react-router-dom';
 const ScriptDetailPage = () => {
   useEffect(() => {
     void useApiKey.getState().loadApiKey();
-    void useScriptsStore.getState().init();
   }, []);
 
   const activeScript = useScriptsStore(s => s.activeScript);
@@ -86,6 +85,15 @@ const ScriptDetailPage = () => {
     </div>
   );
 
+  // Hiển thị loading spinner nếu URL có ID nhưng activeScript chưa khớp
+  // Điều này ngăn việc hiển thị NoScriptFallback trong lúc chuyển trang
+  const match = window.location.hash.match(/#\/script\/(\d+)/);
+  const urlScriptId = match ? parseInt(match[1], 10) : null;
+  const isSyncingRoute = urlScriptId !== null && activeScript?.id !== urlScriptId;
+  if (isSyncingRoute) {
+    return <LoadingSpinner />;
+  }
+
   return (
     <div>
       <AudioPlayer />
@@ -143,7 +151,7 @@ const ScriptDetailPage = () => {
               </div>
             </main>
             <aside
-              className="sticky top-0 h-[calc(100vh-4rem)] w-[500px] flex-shrink-0 overflow-y-auto p-6"
+              className="scrollbar-hidden sticky top-0 h-[calc(100vh-4rem)] w-[500px] flex-shrink-0 overflow-y-auto p-6"
               style={{ alignSelf: 'flex-start' }}>
               <AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />
             </aside>

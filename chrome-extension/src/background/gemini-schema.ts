@@ -13,9 +13,6 @@ export const GEMINI_SCRIPT_SCHEMA = `{
   "setting": {
     "time": "string (e.g., 'Hiện tại', '1990s')",
     "location": "string (e.g., 'Một ngôi chùa Thiền thanh tịnh trên núi.')",
-    "defaultAspectRatio": "string ('16:9', '9:16', '1:1', '4:3', '3:4')",
-    "defaultImageModel": "string",
-    "defaultVideoModel": "string"
   },
   "characters": [
     {

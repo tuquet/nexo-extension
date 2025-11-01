@@ -1,7 +1,7 @@
 import ImageGenerationModal from './image-generation-modal';
 import SceneAssetCard from './script-scene-asset-card';
 import ScriptTtsAssetCard from './script-tts-asset-card';
-import { DEFAULT_IMAGE_NEGATIVE_PROMPT, IMAGE_GENERATION_MODEL, VIDEO_GENERATION_MODEL } from '../../constants';
+import { DEFAULT_IMAGE_NEGATIVE_PROMPT } from '../../constants';
 import { useAssets } from '../../hooks/use-assets';
 import { useApiKey } from '../../stores/use-api-key';
 import {
@@ -13,6 +13,8 @@ import {
   selectPreviousSceneIdentifier,
 } from '../../stores/use-scripts-store';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@extension/ui';
+import { useModelSettings } from '@src/stores/use-model-settings';
+import { usePreferencesStore } from '@src/stores/use-preferences-store';
 import { useState } from 'react';
 import type { AspectRatio } from '../../types';
 import type React from 'react';
@@ -45,11 +47,12 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
   const prevSceneId = useScriptsStore(selectPreviousSceneIdentifier);
 
   const apiKey = useApiKey.getState().apiKey;
+  const { imageModel, videoModel } = useModelSettings();
+  const defaultAspectRatio = usePreferencesStore(s => s.defaultAspectRatio);
 
   const { generateSceneImage, cancelGenerateSceneImage, generateSceneVideo, deleteSceneImage, deleteSceneVideo } =
     useAssets(setActiveScript, saveActiveScript, () => {});
 
-  const defaultAspectRatio = activeScript?.setting.defaultAspectRatio;
   const isApiKeySet = !!apiKey;
 
   const handleOpenImageModal = (modalActIndex: number, modalSceneIndex: number, initialAspectRatio: AspectRatio) => {
@@ -73,7 +76,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
         imageModalConfig.sceneIndex,
         finalPrompt,
         finalNegativePrompt,
-        activeScript?.setting.defaultImageModel || IMAGE_GENERATION_MODEL,
+        imageModel,
         finalAspectRatio,
       );
     }
@@ -139,15 +142,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
                 onOpenImageModal={handleOpenImageModal}
                 onCancelGenerateImage={(ai, si) => cancelGenerateSceneImage(activeScript, ai, si)}
                 onDeleteImage={(ai, si) => deleteSceneImage(activeScript, ai, si)}
-                onGenerateVideo={(ai, si, ar) =>
-                  generateSceneVideo(
-                    activeScript!,
-                    ai,
-                    si,
-                    activeScript?.setting.defaultVideoModel || VIDEO_GENERATION_MODEL,
-                    ar,
-                  )
-                }
+                onGenerateVideo={(ai, si, ar) => generateSceneVideo(activeScript!, ai, si, videoModel, ar)}
                 onDeleteVideo={(ai, si) => deleteSceneVideo(activeScript, ai, si)}
                 defaultAspectRatio={defaultAspectRatio}
                 isApiKeySet={isApiKeySet}
