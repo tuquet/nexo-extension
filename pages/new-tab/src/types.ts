@@ -30,10 +30,8 @@ export interface Scene {
   audio_style: string;
   visual_style: string;
   dialogues: Dialogue[];
-  // Store a reference instead of the full base64 data.
   generatedImageId?: number;
   isGeneratingImage?: boolean;
-  // Additions for video generation
   generatedVideoId?: number;
   isGeneratingVideo?: boolean;
 }

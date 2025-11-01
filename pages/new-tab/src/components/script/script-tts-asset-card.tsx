@@ -8,14 +8,13 @@ import {
   Badge,
   toast,
   CardAction,
-  Spinner,
 } from '@extension/ui'; // Assuming DownloadCloud is exported from here
 import { VBEE_PROJECT_URL } from '@src/constants';
 import { db } from '@src/db';
 import { getVbeeProjectStatus } from '@src/services/vbee-service';
-import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { Mic, Link, Download, RefreshCw, AlertTriangle, Hourglass, Check } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { formatSrtTime, getAudioDuration, useScriptsStore } from '@src/stores/use-scripts-store';
+import { Mic, Link, Download, RefreshCw, AlertTriangle, Hourglass, Check, FileText } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Root } from '@src/types';
 import type React from 'react';
 
@@ -48,6 +47,8 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   const [isDownloading, setIsDownloading] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
+  const [isGeneratingSrt, setIsGeneratingSrt] = useState(false);
+  const audioUrlRef = useRef<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
     // We get the script from the store directly inside the fetch function
@@ -169,6 +170,56 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
     }
   }, [vbeeProjectId, script?.id]);
 
+  const handleExportSrt = useCallback(async () => {
+    if (!script?.id) return;
+
+    setIsGeneratingSrt(true);
+    toast.info('Đang tạo file phụ đề SRT...');
+
+    try {
+      const audioRecord = await db.audios.where({ scriptId: script.id }).first();
+      if (!audioRecord) {
+        throw new Error('Không tìm thấy file âm thanh đã lưu trong tài sản để tạo SRT.');
+      }
+
+      const allDialogues = script.acts.flatMap(act => act.scenes.flatMap(scene => scene.dialogues));
+      if (allDialogues.length === 0) {
+        throw new Error('Kịch bản không có câu thoại nào để tạo phụ đề.');
+      }
+
+      const totalDuration = await getAudioDuration(audioRecord.data);
+      const totalCharacters = allDialogues.reduce((sum, d) => sum + d.line.length, 0);
+      const timePerChar = totalCharacters > 0 ? totalDuration / totalCharacters : 0;
+
+      let srtContent = '';
+      let cumulativeTime = 0;
+
+      allDialogues.forEach((dialogue, index) => {
+        const lineDuration = dialogue.line.length * timePerChar;
+        const startTime = cumulativeTime;
+        const endTime = startTime + lineDuration;
+        srtContent += `${index + 1}\n`;
+        srtContent += `${formatSrtTime(startTime)} --> ${formatSrtTime(endTime)}\n`;
+        srtContent += `${dialogue.line}\n\n`;
+        cumulativeTime = endTime;
+      });
+
+      const srtBlob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(srtBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${script.alias || script.title.replace(/[^a-z0-9]/gi, '_') || 'subtitles'}.srt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Lỗi không xác định khi tạo file SRT.');
+    } finally {
+      setIsGeneratingSrt(false);
+    }
+  }, [script]);
+
   useEffect(() => {
     if (vbeeProjectId) {
       void fetchStatus();
@@ -176,20 +227,29 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   }, [vbeeProjectId, fetchStatus]); // Include fetchStatus in dependency array
 
   useEffect(() => {
+    // Function to revoke the old URL and clear state
+    const cleanup = () => {
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+      setLocalAudioUrl(null);
+    };
+
     const loadAudioFromDb = async () => {
+      cleanup(); // Clean up previous URL before loading a new one
       if (!script?.id) return;
       const audioRecord = await db.audios.where({ scriptId: script.id }).first();
       if (audioRecord) {
         const url = URL.createObjectURL(audioRecord.data);
+        audioUrlRef.current = url; // Store in ref
         setLocalAudioUrl(url);
       }
     };
 
     void loadAudioFromDb();
 
-    return () => {
-      if (localAudioUrl) URL.revokeObjectURL(localAudioUrl);
-    };
+    return cleanup; // Return the cleanup function
   }, [script?.id]);
 
   if (!script) {
@@ -270,23 +330,31 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           <Button variant="outline" size="sm" onClick={() => void fetchStatus()} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? <Spinner /> : ''}`} />
-            Đồng bộ
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Sync
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => void handleDownload()}
             disabled={isDownloading || !vbeeProjectId}>
-            <Download className={`mr-2 h-4 w-4 ${isDownloading ? <Spinner /> : ''}`} />
-            {isDownloading ? 'Đang lưu...' : 'Lưu tài sản'}
+            <Download className={`mr-2 h-4 w-4 ${isDownloading ? 'animate-spin' : ''}`} />
+            {isDownloading ? 'Đang lưu...' : 'Save'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExportSrt()}
+            disabled={isGeneratingSrt || !localAudioUrl}>
+            <FileText className={`mr-2 h-4 w-4 ${isGeneratingSrt ? 'animate-spin' : ''}`} />
+            {isGeneratingSrt ? 'Đang tạo...' : 'SRT'}
           </Button>
           <Button variant="outline" size="sm" asChild>
             <a href={`${VBEE_PROJECT_URL}/${vbeeProjectId}`} target="_blank" rel="noopener noreferrer">
               <Link className="mr-2 h-4 w-4" />
-              Tới Vbee
+              Vbee
             </a>
           </Button>
         </div>

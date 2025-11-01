@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { playingSource, isPlaying, setPlaying, pause, setIsLoading } = useAudioPlayerStore();
+  const { playingSource, isPlaying, setPlaying, pause, setLoading } = useAudioPlayerStore();
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -29,11 +29,11 @@ const AudioPlayer = () => {
 
     const handleEnded = () => {
       setPlaying(false);
-      setIsLoading(false); // Reset loading state on end
+      setLoading(false); // Reset loading state on end
     };
     audio.addEventListener('ended', handleEnded);
     return () => audio.removeEventListener('ended', handleEnded);
-  }, [playingSource, isPlaying, setPlaying, pause, setIsLoading]);
+  }, [playingSource, isPlaying, setPlaying, pause, setLoading]);
 
   return (
     <audio ref={audioRef}>

@@ -270,6 +270,12 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
       const scriptJson = JSON.stringify(activeScript, null, 2);
       zip.file('script.json', scriptJson);
 
+      // Add the main audio file for the script
+      const audioRecord = await db.audios.where({ scriptId: activeScript.id }).first();
+      if (audioRecord?.data) {
+        zip.file('full_script_audio.mp3', audioRecord.data);
+      }
+
       for (const act of activeScript.acts) {
         for (const scene of act.scenes) {
           if (scene.generatedImageId) {
@@ -282,6 +288,21 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
             const videoRecord = await db.videos.get(scene.generatedVideoId);
             if (videoRecord?.data) {
               zip.file(`scene_${act.act_number}_${scene.scene_number}.mp4`, videoRecord.data as Blob);
+            }
+          }
+          // Add individual dialogue audio files
+          for (const [dialogueIndex, dialogue] of scene.dialogues.entries()) {
+            if (dialogue.audioLink) {
+              try {
+                const audioResponse = await fetch(dialogue.audioLink);
+                const audioBlob = await audioResponse.blob();
+                zip.file(`scene_${scene.scene_number}_dialogue_${dialogueIndex + 1}.mp3`, audioBlob);
+              } catch (e) {
+                console.warn(
+                  `Could not fetch audio for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1}:`,
+                  e,
+                );
+              }
             }
           }
         }
@@ -337,5 +358,36 @@ const useScriptsStore = create<ScriptsState>((set, get) => ({
   setModelSettingsModalOpen: v => set({ modelSettingsModalOpen: v }),
 }));
 
+/**
+ *
+ * Helper function to get the duration of an audio blob in seconds.
+ * It creates an in-memory audio element to read metadata without adding it to the DOM.
+ * @param audioBlob The audio file as a Blob.
+ * @returns A promise that resolves with the duration in seconds.
+ */
+const getAudioDuration = (audioBlob: Blob): Promise<number> =>
+  new Promise((resolve, reject) => {
+    const audio = document.createElement('audio');
+    const objectUrl = URL.createObjectURL(audioBlob);
+    audio.addEventListener('loadedmetadata', () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(audio.duration);
+    });
+    audio.addEventListener('error', e => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(`Error loading audio metadata: ${e.message}`));
+    });
+    audio.src = objectUrl;
+  });
+
+/** Formats seconds into SRT timestamp format (HH:MM:SS,mmm) */
+const formatSrtTime = (totalSeconds: number): string => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  const milliseconds = Math.round((totalSeconds - Math.floor(totalSeconds)) * 1000);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')},${String(milliseconds).padStart(3, '0')}`;
+};
+
 export type { ScriptsState };
-export { useScriptsStore, setNestedValue };
+export { useScriptsStore, setNestedValue, getAudioDuration, formatSrtTime };
