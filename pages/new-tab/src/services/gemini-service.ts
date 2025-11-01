@@ -62,16 +62,18 @@ const scriptSchema = {
         type: Type.OBJECT,
         properties: {
           name: { type: Type.STRING, description: "The character's name." },
-          role: {
+          roleId: {
             type: Type.STRING,
-            description: "The character's primary role in the story (e.g., 'Protagonist', 'Mentor', 'Antagonist').",
+            description:
+              "A unique, non-accented, camelCase identifier for the character's role. This ID links dialogues to this character. E.g., 'protagonist', 'mentor', 'narrator'.",
           },
           description: {
             type: Type.STRING,
-            description: "A brief description of the character's personality, appearance, and motivations.",
+            description:
+              "A brief, human-readable description of the character's personality, appearance, and motivations.",
           },
         },
-        required: ['name', 'role', 'description'],
+        required: ['name', 'roleId', 'description'],
       },
     },
     acts: {
@@ -105,14 +107,14 @@ const scriptSchema = {
                   items: {
                     type: Type.OBJECT,
                     properties: {
-                      role: {
+                      roleId: {
                         type: Type.STRING,
                         description:
-                          "The role of the character speaking the line (e.g., 'Protagonist', 'Mentor'). Must match a role from the characters list.",
+                          "The roleId of the speaking character. Must match a 'roleId' from the 'characters' list.",
                       },
                       line: { type: Type.STRING, description: 'The dialogue spoken by the character.' },
                     },
-                    required: ['role', 'line'],
+                    required: ['roleId', 'line'],
                   },
                 },
               },
@@ -140,7 +142,7 @@ const generateScript = async (
     const systemInstruction = `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${language}.
         The script must follow the three-act structure.
         Ensure every field in the provided JSON schema is filled with creative, relevant, and well-written content.
-        The 'role' in dialogue must correspond to one of the character roles defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roles for dialogue.`;
+        The 'roleId' in dialogue must correspond to one of the character roleIds defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roleIds for dialogue.`;
 
     const response = await ai.models.generateContent({
       model: modelName,

@@ -118,35 +118,38 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
         </blockquote>
 
         {scene.dialogues.length > 0 && (
-          <div className="mt-6 space-x-4">
+          <div className="mt-8">
             <h5 className="mb-2 text-xs font-bold tracking-widest text-slate-500 dark:text-slate-400">Hội thoại</h5>
-            <div className="space-y-4">
+            <div className="mt-4 space-y-6">
               {scene.dialogues.map((dialogue, index) => (
-                <div key={index} className="grid grid-cols-[200px_1fr] items-start gap-x-4">
-                  <div className="text-left font-semibold uppercase text-slate-800 dark:text-slate-200">
-                    {dialogue.role}
-                  </div>
-                  <div className="group relative flex items-start gap-2">
-                    {dialogue.audioLink && ( // Điều kiện này vẫn đúng, nhưng component sẽ re-render
+                <div key={index} className="relative pl-4">
+                  <div className="absolute left-0 top-0 h-full w-0.5 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold uppercase text-slate-800 dark:text-slate-200">{dialogue.roleId}</div>
+                    {dialogue.audioLink && (
                       <Button
                         variant={'ghost'}
+                        size="icon"
                         onClick={() => togglePlay(dialogue.audioLink!)}
-                        aria-label="Play dialogue">
+                        aria-label="Play dialogue"
+                        className="h-6 w-6">
                         {isLoading && playingSource === dialogue.audioLink ? (
-                          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
                         ) : isPlaying && playingSource === dialogue.audioLink ? (
-                          <PauseCircle className="h-5 w-5 text-blue-500" />
+                          <PauseCircle className="h-4 w-4 text-blue-500" />
                         ) : (
-                          <PlayCircle className="h-5 w-5" />
+                          <PlayCircle className="h-4 w-4 text-slate-500" />
                         )}
                       </Button>
                     )}
+                  </div>
+                  <div className="mt-1">
                     <EditableField
                       initialValue={dialogue.line}
                       onSave={v => onUpdateField(`dialogues[${index}].line`, v)}
-                      context={`Dialogue line for ${dialogue.role}`}
+                      context={`Dialogue line for ${dialogue.roleId}`}
                       language={language}
-                      textClassName="text-slate-700 dark:text-slate-300"
+                      textClassName="text-slate-700 dark:text-slate-300 leading-relaxed"
                     />
                   </div>
                 </div>

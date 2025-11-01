@@ -80,3 +80,19 @@ export const DEFAULT_ASPECT_RATIO: AspectRatio = '9:16';
 // Câu lệnh phủ định mặc định để cải thiện chất lượng ảnh
 export const DEFAULT_IMAGE_NEGATIVE_PROMPT =
   'chữ ký, văn bản, chữ viết, watermark, logo, hai hình ảnh, màn hình chia đôi, cắt dán, diptych, triptych, không mạch lạc, biến dạng, xấu xí, chất lượng thấp, mờ, khung hình, viền';
+
+export const BREAKPOINTS = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+  '2xl': 1536,
+};
+
+export const QUERIES = {
+  sm: `(max-width: ${BREAKPOINTS.sm}px)`,
+  md: `(max-width: ${BREAKPOINTS.md}px)`,
+  lg: `(max-width: ${BREAKPOINTS.lg}px)`,
+  xl: `(max-width: ${BREAKPOINTS.xl}px)`,
+  '2xl': `(max-width: ${BREAKPOINTS['2xl']}px)`,
+};

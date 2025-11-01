@@ -34,10 +34,12 @@ export interface Scene {
   isGeneratingImage?: boolean;
   generatedVideoId?: number;
   isGeneratingVideo?: boolean;
+  actIndex: number; // Add actIndex to scene for easier access
+  sceneIndex: number; // Add sceneIndex to scene for easier access
 }
 
 export interface Dialogue {
-  role: 'Mentor' | 'Protagonist' | 'Narrator';
+  roleId: string;
   line: string;
   vbeeBlockId?: string; // To map with Vbee's response
   audioLink?: string; // The generated audio link from Vbee
@@ -46,7 +48,7 @@ export interface Dialogue {
 export interface Character {
   description: string;
   name: string;
-  role: 'Mentor' | 'Protagonist' | 'Narrator';
+  roleId: string;
 }
 
 export interface Setting {

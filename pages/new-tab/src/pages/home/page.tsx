@@ -1,7 +1,7 @@
 import { Button } from '@extension/ui';
 import { Link } from 'react-router-dom';
 
-const WelcomePage = () => (
+const HomePage = () => (
   <main className="flex-1 overflow-y-auto p-6">
     <div className="mx-auto max-w-3xl py-16 text-center sm:py-24">
       <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-100">
@@ -25,4 +25,4 @@ const WelcomePage = () => (
   </main>
 );
 
-export default WelcomePage;
+export default HomePage;

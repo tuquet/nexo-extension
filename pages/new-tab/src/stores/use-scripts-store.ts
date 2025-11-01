@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Root } from '../types';
 import type React from 'react';
 
@@ -29,6 +30,7 @@ type ScriptsState = {
   newScript: () => void;
   saveActiveScript: (script: Root) => Promise<void>;
   deleteActiveScript: () => Promise<void>;
+  cleanActiveScript: () => Promise<void>;
   clearAllData: () => Promise<void>;
   updateScriptField: (path: string, value: unknown) => Promise<void>;
   addScript: (script: Root) => Promise<Root>;
@@ -66,297 +68,364 @@ const setNestedValue = (obj: Record<string, unknown> | unknown[], path: string, 
   return obj;
 };
 
-const useScriptsStore = create<ScriptsState>((set, get) => ({
-  // NOSONAR
-  savedScripts: [],
-  activeScript: null,
-  activeSceneIdentifier: null,
-  currentView: 'script',
-  scriptViewMode: 'formatted',
-  scriptsError: null,
-  isImporting: false,
-  isZipping: false,
-  settingsModalOpen: false,
-  modelSettingsModalOpen: false,
+const useScriptsStore = create<ScriptsState>()(
+  persist(
+    (set, get) => ({
+      // NOSONAR
+      savedScripts: [],
+      activeScript: null,
+      activeSceneIdentifier: null,
+      currentView: 'script',
+      scriptViewMode: 'formatted',
+      scriptsError: null,
+      isImporting: false,
+      isZipping: false,
+      settingsModalOpen: false,
+      modelSettingsModalOpen: false,
 
-  init: async () => {
-    try {
-      const allScripts = await db.scripts.toArray();
-      set({ savedScripts: allScripts });
-      if (allScripts.length > 0) {
-        const first = allScripts[0];
-        set({ activeScript: first });
-        if (first.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
-      }
-    } catch (err) {
-      console.error('Failed to init scripts store', err);
-      set({ scriptsError: 'Không thể tải danh sách kịch bản đã lưu.' });
-    }
-  },
-
-  selectScript: id => {
-    const script = get().savedScripts.find(s => s.id === id);
-    if (script) {
-      set({ activeScript: script });
-      if (script.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
-      else set({ activeSceneIdentifier: null });
-    }
-  },
-
-  newScript: () => set({ activeScript: null, activeSceneIdentifier: null, scriptsError: null }),
-
-  saveActiveScript: async scriptToSave => {
-    try {
-      await db.scripts.put(scriptToSave);
-      set(state => ({ savedScripts: state.savedScripts.map(s => (s.id === scriptToSave.id ? scriptToSave : s)) }));
-      if (get().activeScript?.id === scriptToSave.id) set({ activeScript: scriptToSave });
-    } catch (err) {
-      console.error('Failed to save script', err);
-      set({ scriptsError: 'Không thể lưu các thay đổi của bạn.' });
-    }
-  },
-
-  deleteActiveScript: async () => {
-    const active = get().activeScript;
-    if (!active || active.id === undefined) return;
-    const id = active.id;
-    try {
-      await db.scripts.delete(id);
-      await db.images.where({ scriptId: id }).delete();
-      await db.videos.where({ scriptId: id }).delete();
-      const remaining = get().savedScripts.filter(s => s.id !== id);
-      set({ savedScripts: remaining });
-      if (remaining.length > 0) {
-        const first = remaining[0];
-        set({ activeScript: first });
-        if (first.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
-        else set({ activeSceneIdentifier: null });
-      } else {
-        set({ activeScript: null, activeSceneIdentifier: null });
-      }
-      window.dispatchEvent(new CustomEvent('assets-changed'));
-    } catch (err) {
-      console.error('Failed to delete script', err);
-      set({ scriptsError: err instanceof Error ? err.message : 'Không thể xóa kịch bản.' });
-    }
-  },
-
-  clearAllData: async () => {
-    try {
-      await db.clearAllData();
-      set({ savedScripts: [], activeScript: null, activeSceneIdentifier: null });
-      window.dispatchEvent(new CustomEvent('assets-changed'));
-    } catch (err) {
-      console.error('Failed to clear data', err);
-      set({ scriptsError: err instanceof Error ? err.message : 'Không thể dọn dẹp toàn bộ dữ liệu.' });
-    }
-  },
-
-  importData: async event => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      set({ isImporting: true, scriptsError: null });
-
-      const allScriptsToImport: Root[] = [];
-
-      // Hàm đọc một file và trả về nội dung text
-      const readFileAsText = (file: File): Promise<string> =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = e => resolve(e.target?.result as string);
-          reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
-          reader.readAsText(file);
-        });
-
-      // Đọc tất cả các file song song
-      const fileContents = await Promise.all(Array.from(files).map(readFileAsText));
-
-      for (const text of fileContents) {
-        const importedData = JSON.parse(text);
-        const scriptsFromFile = Array.isArray(importedData) ? importedData : [importedData];
-
-        const isValidScript = (script: unknown): script is Root =>
-          script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
-
-        if (!scriptsFromFile.every(isValidScript)) {
-          // Có thể hiển thị lỗi cụ thể hơn, nhưng để đơn giản, ta sẽ bỏ qua file không hợp lệ
-          console.warn('Một file chứa định dạng kịch bản không hợp lệ và đã được bỏ qua.');
-          continue;
+      init: async () => {
+        const scripts = get().savedScripts;
+        if (scripts.length > 0 && !get().activeScript) {
+          const latest = scripts[scripts.length - 1];
+          set({ activeScript: latest });
+          if (latest.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
         }
+      },
 
-        const scriptsToAdd = scriptsFromFile.map(s => {
-          const { id: _id, ...rest } = s as Root & { id?: number };
-          void _id; // Bỏ qua id cũ để Dexie tự tạo id mới
-          return rest as Root;
-        });
-        allScriptsToImport.push(...scriptsToAdd);
-      }
+      selectScript: id => {
+        const script = get().savedScripts.find(s => s.id === id);
+        if (script) {
+          set({ activeScript: script });
+          if (script.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
+          else set({ activeSceneIdentifier: null });
+        }
+      },
 
-      if (allScriptsToImport.length > 0) await db.scripts.bulkAdd(allScriptsToImport);
-      window.location.reload();
-    } catch (err) {
-      console.error('Lỗi nhập dữ liệu:', err);
-      set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
-    }
-  },
+      newScript: () => set({ activeScript: null, activeSceneIdentifier: null, scriptsError: null }),
 
-  importDataFromString: async jsonString => {
-    if (!jsonString.trim()) return;
+      saveActiveScript: async scriptToSave => {
+        try {
+          await db.scripts.put(scriptToSave);
+          set(state => ({
+            savedScripts: state.savedScripts.map(s => (s.id === scriptToSave.id ? scriptToSave : s)),
+            activeScript: state.activeScript?.id === scriptToSave.id ? scriptToSave : state.activeScript,
+          }));
+        } catch (err) {
+          console.error('Failed to save script', err);
+          set({ scriptsError: 'Không thể lưu các thay đổi của bạn.' });
+        }
+      },
 
-    try {
-      set({ isImporting: true, scriptsError: null });
-
-      const importedData = JSON.parse(jsonString);
-      const scriptsToImport = Array.isArray(importedData) ? importedData : [importedData];
-
-      const isValidScript = (script: unknown): script is Root =>
-        script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
-
-      if (!scriptsToImport.every(isValidScript)) {
-        throw new Error('Dữ liệu JSON không chứa định dạng kịch bản hợp lệ.');
-      }
-
-      const scriptsToAdd = scriptsToImport.map(s => {
-        const { id: _id, ...rest } = s as Root & { id?: number };
-        void _id; // Bỏ qua id cũ để Dexie tự tạo id mới
-        return rest as Root;
-      });
-
-      if (scriptsToAdd.length > 0) {
-        await db.scripts.bulkAdd(scriptsToAdd);
-        window.location.reload(); // Tải lại để hiển thị dữ liệu mới
-      } else {
-        set({ isImporting: false });
-      }
-    } catch (err) {
-      console.error('Lỗi nhập dữ liệu từ chuỗi:', err);
-      set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
-    }
-  },
-
-  exportData: async () => {
-    try {
-      const allScripts = await db.scripts.toArray();
-      const jsonString = JSON.stringify(allScripts, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      // Prefer using a script alias if available; otherwise fallback to date
-      const defaultName = `cinegenie-scripts-${new Date().toISOString().slice(0, 10)}.json`;
-      // If there's an active script with an alias, use that alias for the filename
-      const active = get().activeScript;
-      const aliasPart = active?.alias ? active.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
-      a.download = aliasPart ? `${aliasPart}.json` : defaultName;
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Lỗi xuất dữ liệu:', error);
-      set({ scriptsError: 'Đã xảy ra lỗi trong quá trình xuất dữ liệu kịch bản.' });
-    }
-  },
-
-  exportZip: async () => {
-    const activeScript = get().activeScript;
-    if (!activeScript) return;
-    set({ isZipping: true, scriptsError: null });
-    try {
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-
-      const scriptJson = JSON.stringify(activeScript, null, 2);
-      zip.file('script.json', scriptJson);
-
-      // Add the main audio file for the script
-      const audioRecord = await db.audios.where({ scriptId: activeScript.id }).first();
-      if (audioRecord?.data) {
-        zip.file('full_script_audio.mp3', audioRecord.data);
-      }
-
-      for (const act of activeScript.acts) {
-        for (const scene of act.scenes) {
-          if (scene.generatedImageId) {
-            const imageRecord = await db.images.get(scene.generatedImageId);
-            if (imageRecord?.data) {
-              zip.file(`scene_${act.act_number}_${scene.scene_number}.png`, imageRecord.data as Blob);
-            }
+      deleteActiveScript: async () => {
+        const active = get().activeScript;
+        if (!active || active.id === undefined) return;
+        const id = active.id;
+        try {
+          await db.scripts.delete(id);
+          await db.images.where({ scriptId: id }).delete();
+          await db.videos.where({ scriptId: id }).delete();
+          const remaining = get().savedScripts.filter(s => s.id !== id);
+          set({ savedScripts: remaining });
+          if (remaining.length > 0) {
+            const first = remaining[0];
+            set({ activeScript: first });
+            if (first.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
+            else set({ activeSceneIdentifier: null });
+          } else {
+            set({ activeScript: null, activeSceneIdentifier: null });
           }
-          if (scene.generatedVideoId) {
-            const videoRecord = await db.videos.get(scene.generatedVideoId);
-            if (videoRecord?.data) {
-              zip.file(`scene_${act.act_number}_${scene.scene_number}.mp4`, videoRecord.data as Blob);
-            }
+          window.dispatchEvent(new CustomEvent('assets-changed'));
+        } catch (err) {
+          console.error('Failed to delete script', err);
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể xóa kịch bản.' });
+        }
+      },
+
+      cleanActiveScript: async () => {
+        const active = get().activeScript;
+        if (!active) return;
+
+        try {
+          const cleanedScript = structuredClone(active);
+
+          // 1. Remove buildMeta from root
+          if ('buildMeta' in cleanedScript) {
+            delete (cleanedScript as { buildMeta?: unknown }).buildMeta;
           }
-          // Add individual dialogue audio files
-          for (const [dialogueIndex, dialogue] of scene.dialogues.entries()) {
-            if (dialogue.audioLink) {
-              try {
-                const audioResponse = await fetch(dialogue.audioLink);
-                const audioBlob = await audioResponse.blob();
-                zip.file(`scene_${scene.scene_number}_dialogue_${dialogueIndex + 1}.mp3`, audioBlob);
-              } catch (e) {
-                console.warn(
-                  `Could not fetch audio for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1}:`,
-                  e,
-                );
+
+          // 2. Iterate and clean scenes and dialogues
+          cleanedScript.acts.forEach(act => {
+            act.scenes.forEach(scene => {
+              // Clean scene properties
+              delete (scene as { generatedImageId?: unknown }).generatedImageId;
+              delete (scene as { generatedVideoId?: unknown }).generatedVideoId;
+              delete (scene as { isGeneratingImage?: unknown }).isGeneratingImage;
+              delete (scene as { isGeneratingVideo?: unknown }).isGeneratingVideo;
+
+              // Clean dialogue properties
+              if (scene.dialogues) {
+                scene.dialogues.forEach(dialogue => {
+                  delete (dialogue as { vbeeBlockId?: unknown }).vbeeBlockId;
+                  delete (dialogue as { audioLink?: unknown }).audioLink;
+                });
+              }
+            });
+          });
+
+          // 3. Save the cleaned script
+          await get().saveActiveScript(cleanedScript);
+        } catch (err) {
+          console.error('Failed to clean script', err);
+          set({ scriptsError: 'Không thể dọn dẹp kịch bản.' });
+        }
+      },
+
+      clearAllData: async () => {
+        try {
+          await db.clearAllData();
+          set({ savedScripts: [], activeScript: null, activeSceneIdentifier: null });
+          window.dispatchEvent(new CustomEvent('assets-changed'));
+        } catch (err) {
+          console.error('Failed to clear data', err);
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể dọn dẹp toàn bộ dữ liệu.' });
+        }
+      },
+
+      importData: async event => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        try {
+          set({ isImporting: true, scriptsError: null });
+
+          const allScriptsToImport: Root[] = [];
+
+          const readFileAsText = (file: File): Promise<string> =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = e => resolve(e.target?.result as string);
+              reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+              reader.readAsText(file);
+            });
+
+          const fileContents = await Promise.all(Array.from(files).map(readFileAsText));
+
+          for (const text of fileContents) {
+            const importedData = JSON.parse(text);
+            const scriptsFromFile = Array.isArray(importedData) ? importedData : [importedData];
+
+            const isValidScript = (script: unknown): script is Root =>
+              script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
+
+            if (!scriptsFromFile.every(isValidScript)) {
+              console.warn('Một file chứa định dạng kịch bản không hợp lệ và đã được bỏ qua.');
+              continue;
+            }
+
+            const scriptsToAdd = scriptsFromFile.map(s => {
+              const { id: _id, ...rest } = s as Root & { id?: number };
+              void _id;
+              return rest as Root;
+            });
+            allScriptsToImport.push(...scriptsToAdd);
+          }
+
+          if (allScriptsToImport.length > 0) {
+            await db.scripts.bulkAdd(allScriptsToImport);
+            const allScripts = await db.scripts.toArray();
+            set({ savedScripts: allScripts }); // Update store state
+          }
+          set({ isImporting: false });
+        } catch (err) {
+          console.error('Lỗi nhập dữ liệu:', err);
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+        }
+      },
+
+      importDataFromString: async jsonString => {
+        if (!jsonString.trim()) return;
+
+        try {
+          set({ isImporting: true, scriptsError: null });
+
+          const importedData = JSON.parse(jsonString);
+          const scriptsToImport = Array.isArray(importedData) ? importedData : [importedData];
+
+          const isValidScript = (script: unknown): script is Root =>
+            script !== null && typeof script === 'object' && 'title' in script && 'acts' in script;
+
+          if (!scriptsToImport.every(isValidScript)) {
+            throw new Error('Dữ liệu JSON không chứa định dạng kịch bản hợp lệ.');
+          }
+
+          const scriptsToAdd = scriptsToImport.map(s => {
+            const { id: _id, ...rest } = s as Root & { id?: number };
+            void _id;
+            return rest as Root;
+          });
+
+          if (scriptsToAdd.length > 0) {
+            await db.scripts.bulkAdd(scriptsToAdd);
+            const allScripts = await db.scripts.toArray();
+            set({ savedScripts: allScripts }); // Update store state
+          }
+          set({ isImporting: false });
+        } catch (err) {
+          console.error('Lỗi nhập dữ liệu từ chuỗi:', err);
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+        }
+      },
+
+      exportData: async () => {
+        try {
+          const allScripts = get().savedScripts;
+          const jsonString = JSON.stringify(allScripts, null, 2);
+          const blob = new Blob([jsonString], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const defaultName = `cinegenie-scripts-${new Date().toISOString().slice(0, 10)}.json`;
+          const active = get().activeScript;
+          const aliasPart = active?.alias ? active.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
+          a.download = aliasPart ? `${aliasPart}.json` : defaultName;
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Lỗi xuất dữ liệu:', error);
+          set({ scriptsError: 'Đã xảy ra lỗi trong quá trình xuất dữ liệu kịch bản.' });
+        }
+      },
+
+      exportZip: async () => {
+        const activeScript = get().activeScript;
+        if (!activeScript) return;
+        set({ isZipping: true, scriptsError: null });
+        try {
+          const JSZip = (await import('jszip')).default;
+          const zip = new JSZip();
+
+          const scriptJson = JSON.stringify(activeScript, null, 2);
+          zip.file('script.json', scriptJson);
+
+          const audioRecord = await db.audios.where({ scriptId: activeScript.id }).first();
+          if (audioRecord?.data) {
+            zip.file('full_script_audio.mp3', audioRecord.data);
+          }
+
+          for (const act of activeScript.acts) {
+            for (const scene of act.scenes) {
+              if (scene.generatedImageId) {
+                const imageRecord = await db.images.get(scene.generatedImageId);
+                if (imageRecord?.data) {
+                  zip.file(`scene_${act.act_number}_${scene.scene_number}.png`, imageRecord.data as Blob);
+                }
+              }
+              if (scene.generatedVideoId) {
+                const videoRecord = await db.videos.get(scene.generatedVideoId);
+                if (videoRecord?.data) {
+                  zip.file(`scene_${act.act_number}_${scene.scene_number}.mp4`, videoRecord.data as Blob);
+                }
+              }
+              for (const [dialogueIndex, dialogue] of scene.dialogues.entries()) {
+                if (dialogue.audioLink) {
+                  try {
+                    const audioResponse = await fetch(dialogue.audioLink);
+                    const audioBlob = await audioResponse.blob();
+                    zip.file(`scene_${scene.scene_number}_dialogue_${dialogueIndex + 1}.mp3`, audioBlob);
+                  } catch (e) {
+                    console.warn(
+                      `Could not fetch audio for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1}:`,
+                      e,
+                    );
+                  }
+                }
               }
             }
           }
+
+          const zipBlob = await zip.generateAsync({ type: 'blob' });
+          const url = URL.createObjectURL(zipBlob);
+          const a = document.createElement('a');
+          const aliasPart = activeScript.alias ? activeScript.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
+          const safeTitle = aliasPart || activeScript.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'script';
+          a.href = url;
+          a.download = `${safeTitle}.zip`;
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error('Lỗi xuất file ZIP:', err);
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể tạo file ZIP.' });
+        } finally {
+          set({ isZipping: false });
         }
-      }
+      },
 
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      // Prefer alias, then title, then 'script'
-      const aliasPart = activeScript.alias ? activeScript.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
-      const safeTitle = aliasPart || activeScript.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'script';
-      a.href = url;
-      a.download = `${safeTitle}.zip`;
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Lỗi xuất file ZIP:', err);
-      set({ scriptsError: err instanceof Error ? err.message : 'Không thể tạo file ZIP.' });
-    } finally {
-      set({ isZipping: false });
-    }
-  },
+      updateScriptField: async (path: string, value: unknown) => {
+        const active = get().activeScript;
+        if (!active) return;
+        const updated = structuredClone(active) as Root;
+        setNestedValue(updated as unknown as Record<string, unknown>, path, value);
+        set({ activeScript: updated });
+        await get().saveActiveScript(updated);
+      },
 
-  updateScriptField: async (path: string, value: unknown) => {
-    const active = get().activeScript;
-    if (!active) return;
-    const updated = structuredClone(active) as Root;
-    setNestedValue(updated as unknown as Record<string, unknown>, path, value);
-    set({ activeScript: updated });
-    await get().saveActiveScript(updated);
-  },
+      addScript: async script => {
+        try {
+          const newId = await db.scripts.add(script);
+          const scriptWithId = { ...script, id: newId } as Root;
+          set(state => ({ savedScripts: [...state.savedScripts, scriptWithId], activeScript: scriptWithId }));
+          if (scriptWithId.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
+          return scriptWithId;
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Không thể lưu kịch bản mới.';
+          set({ scriptsError: errorMsg });
+          throw new Error(errorMsg);
+        }
+      },
 
-  addScript: async script => {
-    try {
-      const newId = await db.scripts.add(script);
-      const scriptWithId = { ...script, id: newId } as Root;
-      set(state => ({ savedScripts: [...state.savedScripts, scriptWithId], activeScript: scriptWithId }));
-      if (scriptWithId.acts?.[0]?.scenes?.[0]) set({ activeSceneIdentifier: { actIndex: 0, sceneIndex: 0 } });
-      return scriptWithId;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Không thể lưu kịch bản mới.';
-      set({ scriptsError: errorMsg });
-      throw new Error(errorMsg);
-    }
-  },
-
-  setActiveSceneIdentifier: id => set({ activeSceneIdentifier: id }),
-  setActiveScript: s => set({ activeScript: s }),
-  setCurrentView: v => set({ currentView: v }),
-  setScriptViewMode: m => set({ scriptViewMode: m }),
-  setSettingsModalOpen: v => set({ settingsModalOpen: v }),
-  setModelSettingsModalOpen: v => set({ modelSettingsModalOpen: v }),
-}));
+      setActiveSceneIdentifier: id => set({ activeSceneIdentifier: id }),
+      setActiveScript: s => set({ activeScript: s }),
+      setCurrentView: v => set({ currentView: v }),
+      setScriptViewMode: m => set({ scriptViewMode: m }),
+      setSettingsModalOpen: v => set({ settingsModalOpen: v }),
+      setModelSettingsModalOpen: v => set({ modelSettingsModalOpen: v }),
+    }),
+    {
+      name: 'cinegenie-scripts-storage', // Tên để lưu trong storage
+      storage: createJSONStorage(() => ({
+        // Custom storage adapter để tương tác với Dexie (IndexedDB)
+        getItem: async name => {
+          console.log(name, 'has been retrieved');
+          const allScripts = await db.scripts.toArray();
+          // Chỉ lưu `savedScripts` vào storage, các state khác sẽ là tạm thời
+          return JSON.stringify({ state: { savedScripts: allScripts } });
+        },
+        setItem: async (name, value) => {
+          console.log(name, 'with value', value, 'has been saved');
+          // `setItem` sẽ được gọi bởi `saveActiveScript`, `addScript`, etc.
+          // Chúng ta đã xử lý việc lưu vào DB trong các hàm đó,
+          // nên ở đây không cần làm gì thêm để tránh ghi đè.
+        },
+        removeItem: name => {
+          console.log(name, 'has been removed');
+          // Tương tự, việc xóa được xử lý trong `clearAllData` hoặc `deleteActiveScript`
+        },
+      })),
+      // Chỉ persist `savedScripts`. Các state khác sẽ được reset khi tải lại.
+      partialize: state => ({ savedScripts: state.savedScripts }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('An error happened during hydration', error);
+        } else {
+          // Sau khi hydrate xong, gọi init để set active script
+          state?.init();
+        }
+      },
+    },
+  ),
+);
 
 /**
  *
@@ -389,5 +458,120 @@ const formatSrtTime = (totalSeconds: number): string => {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')},${String(milliseconds).padStart(3, '0')}`;
 };
 
+/** A selector to get a flat array of all scenes from the active script. */
+const selectAllScenes = (state: ScriptsState) => {
+  if (!state.activeScript) {
+    return [];
+  }
+  return state.activeScript.acts.flatMap(act => act.scenes);
+};
+
+/** A selector to get a flat array of all dialogue objects from the active script. */
+const selectAllDialogues = (state: ScriptsState) => {
+  if (!state.activeScript) {
+    return [];
+  }
+  return state.activeScript.acts.flatMap(act => act.scenes.flatMap(scene => scene.dialogues ?? []));
+};
+
+/**
+ * A selector to get a unique list of character roleIds from the active script.
+ * This is a derived state and is memoized by default by Zustand's `useStore` hook.
+ * @param state The current ScriptsState.
+ * @returns An array of unique character roleId strings.
+ */
+const selectActiveScriptCharacters = (state: ScriptsState) => {
+  const allDialogues = selectAllDialogues(state);
+  const uniqueCharacters = new Set<string>();
+  allDialogues.forEach(dialogue => {
+    if (dialogue.roleId) {
+      uniqueCharacters.add(dialogue.roleId);
+    }
+  });
+  return Array.from(uniqueCharacters);
+};
+
+/** A selector to get a flat array of all dialogue lines (strings) from the active script. */
+const selectAllDialogueLines = (state: ScriptsState) => selectAllDialogues(state).map(d => d.line);
+
+/** A selector to get the currently active scene object. */
+const selectActiveScene = (state: ScriptsState) => {
+  const { activeScript, activeSceneIdentifier } = state;
+  if (!activeScript || !activeSceneIdentifier) {
+    return null;
+  }
+  const { actIndex, sceneIndex } = activeSceneIdentifier;
+  return activeScript.acts?.[actIndex]?.scenes?.[sceneIndex] ?? null;
+};
+
+/** A selector to get the total number of scenes in the active script. */
+const selectTotalScenesCount = (state: ScriptsState) => {
+  if (!state.activeScript) {
+    return 0;
+  }
+  return state.activeScript.acts.reduce((count, act) => count + act.scenes.length, 0);
+};
+
+/** A selector to get the 1-based number of the current scene. */
+const selectCurrentSceneNumber = (state: ScriptsState) => {
+  const { activeScript, activeSceneIdentifier } = state;
+  if (!activeScript || !activeSceneIdentifier) return 0;
+
+  let sceneCount = 0;
+  for (let i = 0; i < activeScript.acts.length; i++) {
+    const act = activeScript.acts[i];
+    if (i < activeSceneIdentifier.actIndex) {
+      sceneCount += act.scenes.length;
+    } else if (i === activeSceneIdentifier.actIndex) {
+      sceneCount += activeSceneIdentifier.sceneIndex + 1;
+      break;
+    }
+  }
+  return sceneCount;
+};
+
+const getFlatSceneIdentifiers = (state: ScriptsState) => {
+  if (!state.activeScript) return [];
+  return state.activeScript.acts.flatMap((act, actIndex) =>
+    act.scenes.map((_, sceneIndex) => ({ actIndex, sceneIndex })),
+  );
+};
+
+/** A selector that returns the identifier for the next scene, or null if at the end. */
+const selectNextSceneIdentifier = (state: ScriptsState) => {
+  const flatScenes = getFlatSceneIdentifiers(state);
+  const currentIndex = flatScenes.findIndex(
+    id =>
+      id.actIndex === state.activeSceneIdentifier?.actIndex &&
+      id.sceneIndex === state.activeSceneIdentifier?.sceneIndex,
+  );
+  return currentIndex !== -1 && currentIndex < flatScenes.length - 1 ? flatScenes[currentIndex + 1] : null;
+};
+
+/** A selector that returns the identifier for the previous scene, or null if at the beginning. */
+const selectPreviousSceneIdentifier = (state: ScriptsState) => {
+  const flatScenes = getFlatSceneIdentifiers(state);
+  const currentIndex = flatScenes.findIndex(
+    id =>
+      id.actIndex === state.activeSceneIdentifier?.actIndex &&
+      id.sceneIndex === state.activeSceneIdentifier?.sceneIndex,
+  );
+  return currentIndex > 0 ? flatScenes[currentIndex - 1] : null;
+};
+
 export type { ScriptsState };
-export { useScriptsStore, setNestedValue, getAudioDuration, formatSrtTime };
+export {
+  useScriptsStore,
+  setNestedValue,
+  getAudioDuration,
+  formatSrtTime,
+  selectActiveScene,
+  selectTotalScenesCount,
+  selectCurrentSceneNumber,
+  selectNextSceneIdentifier,
+  selectPreviousSceneIdentifier,
+  selectAllScenes,
+  selectAllDialogues,
+  selectAllDialogueLines,
+  selectActiveScriptCharacters,
+};

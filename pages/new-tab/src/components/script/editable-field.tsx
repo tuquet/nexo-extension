@@ -114,7 +114,13 @@ const EditableField: React.FC<EditableFieldProps> = ({
 
   return (
     <div className={`group relative min-h-[24px] cursor-pointer ${className}`}>
-      <div className={textClassName}>{initialValue || <span className="italic text-slate-400">Trống</span>}</div>
+      <div className={textClassName}>
+        {initialValue !== null && initialValue !== undefined && initialValue !== '' ? (
+          initialValue
+        ) : (
+          <span className="italic text-slate-400">Trống</span>
+        )}
+      </div>
       <button
         onClick={() => setIsEditing(true)}
         className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 opacity-0 shadow-sm outline-none transition-opacity focus:opacity-100 group-hover:opacity-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400"

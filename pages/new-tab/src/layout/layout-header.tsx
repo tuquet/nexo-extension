@@ -48,7 +48,14 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
             onClick={toggleSize}>
             <span className="sr-only">Toggle container size</span>
             <span className="bg-muted/10 text-foreground inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-xs font-medium">
-              {containerSize === 'narrow' ? 'N' : containerSize === 'normal' ? 'M' : 'W'}
+              {
+                {
+                  narrow: 'N',
+                  normal: 'M',
+                  wide: 'W',
+                  fluid: 'F',
+                }[containerSize]
+              }
             </span>
           </Button>
           <Separator orientation="vertical" className="h-6" />

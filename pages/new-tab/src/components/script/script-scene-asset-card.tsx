@@ -11,6 +11,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@extension/ui';
+import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { ImagePlus, UploadCloud, Video as VideoIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import type { Scene, AspectRatio } from '../../types';
@@ -25,8 +26,6 @@ const SceneAssetCard: React.FC<{
   onCancelGenerateImage: (actIndex: number, sceneIndex: number) => void;
   onDeleteImage: (actIndex: number, sceneIndex: number) => void;
   onGenerateVideo: (actIndex: number, sceneIndex: number, aspectRatio: AspectRatio) => void;
-  onUpdateSceneVideo: (actIndex: number, sceneIndex: number, videoId: number) => void;
-  onUpdateSceneImage: (actIndex: number, sceneIndex: number, imageId: number) => void;
   onDeleteVideo: (actIndex: number, sceneIndex: number) => void;
   defaultAspectRatio?: AspectRatio;
   isApiKeySet: boolean;
@@ -39,8 +38,6 @@ const SceneAssetCard: React.FC<{
   onCancelGenerateImage,
   onDeleteImage,
   onGenerateVideo,
-  onUpdateSceneVideo,
-  onUpdateSceneImage,
   onDeleteVideo,
   defaultAspectRatio,
   isApiKeySet,
@@ -50,6 +47,7 @@ const SceneAssetCard: React.FC<{
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const uploadImageInputRef = useRef<HTMLInputElement>(null);
   const uploadVideoInputRef = useRef<HTMLInputElement>(null);
+  const updateScriptField = useScriptsStore(s => s.updateScriptField);
 
   useEffect(() => {
     let objectUrl: string | null = null;
@@ -133,7 +131,7 @@ const SceneAssetCard: React.FC<{
       // Lưu blob vào DB và lấy ID
       const imageId = await db.images.add({ data: file, scriptId: scriptId });
       // Cập nhật lại scene với imageId mới
-      onUpdateSceneImage(actIndex, sceneIndex, imageId);
+      await updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].generatedImageId`, imageId);
     } catch (error) {
       console.error('Lỗi tải ảnh lên:', error);
     }
@@ -147,7 +145,7 @@ const SceneAssetCard: React.FC<{
       // Lưu blob vào DB và lấy ID
       const videoId = await db.videos.add({ data: file, scriptId: scriptId });
       // Cập nhật lại scene với videoId mới
-      onUpdateSceneVideo(actIndex, sceneIndex, videoId);
+      await updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].generatedVideoId`, videoId);
     } catch (error) {
       console.error('Lỗi tải video lên:', error);
     }

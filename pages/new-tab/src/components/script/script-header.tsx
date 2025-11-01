@@ -1,5 +1,6 @@
 import ScriptActionButton from './script-action-button';
 import ScriptCreateButton from './script-create-button';
+import ScriptHeaderActions from './script-header-actions';
 import { useScriptsStore } from '../../stores/use-scripts-store';
 import {
   Button,
@@ -79,6 +80,7 @@ const ScriptHeader: React.FC = () => {
             </SelectContent>
           </Select>
           <ScriptCreateButton />
+          <ScriptHeaderActions />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setModelSettingsModalOpen(true)} disabled={!activeScript}>

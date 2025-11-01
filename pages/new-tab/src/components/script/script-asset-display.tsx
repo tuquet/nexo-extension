@@ -4,7 +4,14 @@ import ScriptTtsAssetCard from './script-tts-asset-card';
 import { DEFAULT_IMAGE_NEGATIVE_PROMPT, IMAGE_GENERATION_MODEL, VIDEO_GENERATION_MODEL } from '../../constants';
 import { useAssets } from '../../hooks/use-assets';
 import { useApiKey } from '../../stores/use-api-key';
-import { useScriptsStore } from '../../stores/use-scripts-store';
+import {
+  useScriptsStore,
+  selectActiveScene,
+  selectTotalScenesCount,
+  selectCurrentSceneNumber,
+  selectNextSceneIdentifier,
+  selectPreviousSceneIdentifier,
+} from '../../stores/use-scripts-store';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@extension/ui';
 import { useState } from 'react';
 import type { AspectRatio } from '../../types';
@@ -26,32 +33,24 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
 
   // read active script + scene from store
   const activeScript = useScriptsStore(s => s.activeScript);
-  const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
-  const updateScriptField = useScriptsStore(s => s.updateScriptField);
+  const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
+
+  // Use selectors to get derived data
+  const activeScene = useScriptsStore(selectActiveScene);
+  const totalScenes = useScriptsStore(selectTotalScenesCount);
+  const currentSceneNumber = useScriptsStore(selectCurrentSceneNumber);
+  const nextSceneId = useScriptsStore(selectNextSceneIdentifier);
+  const prevSceneId = useScriptsStore(selectPreviousSceneIdentifier);
 
   const apiKey = useApiKey.getState().apiKey;
 
   const { generateSceneImage, cancelGenerateSceneImage, generateSceneVideo, deleteSceneImage, deleteSceneVideo } =
     useAssets(setActiveScript, saveActiveScript, () => {});
 
-  const actIndex = activeSceneIdentifier?.actIndex ?? null;
-  const sceneIndex = activeSceneIdentifier?.sceneIndex ?? null;
-  const activeScene =
-    activeScript && actIndex !== null && sceneIndex !== null ? activeScript.acts[actIndex].scenes[sceneIndex] : null;
   const defaultAspectRatio = activeScript?.setting.defaultAspectRatio;
   const isApiKeySet = !!apiKey;
-
-  const totalScenes = activeScript ? activeScript.acts.flatMap(a => a.scenes).length : 0;
-  const currentSceneNumber = (() => {
-    if (!activeScript || !activeSceneIdentifier) return 0;
-    const flat = activeScript.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si })));
-    const idx = flat.findIndex(
-      x => x.ai === activeSceneIdentifier.actIndex && x.si === activeSceneIdentifier.sceneIndex,
-    );
-    return idx === -1 ? 0 : idx + 1;
-  })();
 
   const handleOpenImageModal = (modalActIndex: number, modalSceneIndex: number, initialAspectRatio: AspectRatio) => {
     if (!activeScene) return;
@@ -96,7 +95,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
         />
       )}
       <Card>
-        {activeScene && actIndex !== null && sceneIndex !== null ? (
+        {activeScript && activeScene ? (
           <div className="space-y-6">
             <CardHeader>
               <CardTitle>Cảnh {activeScene.scene_number}</CardTitle>
@@ -105,18 +104,8 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
                 {totalScenes > 0 && (
                   <div className="flex flex-shrink-0 items-center gap-2">
                     <button
-                      onClick={() => {
-                        // go to previous scene using store setter
-                        const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
-                        const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
-                        if (curIndex > 0) {
-                          const prev = flat[curIndex - 1];
-                          useScriptsStore
-                            .getState()
-                            .setActiveSceneIdentifier({ actIndex: prev.ai, sceneIndex: prev.si });
-                        }
-                      }}
-                      disabled={currentSceneNumber <= 1}
+                      onClick={() => prevSceneId && setActiveSceneIdentifier(prevSceneId)}
+                      disabled={!prevSceneId}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
                       aria-label="Cảnh trước"
                       title="Cảnh trước">
@@ -128,17 +117,8 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
                       {currentSceneNumber}/{totalScenes}
                     </span>
                     <button
-                      onClick={() => {
-                        const flat = activeScript?.acts.flatMap((a, ai) => a.scenes.map((s, si) => ({ ai, si }))) ?? [];
-                        const curIndex = flat.findIndex(x => x.ai === actIndex && x.si === sceneIndex);
-                        if (curIndex !== -1 && curIndex < flat.length - 1) {
-                          const next = flat[curIndex + 1];
-                          useScriptsStore
-                            .getState()
-                            .setActiveSceneIdentifier({ actIndex: next.ai, sceneIndex: next.si });
-                        }
-                      }}
-                      disabled={currentSceneNumber >= totalScenes}
+                      onClick={() => nextSceneId && setActiveSceneIdentifier(nextSceneId)}
+                      disabled={!nextSceneId}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
                       aria-label="Cảnh tiếp theo"
                       title="Cảnh tiếp theo">
@@ -152,19 +132,13 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
             </CardHeader>
             <CardContent>
               <SceneAssetCard
-                scriptId={activeScript?.id}
-                scene={activeScene!}
-                actIndex={actIndex!}
-                sceneIndex={sceneIndex!}
+                scriptId={activeScript.id}
+                scene={activeScene}
+                actIndex={activeScene.actIndex}
+                sceneIndex={activeScene.sceneIndex}
                 onOpenImageModal={handleOpenImageModal}
-                onCancelGenerateImage={(ai, si) => cancelGenerateSceneImage(activeScript!, ai, si)}
-                onDeleteImage={(ai, si) => deleteSceneImage(activeScript!, ai, si)}
-                onUpdateSceneImage={(ai, si, imageId) =>
-                  updateScriptField(`acts[${ai}].scenes[${si}].generatedImageId`, imageId)
-                }
-                onUpdateSceneVideo={(ai, si, videoId) =>
-                  updateScriptField(`acts[${ai}].scenes[${si}].generatedVideoId`, videoId)
-                }
+                onCancelGenerateImage={(ai, si) => cancelGenerateSceneImage(activeScript, ai, si)}
+                onDeleteImage={(ai, si) => deleteSceneImage(activeScript, ai, si)}
                 onGenerateVideo={(ai, si, ar) =>
                   generateSceneVideo(
                     activeScript!,
@@ -174,7 +148,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
                     ar,
                   )
                 }
-                onDeleteVideo={(ai, si) => deleteSceneVideo(activeScript!, ai, si)}
+                onDeleteVideo={(ai, si) => deleteSceneVideo(activeScript, ai, si)}
                 defaultAspectRatio={defaultAspectRatio}
                 isApiKeySet={isApiKeySet}
               />
@@ -185,15 +159,14 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts }) => {
             <p>Chọn một cảnh để quản lý tài sản hình ảnh và video.</p>
           </div>
         )}
-        <div className="border-t border-slate-200 dark:border-slate-700"></div>
-        <div className="p-6">
-          <ScriptTtsAssetCard
-            onGenerateTts={onGenerateTts}
-            script={activeScript}
-            onSave={saveActiveScript}
-            onUpdateField={updateScriptField}
-          />
-        </div>
+        {activeScript && (
+          <>
+            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="p-6">
+              <ScriptTtsAssetCard onGenerateTts={onGenerateTts} script={activeScript} onSave={saveActiveScript} />
+            </div>
+          </>
+        )}
       </Card>
     </>
   );

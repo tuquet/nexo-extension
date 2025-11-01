@@ -10,7 +10,7 @@ import {
   ButtonGroup,
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { FileJson, ChevronDown, Trash, FolderDown, MicVocal } from 'lucide-react';
+import { FileJson, ChevronDown, Trash, FolderDown, MicVocal, Wand2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
 
@@ -18,10 +18,13 @@ const ScriptActionButton = () => {
   const confirmationTimeoutRef = useRef<number | null>(null);
   const activeScript = useScriptsStore((s: ScriptsState) => s.activeScript);
   const deleteActiveScript = useScriptsStore((s: ScriptsState) => s.deleteActiveScript);
-  const [confirmationPending, setConfirmationPending] = useState<'deleteScript' | 'clearAll' | null>(null);
+  const cleanActiveScript = useScriptsStore(s => s.cleanActiveScript);
+  const [confirmationPending, setConfirmationPending] = useState<'deleteScript' | 'clearAll' | 'cleanScript' | null>(
+    null,
+  );
 
   const clearAllData = useScriptsStore((s: ScriptsState) => s.clearAllData);
-  const handleDestructiveActionClick = (action: 'deleteScript' | 'clearAll') => {
+  const handleDestructiveActionClick = (action: 'deleteScript' | 'clearAll' | 'cleanScript') => {
     if (confirmationTimeoutRef.current) {
       clearTimeout(confirmationTimeoutRef.current);
       confirmationTimeoutRef.current = null;
@@ -32,6 +35,8 @@ const ScriptActionButton = () => {
         deleteActiveScript();
       } else if (action === 'clearAll') {
         clearAllData();
+      } else if (action === 'cleanScript') {
+        void cleanActiveScript();
       }
       setConfirmationPending(null);
     } else {
@@ -78,6 +83,17 @@ const ScriptActionButton = () => {
                 disabled={!activeScript}>
                 <FileJson className="mr-2 h-4 w-4" />
                 Xuất JSON
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onSelect={e => e.preventDefault()}
+                className="text-orange-600 focus:bg-orange-50 focus:text-orange-700 dark:focus:bg-orange-900/50 dark:focus:text-orange-300"
+                onClick={() => handleDestructiveActionClick('cleanScript')}
+                disabled={!activeScript}>
+                <Wand2 className="mr-2 h-4 w-4" />
+                {confirmationPending === 'cleanScript' ? 'Bạn chắc chắn?' : 'Dọn dẹp kịch bản'}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

@@ -52,7 +52,7 @@ export interface VbeeTransformationResult {
  * Each dialogue line becomes a separate block to allow for different voices.
  * @param script The script object to transform.
  * @param defaultVoiceCode The default Vbee voice code to use if a character's voice is not specified.
- * @param characterVoiceMap A map of character roles to their assigned Vbee voice codes. * @returns An object containing the payload for Vbee and the updated script with vbeeBlockIds.
+ * @param characterVoiceMap A map of character roleIds to their assigned Vbee voice codes. * @returns An object containing the payload for Vbee and the updated script with vbeeBlockIds.
  */
 export const transformScriptToVbeeProject = (
   script: Root,
@@ -71,7 +71,7 @@ export const transformScriptToVbeeProject = (
           const blockId = dialogue.vbeeBlockId ?? crypto.randomUUID();
           dialogue.vbeeBlockId = blockId;
 
-          const voiceCode = characterVoiceMap[dialogue.role] || defaultVoiceCode;
+          const voiceCode = characterVoiceMap[dialogue.roleId] || defaultVoiceCode;
           vbeeBlocks.push({
             id: blockId,
             characters: dialogue.line.length,

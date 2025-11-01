@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 type Theme = 'light' | 'dark' | 'system';
-
+type ContainerSize = 'narrow' | 'normal' | 'wide' | 'fluid';
 type PreferencesState = {
   theme: Theme;
   setTheme: (t: Theme) => void;
@@ -10,11 +10,11 @@ type PreferencesState = {
   setCompactMode: (v: boolean) => void;
   fontScale: number; // 1.0 = default
   setFontScale: (s: number) => void;
-  containerSize: 'narrow' | 'normal' | 'wide';
-  setContainerSize: (s: 'narrow' | 'normal' | 'wide') => void;
+  containerSize: 'narrow' | 'normal' | 'wide' | 'fluid';
+  setContainerSize: (s: 'narrow' | 'normal' | 'wide' | 'fluid') => void;
   toggleContainerSize: () => void;
 };
-
+const SIZES: ContainerSize[] = ['narrow', 'normal', 'wide', 'fluid'];
 const usePreferencesStore = create<PreferencesState>(set => ({
   theme: 'system',
   setTheme: t => set({ theme: t }),
@@ -26,9 +26,12 @@ const usePreferencesStore = create<PreferencesState>(set => ({
   containerSize: 'normal',
   setContainerSize: s => set({ containerSize: s }),
   toggleContainerSize: () =>
-    set(state => ({
-      containerSize: state.containerSize === 'narrow' ? 'normal' : state.containerSize === 'normal' ? 'wide' : 'narrow',
-    })),
+    set(state => {
+      const { containerSize } = state;
+      const currentIndex = SIZES.indexOf(containerSize);
+      const nextIndex = (currentIndex + 1) % SIZES.length;
+      return { containerSize: SIZES[nextIndex] };
+    }),
 }));
 
 export type { PreferencesState };

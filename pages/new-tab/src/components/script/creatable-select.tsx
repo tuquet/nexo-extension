@@ -87,7 +87,7 @@ const CreatableSelect: React.FC<CreatableSelectProps> = ({
     <div className="relative" ref={wrapperRef}>
       <div
         className={`flex flex-wrap items-center gap-2 rounded-lg border bg-white p-2 shadow-sm transition dark:bg-slate-800 ${isOpen ? 'border-primary ring-primary/20 ring-2' : 'border-slate-300 dark:border-slate-600'} ${disabled ? 'bg-slate-100 opacity-70 dark:bg-slate-700' : ''}`}
-        onClick={() => inputRef.current?.focus()}
+        onClick={() => !disabled && inputRef.current?.focus()}
         role="button"
         tabIndex={0}
         aria-disabled={disabled}

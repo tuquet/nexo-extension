@@ -22,7 +22,7 @@ import {
 import { AVAILABLE_TTS_MODELS } from '@src/constants';
 import { createVbeeProject, transformScriptToVbeeProject } from '@src/services/vbee-service';
 import { useModelSettings } from '@src/stores/use-model-settings';
-import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { useScriptsStore, selectActiveScriptCharacters, selectAllDialogueLines } from '@src/stores/use-scripts-store';
 import { Copy, Check } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import type { VbeeTransformationResult } from '@src/services/vbee-service';
@@ -43,7 +43,8 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('project');
   const [copied, setCopied] = useState<'project' | 'text' | null>(null);
-  const [characters, setCharacters] = useState<string[]>([]);
+  const characters = useScriptsStore(selectActiveScriptCharacters);
+  const allDialogueLines = useScriptsStore(selectAllDialogueLines);
   const [characterVoiceMap, setCharacterVoiceMap] = useState<Record<string, string>>({});
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
 
@@ -128,18 +129,8 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
 
   useEffect(() => {
     if (isOpen && script) {
-      // Trích xuất danh sách nhân vật duy nhất
-      const uniqueCharacters = Array.from(
-        new Set(
-          script.acts.flatMap(
-            act => act.scenes.flatMap(scene => scene.dialogues?.map(d => d.role).filter(Boolean) ?? []) as string[],
-          ),
-        ),
-      );
-      setCharacters(uniqueCharacters);
-
       // Khởi tạo map giọng nói với giọng mặc định
-      const initialVoiceMap = uniqueCharacters.reduce(
+      const initialVoiceMap = characters.reduce(
         (acc, char) => {
           acc[char] = ttsModel;
           return acc;
@@ -149,10 +140,8 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
       setCharacterVoiceMap(initialVoiceMap);
 
       // Tạo nội dung văn bản thuần túy
-      const allDialogueLines = script.acts
-        .flatMap(act => act.scenes.flatMap(scene => scene.dialogues?.map(d => d.line) ?? []))
-        .join('\n');
-      setPlainText(allDialogueLines);
+      const allDialogueLinesText = allDialogueLines.join('\n');
+      setPlainText(allDialogueLinesText);
 
       // Khi modal mở, thử lấy token đã lưu
       chrome.storage.local.get('vbee_token').then(result => {
@@ -163,7 +152,6 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
     } else if (!isOpen) {
       setProjectJsonText('');
       setPlainText('');
-      setCharacters([]);
       // Không reset token để người dùng có thể tái sử dụng nếu mở lại modal
       setError(null);
     }
@@ -182,7 +170,7 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener);
     };
-  }, [isOpen, script, ttsModel]);
+  }, [isOpen, script, ttsModel, characters, allDialogueLines]);
 
   // Cập nhật payload JSON khi có thay đổi về ánh xạ giọng nói hoặc tab
   useEffect(() => {

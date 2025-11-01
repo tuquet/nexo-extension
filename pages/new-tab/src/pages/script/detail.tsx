@@ -1,19 +1,21 @@
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { Button, ErrorDisplay, LoadingSpinner } from '@extension/ui';
+import { Button, ErrorDisplay, LoadingSpinner, Tabs, TabsContent, TabsList, TabsTrigger } from '@extension/ui';
 import AudioPlayer from '@src/components/script/audio-player';
 import ModelSettingsModal from '@src/components/script/model-settings-modal';
 import AssetDisplay from '@src/components/script/script-asset-display';
 import ScriptDisplay from '@src/components/script/script-display';
 import ScriptHeader from '@src/components/script/script-header';
 import ScriptTtsExportModal from '@src/components/script/script-tts-export-modal';
+import { QUERIES } from '@src/constants';
 import { useAssets } from '@src/hooks/use-assets';
+import { useMediaQuery } from '@src/hooks/use-media-query';
 import { useRouteSync, writeRouteState } from '@src/hooks/use-route-state';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-const NewTab = () => {
+const ScriptDetailPage = () => {
   useEffect(() => {
     void useApiKey.getState().loadApiKey();
     void useScriptsStore.getState().init();
@@ -40,6 +42,8 @@ const NewTab = () => {
   const isModelSettingsOpen = useScriptsStore(s => s.modelSettingsModalOpen);
   const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
   // modal state is managed in the store
+
+  const isMobile = useMediaQuery(QUERIES['2xl']);
 
   // Effect to sync script errors with the main error state
   useEffect(() => {
@@ -110,28 +114,44 @@ const NewTab = () => {
       )}
 
       <div className="bg-background min-h-screen">
-        <div className="flex h-full">
-          <main className="flex-1 p-6">
-            <div className="mx-auto">
-              {activeScript ? (
+        {!activeScript ? (
+          <div className="p-6">
+            <NoScriptFallback />
+          </div>
+        ) : isMobile ? (
+          // Mobile View: Tabs
+          <div className="p-4">
+            <Tabs defaultValue="script" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="script">Kịch bản</TabsTrigger>
+                <TabsTrigger value="assets">Tài sản</TabsTrigger>
+              </TabsList>
+              <TabsContent value="script" className="mt-4">
                 <ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />
-              ) : (
-                <NoScriptFallback />
-              )}
-            </div>
-          </main>
-
-          {activeScript && (
+              </TabsContent>
+              <TabsContent value="assets" className="mt-4">
+                <AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />
+              </TabsContent>
+            </Tabs>
+          </div>
+        ) : (
+          // Desktop View: 2 Columns
+          <div className="flex h-full">
+            <main className="flex-1 p-6">
+              <div className="mx-auto">
+                <ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />
+              </div>
+            </main>
             <aside
               className="sticky top-0 h-[calc(100vh-4rem)] w-[500px] flex-shrink-0 overflow-y-auto p-6"
               style={{ alignSelf: 'flex-start' }}>
               <AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />
             </aside>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default withErrorBoundary(withSuspense(NewTab, <LoadingSpinner />), ErrorDisplay);
+export default withErrorBoundary(withSuspense(ScriptDetailPage, <LoadingSpinner />), ErrorDisplay);
