@@ -33,3 +33,4 @@ export * from './ui/separator';
 export * from './ui/label';
 export * from './ui/slider';
 export * from './ui/sonner';
+export * from './ui/pagination';

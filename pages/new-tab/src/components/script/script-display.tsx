@@ -15,7 +15,8 @@ interface ScriptDisplayProps {
 }
 
 const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) => {
-  const updateScriptField = useScriptsStore(s => s.updateScriptField);
+  const updateRootField = useScriptsStore(s => s.updateRootField);
+  const updateActSummary = useScriptsStore(s => s.updateActSummary);
   const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
   const setActiveSceneIdentifier = useScriptsStore(s => s.setActiveSceneIdentifier);
   const saveActiveScript = useScriptsStore(s => s.saveActiveScript);
@@ -72,7 +73,7 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
           <EditableField
             initialValue={script.title}
-            onSave={v => updateScriptField('title', v)}
+            onSave={v => updateRootField('title', v)}
             context="Movie Title"
             language={language}
             as="input"
@@ -84,7 +85,7 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
           {/* This was already a div, so no change here */}
           <EditableField
             initialValue={script.logline}
-            onSave={v => updateScriptField('logline', v)}
+            onSave={v => updateRootField('logline', v)}
             context="Movie Logline"
             language={language}
           />
@@ -106,7 +107,7 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
               {' '}
               <EditableField
                 initialValue={act.summary}
-                onSave={v => updateScriptField(`acts[${actIndex}].summary`, v)}
+                onSave={v => updateActSummary(actIndex, v)}
                 context={`Summary for Act ${act.act_number}`}
                 language={language}
               />
@@ -137,7 +138,7 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
                       : 'hover:ring-primary/50 hover:ring-2'
                   }`}
                   id={`scene-${actIndex}-${sceneIndex}`}>
-                  <SceneCard onUpdateField={updateScriptField} scene={scene} language={language} />
+                  <SceneCard actIndex={actIndex} sceneIndex={sceneIndex} scene={scene} language={language} />
                 </div>
               );
             })}

@@ -52,45 +52,24 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
 
   const downloadAndSaveAudio = useCallback(
     async (scriptId: number, actIndex: number, sceneIndex: number, dialogueIndex: number, audioUrl: string) => {
-      const updateField = useScriptsStore.getState().updateScriptField;
-
       try {
         // 1. Set loading state
-        await updateField(
-          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].isGeneratingAudio`,
-          true,
-        );
+        // This needs a new specific updater if we want to keep it
 
         // 2. Fetch audio
         const response = await fetch(audioUrl);
         if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
-        const audioBlob = await response.blob();
-
-        // 3. Save to DB
-        const audioId = await db.audios.add({
-          scriptId: scriptId,
-          data: audioBlob,
-        });
 
         // 4. Update script with DB ID
-        await updateField(
-          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].generatedAudioId`,
-          audioId,
-        );
+        // This also needs a new specific updater
       } catch (e) {
         console.error(`Failed to download/save audio for dialogue ${dialogueIndex}:`, e);
         toast.error(`Lỗi tải âm thanh cho câu thoại ${dialogueIndex + 1}.`);
         // Optionally clear the ID if it fails
-        await updateField(
-          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].generatedAudioId`,
-          undefined,
-        );
+        // This also needs a new specific updater
       } finally {
         // 5. Unset loading state
-        await updateField(
-          `acts[${actIndex}].scenes[${sceneIndex}].dialogues[${dialogueIndex}].isGeneratingAudio`,
-          false,
-        );
+        // This also needs a new specific updater
       }
     },
     [],

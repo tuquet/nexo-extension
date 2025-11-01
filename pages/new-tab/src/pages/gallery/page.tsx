@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { useAssets } from '../../hooks/use-assets';
+import { useAssets, ASSET_EVENTS } from '../../hooks/use-assets';
 import { useStoreHydration } from '../../hooks/use-store-hydration';
 import { useScriptsStore } from '../../stores/use-scripts-store';
 import {
@@ -25,8 +25,13 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationLink,
+  PaginationNext,
 } from '@extension/ui';
-import { ASSET_EVENTS } from '@src/hooks/use-assets';
 import { Search, Download, Trash2, ExternalLink, Eye, Music, Image, CheckCircle2, X } from 'lucide-react';
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -65,6 +70,11 @@ const AssetGalleryPage: React.FC = () => {
   const [selectedAssetKeys, setSelectedAssetKeys] = useState<Set<string>>(new Set());
   const getAssetKey = (asset: Asset) => `${asset.type}-${asset.id}`;
 
+  // State for Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalAssets, setTotalAssets] = useState(0);
+  const ITEMS_PER_PAGE = 30;
+
   const fetchAssets = useCallback(async () => {
     setIsLoading(true);
     // Revoke old URLs before creating new ones to prevent memory leaks
@@ -73,13 +83,25 @@ const AssetGalleryPage: React.FC = () => {
 
     try {
       const scriptMap = new Map(savedScripts.map(script => [script.id, script.title]));
-      const imageRecords = await db.images.toArray();
-      const videoRecords = await db.videos.toArray();
-      const audioRecords = await db.audios.toArray();
+
+      // Count total assets for pagination
+      const totalCount = (await db.images.count()) + (await db.videos.count()) + (await db.audios.count());
+      setTotalAssets(totalCount);
+
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+      // Fetch only the assets for the current page
+      // This is a simplified approach. A more robust solution would query all tables and sort by date.
+      // For now, we fetch from each and then slice.
+      const allImageRecords = await db.images.orderBy('id').reverse().toArray();
+      const allVideoRecords = await db.videos.orderBy('id').reverse().toArray();
+      const allAudioRecords = await db.audios.orderBy('id').reverse().toArray();
+
       const loadedAssets: Asset[] = [];
+
       const newUrls: string[] = [];
 
-      imageRecords.forEach(record => {
+      allImageRecords.forEach(record => {
         if (record.id && record.scriptId) {
           const url = URL.createObjectURL(record.data);
           newUrls.push(url);
@@ -95,7 +117,7 @@ const AssetGalleryPage: React.FC = () => {
         }
       });
 
-      videoRecords.forEach(record => {
+      allVideoRecords.forEach(record => {
         if (record.id && record.scriptId) {
           const url = URL.createObjectURL(record.data);
           newUrls.push(url);
@@ -111,7 +133,7 @@ const AssetGalleryPage: React.FC = () => {
         }
       });
 
-      audioRecords.forEach(record => {
+      allAudioRecords.forEach(record => {
         if (record.id && record.scriptId) {
           const url = URL.createObjectURL(record.data);
           newUrls.push(url);
@@ -128,13 +150,17 @@ const AssetGalleryPage: React.FC = () => {
       });
 
       objectUrlsRef.current = newUrls;
-      setAssets(loadedAssets.sort((a, b) => b.id - a.id)); // Show newest first
+      // Sort all loaded assets by ID descending and then take the slice for the current page
+      const sortedAssets = loadedAssets.sort((a, b) => b.id - a.id);
+      const paginatedAssets = sortedAssets.slice(offset, offset + ITEMS_PER_PAGE);
+
+      setAssets(paginatedAssets);
     } catch (error) {
       console.error('Failed to load assets from database:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [savedScripts]);
+  }, [savedScripts, currentPage]);
 
   useEffect(() => {
     if (hasHydrated) {
@@ -150,7 +176,7 @@ const AssetGalleryPage: React.FC = () => {
       setIsLoading(true);
       return undefined;
     }
-  }, [fetchAssets, hasHydrated]);
+  }, [fetchAssets, hasHydrated, currentPage]);
 
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
@@ -212,6 +238,8 @@ const AssetGalleryPage: React.FC = () => {
         .filter(asset => asset.scriptTitle?.toLowerCase().includes(searchTerm.toLowerCase())),
     [assets, filterType, filterScriptId, searchTerm],
   );
+
+  const totalPages = Math.ceil(totalAssets / ITEMS_PER_PAGE);
 
   if (isLoading) {
     return (
@@ -355,6 +383,26 @@ const AssetGalleryPage: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-8 flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious onClick={() => setCurrentPage(p => Math.max(1, p - 1))} />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationLink>
+                  Trang {currentPage} / {totalPages}
+                </PaginationLink>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       {selectedAsset && (
         <Dialog open={!!selectedAsset} onOpenChange={isOpen => !isOpen && setSelectedAsset(null)}>

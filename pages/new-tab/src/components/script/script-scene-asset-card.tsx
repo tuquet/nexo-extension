@@ -47,7 +47,7 @@ const SceneAssetCard: React.FC<{
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const uploadImageInputRef = useRef<HTMLInputElement>(null);
   const uploadVideoInputRef = useRef<HTMLInputElement>(null);
-  const updateScriptField = useScriptsStore(s => s.updateScriptField);
+  const updateSceneGeneratedAssetId = useScriptsStore(s => s.updateSceneGeneratedAssetId);
 
   useEffect(() => {
     let objectUrl: string | null = null;
@@ -131,7 +131,7 @@ const SceneAssetCard: React.FC<{
       // Lưu blob vào DB và lấy ID
       const imageId = await db.images.add({ data: file, scriptId: scriptId });
       // Cập nhật lại scene với imageId mới
-      await updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].generatedImageId`, imageId);
+      await updateSceneGeneratedAssetId(actIndex, sceneIndex, 'image', imageId);
     } catch (error) {
       console.error('Lỗi tải ảnh lên:', error);
     }
@@ -145,7 +145,7 @@ const SceneAssetCard: React.FC<{
       // Lưu blob vào DB và lấy ID
       const videoId = await db.videos.add({ data: file, scriptId: scriptId });
       // Cập nhật lại scene với videoId mới
-      await updateScriptField(`acts[${actIndex}].scenes[${sceneIndex}].generatedVideoId`, videoId);
+      await updateSceneGeneratedAssetId(actIndex, sceneIndex, 'video', videoId);
     } catch (error) {
       console.error('Lỗi tải video lên:', error);
     }

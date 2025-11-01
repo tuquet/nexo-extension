@@ -1,14 +1,13 @@
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { Button, ErrorDisplay, LoadingSpinner, Tabs, TabsContent, TabsList, TabsTrigger } from '@extension/ui';
+import { Button, ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import AudioPlayer from '@src/components/script/audio-player';
 import ModelSettingsModal from '@src/components/script/model-settings-modal';
+import ResponsiveDetailLayout from '@src/components/script/responsive-detail-layout';
 import AssetDisplay from '@src/components/script/script-asset-display';
 import ScriptDisplay from '@src/components/script/script-display';
 import ScriptHeader from '@src/components/script/script-header';
 import ScriptTtsExportModal from '@src/components/script/script-tts-export-modal';
-import { QUERIES } from '@src/constants';
 import { useAssets } from '@src/hooks/use-assets';
-import { useMediaQuery } from '@src/hooks/use-media-query';
 import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
@@ -39,8 +38,6 @@ const ScriptDetailPage = () => {
   const isModelSettingsOpen = useScriptsStore(s => s.modelSettingsModalOpen);
   const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
   // modal state is managed in the store
-
-  const isMobile = useMediaQuery(QUERIES['2xl']);
 
   // Effect to sync script errors with the main error state
   useEffect(() => {
@@ -117,36 +114,11 @@ const ScriptDetailPage = () => {
           <div className="p-6">
             <NoScriptFallback />
           </div>
-        ) : isMobile ? (
-          // Mobile View: Tabs
-          <div className="p-4">
-            <Tabs defaultValue="script" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="script">Kịch bản</TabsTrigger>
-                <TabsTrigger value="assets">Tài sản</TabsTrigger>
-              </TabsList>
-              <TabsContent value="script" className="mt-4">
-                <ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />
-              </TabsContent>
-              <TabsContent value="assets" className="mt-4">
-                <AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />
-              </TabsContent>
-            </Tabs>
-          </div>
         ) : (
-          // Desktop View: 2 Columns
-          <div className="flex h-full">
-            <main className="flex-1 p-6">
-              <div className="mx-auto">
-                <ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />
-              </div>
-            </main>
-            <aside
-              className="scrollbar-hidden sticky top-0 h-[calc(100vh-4rem)] w-[500px] flex-shrink-0 overflow-y-auto p-6"
-              style={{ alignSelf: 'flex-start' }}>
-              <AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />
-            </aside>
-          </div>
+          <ResponsiveDetailLayout
+            scriptContent={<ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />}
+            assetContent={<AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} />}
+          />
         )}
       </div>
     </div>

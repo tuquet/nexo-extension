@@ -11,6 +11,7 @@ import {
   Button,
 } from '@extension/ui';
 import { useAudioPlayerStore } from '@src/stores/use-audio-player-store';
+import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { Video, Headphones, PlayCircle, PauseCircle, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Scene } from '../../types';
@@ -18,9 +19,9 @@ import type React from 'react';
 
 interface SceneCardProps {
   scene: Scene;
-  onUpdateField: (path: string, value: string | number) => void;
   language: 'en-US' | 'vi-VN';
-  scriptUpdatedAt?: number; // Prop mới để trigger re-render
+  actIndex: number;
+  sceneIndex: number;
 }
 
 const InfoPill: React.FC<{
@@ -48,9 +49,11 @@ const InfoPill: React.FC<{
   </div>
 );
 
-const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language }) => {
+const SceneCard: React.FC<SceneCardProps> = ({ scene, language, actIndex, sceneIndex }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const { playingSource, isPlaying, isLoading, togglePlay } = useAudioPlayerStore();
+  const updateSceneField = useScriptsStore(s => s.updateSceneField);
+  const updateDialogueLine = useScriptsStore(s => s.updateDialogueLine);
 
   useEffect(() => {
     let objectUrl: string | null = null;
@@ -114,12 +117,26 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
         </CardTitle>
         <CardDescription className="mt-2 space-y-1 text-sm">
           <div className="flex items-center gap-2">
-            <span className="w-20 flex-shrink-0 font-semibold text-slate-500 dark:text-slate-400">Địa điểm:</span>
-            <span className="capitalize">{scene.location.toLowerCase()}</span>
+            <span className="w-20 flex-shrink-0 font-semibold capitalize text-slate-500 dark:text-slate-400">
+              địa điểm:
+            </span>
+            <EditableField
+              initialValue={scene.location}
+              onSave={v => updateSceneField(actIndex, sceneIndex, 'location', v)}
+              context="Scene Location"
+              language={language}
+            />
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-20 flex-shrink-0 font-semibold text-slate-500 dark:text-slate-400">Thời gian:</span>
-            <span className="capitalize">{scene.time.toLowerCase()}</span>
+            <span className="w-20 flex-shrink-0 font-semibold capitalize text-slate-500 dark:text-slate-400">
+              thời gian:
+            </span>
+            <EditableField
+              initialValue={scene.time}
+              onSave={v => updateSceneField(actIndex, sceneIndex, 'time', v)}
+              context="Scene Time"
+              language={language}
+            />
           </div>
         </CardDescription>
         <CardAction>
@@ -145,7 +162,7 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
         <blockquote className="mt-6 border-l-2 pl-6">
           <EditableField
             initialValue={scene.action}
-            onSave={v => onUpdateField('action', v)}
+            onSave={v => updateSceneField(actIndex, sceneIndex, 'action', v)}
             context="Scene Action Description"
             language={language}
             textClassName="whitespace-pre-wrap"
@@ -186,7 +203,7 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
                   <div className="mt-1">
                     <EditableField
                       initialValue={dialogue.line}
-                      onSave={v => onUpdateField(`dialogues[${index}].line`, v)}
+                      onSave={v => updateDialogueLine(actIndex, sceneIndex, index, v)}
                       context={`Dialogue line for ${dialogue.roleId}`}
                       language={language}
                       textClassName="text-slate-700 dark:text-slate-300 leading-relaxed"
@@ -204,7 +221,7 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
             title="Phong cách hình ảnh"
             content={scene.visual_style}
             icon={<Video className="h-5 w-5" />}
-            onSave={v => onUpdateField('visual_style', v)}
+            onSave={v => updateSceneField(actIndex, sceneIndex, 'visual_style', v)}
             context="Scene Visual Style"
             language={language}
           />
@@ -212,7 +229,7 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, onUpdateField, language })
             title="Phong cách âm thanh"
             content={scene.audio_style}
             icon={<Headphones className="h-5 w-5" />}
-            onSave={v => onUpdateField('audio_style', v)}
+            onSave={v => updateSceneField(actIndex, sceneIndex, 'audio_style', v)}
             context="Scene Audio Style"
             language={language}
           />

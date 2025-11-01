@@ -10,33 +10,22 @@ import {
   ButtonGroup,
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { FileJson, ChevronDown, Trash, FolderDown, MicVocal, Wand2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { FileJson, ChevronDown, Trash, FolderDown, MicVocal } from 'lucide-react';
+import { useState, useRef } from 'react';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
 
 const ScriptActionButton = () => {
-  const confirmationTimeoutRef = useRef<number | null>(null);
   const activeScript = useScriptsStore((s: ScriptsState) => s.activeScript);
   const deleteActiveScript = useScriptsStore((s: ScriptsState) => s.deleteActiveScript);
-  const cleanActiveScript = useScriptsStore(s => s.cleanActiveScript);
-  const [confirmationPending, setConfirmationPending] = useState<'deleteScript' | 'clearAll' | 'cleanScript' | null>(
-    null,
-  );
+  const [confirmationPending, setConfirmationPending] = useState<'deleteScript' | null>(null);
 
-  const clearAllData = useScriptsStore((s: ScriptsState) => s.clearAllData);
-  const handleDestructiveActionClick = (action: 'deleteScript' | 'clearAll' | 'cleanScript') => {
-    if (confirmationTimeoutRef.current) {
-      clearTimeout(confirmationTimeoutRef.current);
-      confirmationTimeoutRef.current = null;
-    }
-
+  const confirmationTimeoutRef = useRef<number | null>(null);
+  const handleDestructiveActionClick = (action: 'deleteScript') => {
     if (confirmationPending === action) {
       if (action === 'deleteScript') {
-        deleteActiveScript();
-      } else if (action === 'clearAll') {
-        clearAllData();
-      } else if (action === 'cleanScript') {
-        void cleanActiveScript();
+        if (activeScript?.id !== undefined) {
+          void deleteActiveScript(activeScript.id);
+        }
       }
       setConfirmationPending(null);
     } else {
@@ -89,21 +78,10 @@ const ScriptActionButton = () => {
             <DropdownMenuGroup>
               <DropdownMenuItem
                 onSelect={e => e.preventDefault()}
-                className="text-orange-600 focus:bg-orange-50 focus:text-orange-700 dark:focus:bg-orange-900/50 dark:focus:text-orange-300"
-                onClick={() => handleDestructiveActionClick('cleanScript')}
-                disabled={!activeScript}>
-                <Wand2 className="mr-2 h-4 w-4" />
-                {confirmationPending === 'cleanScript' ? 'Bạn chắc chắn?' : 'Làm sạch kịch bản'}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onSelect={e => e.preventDefault()}
                 className="text-red-600 focus:bg-red-50 focus:text-red-700 dark:focus:bg-red-900/50 dark:focus:text-red-300"
                 onClick={e => {
                   e.stopPropagation(); // Ngăn sự kiện lan truyền thêm
-                  if (activeScript) handleDestructiveActionClick('deleteScript');
+                  handleDestructiveActionClick('deleteScript');
                 }}
                 disabled={!activeScript}>
                 <Trash className="mr-2 h-4 w-4" />
@@ -113,7 +91,7 @@ const ScriptActionButton = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
-      <ScriptTtsExportModal isOpen={isVbeeModalOpen} onClose={() => setIsVbeeModalOpen(false)} script={activeScript} />
+      <ScriptTtsExportModal isOpen={isVbeeModalOpen} onClose={() => setIsVbeeModalOpen(false)} />
     </>
   );
 };
