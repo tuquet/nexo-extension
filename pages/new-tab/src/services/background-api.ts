@@ -208,6 +208,58 @@ export const backgroundAPI = {
     const response = await sendMessage(message);
     unwrapResponse(response as BaseResponse<void>);
   },
+
+  // ============================================================================
+  // Page Navigation Methods
+  // ============================================================================
+
+  /**
+   * Open the options page in a new tab
+   */
+  openOptionsPage: async (): Promise<{ success: boolean; tabId?: number }> => {
+    const message = {
+      type: 'OPEN_EXTENSION_PAGE' as const,
+      payload: { page: 'options' as const },
+    };
+    const response = await sendMessage(message);
+    return unwrapResponse(response as BaseResponse<{ success: boolean; tabId?: number }>);
+  },
+
+  /**
+   * Open the side panel
+   */
+  openSidePanel: async (): Promise<{ success: boolean }> => {
+    const message = {
+      type: 'OPEN_EXTENSION_PAGE' as const,
+      payload: { page: 'side-panel' as const },
+    };
+    const response = await sendMessage(message);
+    return unwrapResponse(response as BaseResponse<{ success: boolean }>);
+  },
+
+  /**
+   * Open any extension page
+   */
+  openExtensionPage: async (
+    page: 'options' | 'new-tab' | 'popup' | 'side-panel' | 'devtools' | 'devtools-panel',
+    options?: {
+      newWindow?: boolean;
+      windowOptions?: {
+        type?: 'normal' | 'popup' | 'panel';
+        width?: number;
+        height?: number;
+        left?: number;
+        top?: number;
+      };
+    },
+  ): Promise<{ success: boolean; tabId?: number; windowId?: number }> => {
+    const message = {
+      type: 'OPEN_EXTENSION_PAGE' as const,
+      payload: { page, ...options },
+    };
+    const response = await sendMessage(message);
+    return unwrapResponse(response as BaseResponse<{ success: boolean; tabId?: number; windowId?: number }>);
+  },
 };
 
 // Export individual methods for convenience
@@ -221,6 +273,9 @@ export const {
   getVbeeProjectStatus,
   getSettings,
   saveSettings,
+  openOptionsPage,
+  openSidePanel,
+  openExtensionPage,
 } = backgroundAPI;
 
 // Default export

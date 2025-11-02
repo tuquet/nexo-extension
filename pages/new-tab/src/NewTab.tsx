@@ -2,6 +2,7 @@ import CreateScriptForm from './components/script/create-script-form';
 import LayoutContainerWrapper from './layout/layout-container-wrapper';
 import Header from './layout/layout-header';
 import AssetGalleryPage from './pages/gallery/page';
+import PromptsListPage from './pages/prompts/list';
 import ScriptDetailPage from './pages/script/detail';
 import ScriptListPage from './pages/script/list';
 import { usePreferencesStore } from './stores/use-preferences-store';
@@ -34,6 +35,7 @@ const NewTab = () => (
             <Route path="/script/new" element={<CreateScriptForm />} />
             <Route path="/script/:id" element={<ScriptDetailPage />} />
             <Route path="/asset" element={<AssetGalleryPage />} />
+            <Route path="/prompts" element={<PromptsListPage />} />
             <Route path="/" element={<Navigate to="/script" replace />} />
           </Routes>
         </LayoutContainerWrapper>

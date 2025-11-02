@@ -22,6 +22,8 @@ type PreferencesState = {
   resetPreferences: () => void;
   defaultAspectRatio: AspectRatio;
   setDefaultAspectRatio: (ar: AspectRatio) => void;
+  typingDelay: number; // milliseconds per character (10-200ms)
+  setTypingDelay: (delay: number) => void;
 };
 
 const SIZES: ContainerSize[] = ['narrow', 'normal', 'wide', 'fluid'];
@@ -51,9 +53,12 @@ const usePreferencesStore = create<PreferencesState>()(
           fontScale: 1,
           containerSize: 'normal',
           defaultAspectRatio: DEFAULT_ASPECT_RATIO,
+          typingDelay: 50,
         }),
       defaultAspectRatio: DEFAULT_ASPECT_RATIO,
       setDefaultAspectRatio: ar => set({ defaultAspectRatio: ar }),
+      typingDelay: 50,
+      setTypingDelay: delay => set({ typingDelay: Math.max(10, Math.min(200, delay)) }),
     }),
     {
       name: 'preferences', // storage key (same as Options page)
@@ -79,7 +84,8 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
           newPrefs.state.containerSize !== store.containerSize ||
           newPrefs.state.compactMode !== store.compactMode ||
           newPrefs.state.fontScale !== store.fontScale ||
-          newPrefs.state.defaultAspectRatio !== store.defaultAspectRatio
+          newPrefs.state.defaultAspectRatio !== store.defaultAspectRatio ||
+          newPrefs.state.typingDelay !== store.typingDelay
         ) {
           usePreferencesStore.setState({
             theme: newPrefs.state.theme || store.theme,
@@ -87,6 +93,7 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
             compactMode: newPrefs.state.compactMode ?? store.compactMode,
             fontScale: newPrefs.state.fontScale ?? store.fontScale,
             defaultAspectRatio: newPrefs.state.defaultAspectRatio || store.defaultAspectRatio,
+            typingDelay: newPrefs.state.typingDelay ?? store.typingDelay,
           });
         }
       }

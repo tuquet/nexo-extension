@@ -8,6 +8,7 @@ import {
 } from './gemini-api-handler';
 import { handleAutoFillGeminiPrompt } from './gemini-automation-handler';
 import { handlePrimeGeminiWithSchema, handleGenerateScriptFromPrompt } from './gemini-handler';
+import { handleOpenExtensionPage } from './page-opener-handler';
 import { handleGetSettings, handleSaveSettings } from './settings-handler';
 import { handleCreateVbeeProject, handleGetVbeeProjectStatus } from './vbee-api-handler';
 import type { BackgroundMessage, BackgroundResponse } from './types/messages';
@@ -33,6 +34,9 @@ const messageRoutes: { [key: string]: MessageHandler } = {
 
   // Browser Automation Actions
   AUTO_FILL_GEMINI_PROMPT: handleAutoFillGeminiPrompt as unknown as MessageHandler,
+
+  // Page Navigation Actions
+  OPEN_EXTENSION_PAGE: handleOpenExtensionPage as unknown as MessageHandler,
 
   // Settings Actions
   GET_SETTINGS: handleGetSettings as unknown as MessageHandler,

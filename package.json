@@ -38,13 +38,14 @@
     "postinstall": "pnpm copy-env"
   },
   "dependencies": {
+    "@google/genai": "^1.27.0",
     "crypto-js": "^4.2.0",
+    "dexie": "^4.2.1",
     "immer": "^10.2.0",
     "lucide-react": "^0.548.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.9.4",
-    "@google/genai": "^1.27.0"
+    "react-router-dom": "^7.9.4"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.9",

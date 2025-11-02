@@ -24,6 +24,19 @@ export interface AudioRecord {
   isFullScript?: boolean;
 }
 
+// Interface for prompt template records
+export interface PromptRecord {
+  id?: number; // Auto-increment primary key
+  title: string;
+  category: 'script-generation' | 'image-generation' | 'video-generation' | 'character-dev' | 'general';
+  prompt: string;
+  description?: string;
+  tags?: string[];
+  icon?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * Defines the structure of our IndexedDB database using Dexie.
  * This class sets up tables for 'scripts', 'images', and 'videos'.
@@ -33,6 +46,7 @@ export class CineGenieDB extends Dexie {
   images!: Table<ImageRecord, number>;
   videos!: Table<VideoRecord, number>;
   audios!: Table<AudioRecord, number>;
+  prompts!: Table<PromptRecord, number>;
 
   constructor() {
     super('cineGenieDatabase'); // Database name
@@ -57,6 +71,14 @@ export class CineGenieDB extends Dexie {
       videos: '++id, scriptId',
       audios: '++id, scriptId', // Add audios table with scriptId index
     });
+
+    this.version(6).stores({
+      scripts: '++id, title',
+      images: '++id, scriptId',
+      videos: '++id, scriptId',
+      audios: '++id, scriptId',
+      prompts: '++id, category, createdAt', // Add prompts table with indexed fields
+    });
   }
 
   /**
@@ -65,11 +87,12 @@ export class CineGenieDB extends Dexie {
    */
   async clearAllData(): Promise<void> {
     // Use a transaction to ensure all tables are cleared atomically.
-    await this.transaction('rw', this.scripts, this.images, this.videos, this.audios, async () => {
+    await this.transaction('rw', [this.scripts, this.images, this.videos, this.audios, this.prompts], async () => {
       await this.scripts.clear();
       await this.images.clear();
       await this.videos.clear();
       await this.audios.clear();
+      await this.prompts.clear();
     });
   }
 }

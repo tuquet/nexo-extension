@@ -1,8 +1,29 @@
 import '@src/Popup.css';
 import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import { exampleThemeStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner, Button } from '@extension/ui';
-import { LayoutDashboard, PanelLeftOpen, PanelRightClose, Settings } from 'lucide-react';
+import {
+  cn,
+  ErrorDisplay,
+  LoadingSpinner,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Separator,
+} from '@extension/ui';
+import {
+  FileText,
+  Image,
+  Sparkles,
+  Settings,
+  PanelLeftOpen,
+  PanelRightClose,
+  ExternalLink,
+  Maximize2,
+  AppWindow,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const Popup = () => {
@@ -14,8 +35,12 @@ const Popup = () => {
     const checkPanelState = async () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id) {
-        const { enabled } = await chrome.sidePanel.getOptions({ tabId: tab.id });
-        setIsPanelEnabled(!!enabled);
+        try {
+          const { enabled } = await chrome.sidePanel.getOptions({ tabId: tab.id });
+          setIsPanelEnabled(!!enabled);
+        } catch (error) {
+          console.error('Failed to check panel state:', error);
+        }
       }
     };
     void checkPanelState();
@@ -32,6 +57,7 @@ const Popup = () => {
 
     if (forceNew) {
       await chrome.tabs.create({ url: newTabUrl });
+      window.close(); // Đóng popup sau khi mở tab
       return;
     }
 
@@ -41,52 +67,158 @@ const Popup = () => {
       // Kích hoạt tab đã tồn tại và focus vào cửa sổ của nó
       await chrome.tabs.update(tabs[0].id, { active: true });
       await chrome.windows.update(tabs[0].windowId, { focused: true });
+      window.close(); // Đóng popup
     } else {
       // Tạo tab mới nếu chưa có
       await chrome.tabs.create({ url: newTabUrl });
+      window.close(); // Đóng popup
     }
+  };
+
+  const openExtensionPage = async (page: 'scripts' | 'assets' | 'prompts') => {
+    const newTabUrl = chrome.runtime.getURL('new-tab/index.html');
+    const pageHash = {
+      scripts: '#/script',
+      assets: '#/asset',
+      prompts: '#/prompts',
+    };
+
+    const fullUrl = `${newTabUrl}${pageHash[page]}`;
+    await chrome.tabs.create({ url: fullUrl });
+    window.close(); // Đóng popup
   };
 
   const toggleSidePanel = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab.id) return;
 
-    if (isPanelEnabled) {
-      // Nếu đang bật, tắt nó đi
-      await chrome.sidePanel.setOptions({ tabId: tab.id, enabled: false });
-      setIsPanelEnabled(false);
-    } else {
-      // Nếu đang tắt, bật nó lên
-      await chrome.sidePanel.setOptions({ tabId: tab.id, path: '/side-panel/index.html', enabled: true });
-      // Và mở nó trong cửa sổ hiện tại
-      await chrome.sidePanel.open({ windowId: tab.windowId });
-      setIsPanelEnabled(true);
+    try {
+      if (isPanelEnabled) {
+        // Nếu đang bật, tắt nó đi
+        await chrome.sidePanel.setOptions({ tabId: tab.id, enabled: false });
+        setIsPanelEnabled(false);
+      } else {
+        // Nếu đang tắt, bật nó lên
+        await chrome.sidePanel.setOptions({ tabId: tab.id, path: '/side-panel/index.html', enabled: true });
+        // Và mở nó trong cửa sổ hiện tại
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+        setIsPanelEnabled(true);
+      }
+    } catch (error) {
+      console.error('Failed to toggle side panel:', error);
     }
   };
 
   const openOptionsPage = () => {
     chrome.runtime.openOptionsPage();
+    window.close(); // Đóng popup
+  };
+
+  const openNewTabInWindow = async () => {
+    const newTabUrl = chrome.runtime.getURL('new-tab/index.html');
+    await chrome.windows.create({
+      url: newTabUrl,
+      type: 'popup',
+      width: 1200,
+      height: 800,
+    });
+    window.close(); // Đóng popup
   };
 
   return (
-    <div className={cn('h-screen w-full', isLight ? 'bg-slate-50' : 'bg-gray-800')}>
-      <div className="flex w-full flex-col space-y-3 p-4">
-        {/* Main Navigation */}
-        <Button onClick={() => void openNewTab()} variant="outline" className="w-full justify-start">
-          <LayoutDashboard className="mr-2 h-4 w-4" />
-          Mở giao diện chính
-        </Button>
+    <div className={cn('min-h-[400px] w-[340px]', isLight ? 'bg-background' : 'bg-background')}>
+      {/* Header */}
+      <div className="from-primary/10 to-primary/5 border-b bg-gradient-to-r px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg font-bold">
+            CG
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold">CineGenie</h1>
+            <p className="text-muted-foreground text-xs">AI Script Generator</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="space-y-3 p-3">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+            <CardDescription className="text-xs">Access main features quickly</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            <Button
+              onClick={() => void openExtensionPage('scripts')}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2">
+              <FileText className="size-4" />
+              <span className="flex-1 text-left">Kịch Bản</span>
+              <ExternalLink className="size-3 opacity-50" />
+            </Button>
+            <Button
+              onClick={() => void openExtensionPage('assets')}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2">
+              <Image className="size-4" />
+              <span className="flex-1 text-left">Tài Sản</span>
+              <ExternalLink className="size-3 opacity-50" />
+            </Button>
+            <Button
+              onClick={() => void openExtensionPage('prompts')}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2">
+              <Sparkles className="size-4" />
+              <span className="flex-1 text-left">Prompts</span>
+              <ExternalLink className="size-3 opacity-50" />
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Tools */}
-        <Button onClick={toggleSidePanel} variant="outline" className="w-full justify-start">
-          {isPanelEnabled ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-          <span>{isPanelEnabled ? 'Đóng thanh bên' : 'Mở thanh bên'}</span>
-        </Button>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Tools & Settings</CardTitle>
+            <CardDescription className="text-xs">Extension management</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            <Button
+              onClick={() => void openNewTab()}
+              variant="default"
+              size="sm"
+              className="w-full justify-start gap-2">
+              <Maximize2 className="size-4" />
+              <span className="flex-1 text-left">Mở Giao Diện Chính</span>
+            </Button>
+            <Button
+              onClick={() => void openNewTabInWindow()}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2">
+              <AppWindow className="size-4" />
+              <span className="flex-1 text-left">Mở Cửa Sổ Riêng</span>
+            </Button>
+            <Separator className="my-2" />
+            <Button onClick={toggleSidePanel} variant="outline" size="sm" className="w-full justify-start gap-2">
+              {isPanelEnabled ? <PanelRightClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+              <span className="flex-1 text-left">{isPanelEnabled ? 'Đóng Thanh Bên' : 'Mở Thanh Bên'}</span>
+            </Button>
+            <Separator className="my-2" />
+            <Button onClick={openOptionsPage} variant="outline" size="sm" className="w-full justify-start gap-2">
+              <Settings className="size-4" />
+              <span className="flex-1 text-left">Cài Đặt</span>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-        <Button onClick={openOptionsPage} variant="outline" className="w-full justify-start">
-          <Settings className="mr-2 h-4 w-4" />
-          Mở trang tùy chọn
-        </Button>
+      {/* Footer */}
+      <div className="border-t px-4 py-2">
+        <p className="text-muted-foreground text-center text-xs">v0.5.0 • CineGenie Extension</p>
       </div>
     </div>
   );

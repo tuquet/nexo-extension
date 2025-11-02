@@ -21,6 +21,7 @@ const DisplayTab = () => {
   const [compactMode, setCompactMode] = useState(false);
   const [fontScale, setFontScale] = useState(1);
   const [defaultAspectRatio, setDefaultAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:3' | '3:4'>('16:9');
+  const [typingDelay, setTypingDelay] = useState(50);
 
   useEffect(() => {
     // Load preferences from chrome.storage.local (same storage as new-tab usePreferencesStore)
@@ -32,6 +33,7 @@ const DisplayTab = () => {
         if (prefs.state.compactMode !== undefined) setCompactMode(prefs.state.compactMode);
         if (prefs.state.fontScale !== undefined) setFontScale(prefs.state.fontScale);
         if (prefs.state.defaultAspectRatio) setDefaultAspectRatio(prefs.state.defaultAspectRatio);
+        if (prefs.state.typingDelay !== undefined) setTypingDelay(prefs.state.typingDelay);
       }
     });
   }, []);
@@ -61,6 +63,7 @@ const DisplayTab = () => {
           compactMode,
           fontScale,
           defaultAspectRatio,
+          typingDelay,
         },
         version: 1,
       };
@@ -173,6 +176,31 @@ const DisplayTab = () => {
               onValueChange={values => setFontScale(values[0])}
             />
             <p className="text-muted-foreground text-xs">Adjust text size across the application</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Automation Settings</CardTitle>
+          <CardDescription>Configure prompt automation behavior</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="typing-delay">Typing Speed: {typingDelay}ms per character</Label>
+            </div>
+            <Slider
+              id="typing-delay"
+              min={0}
+              max={200}
+              step={1}
+              value={[typingDelay]}
+              onValueChange={values => setTypingDelay(values[0])}
+            />
+            <p className="text-muted-foreground text-xs">
+              Adjust how fast prompts are typed (lower = faster, higher = more realistic)
+            </p>
           </div>
         </CardContent>
       </Card>

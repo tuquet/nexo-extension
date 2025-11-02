@@ -40,6 +40,17 @@ const handleAutoFillGeminiPrompt = async (
     const { prompt, autoSend = false } = message.payload;
     console.log('[Automation] Received AUTO_FILL_GEMINI_PROMPT message', message.payload);
 
+    // Read typing delay from preferences
+    let typingDelay = 50; // Default
+    try {
+      const prefs = await chrome.storage.local.get(['preferences']);
+      if (prefs?.preferences?.state?.typingDelay) {
+        typingDelay = prefs.preferences.state.typingDelay;
+      }
+    } catch (storageError) {
+      console.warn('[Automation] Failed to read typing delay from storage, using default:', storageError);
+    }
+
     // Step 1: Find existing Google AI Studio tab
     const tabs = await chrome.tabs.query({
       url: 'https://aistudio.google.com/*',
@@ -82,6 +93,7 @@ const handleAutoFillGeminiPrompt = async (
       payload: {
         prompt,
         autoSend,
+        typingDelay,
       },
     });
 

@@ -8,6 +8,7 @@ interface FillPromptMessage {
   payload: {
     prompt: string;
     autoSend?: boolean;
+    typingDelay?: number; // milliseconds per character
   };
 }
 
@@ -154,7 +155,8 @@ chrome.runtime.onMessage.addListener((message: FillPromptMessage, sender, sendRe
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Step 3: Type the prompt with realistic delays
-      await typeText(inputElement, message.payload.prompt);
+      const typingDelay = message.payload.typingDelay || 50; // Default 50ms
+      await typeText(inputElement, message.payload.prompt, typingDelay);
 
       // Step 4: Optional auto-send
       if (message.payload.autoSend) {

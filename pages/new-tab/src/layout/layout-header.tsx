@@ -1,8 +1,7 @@
 import { usePreferencesStore } from '../stores/use-preferences-store';
 import { Button, ModeToggle, Separator } from '@extension/ui';
-import { Icon } from '@iconify/react';
-import ScriptSettingModal from '@src/components/common/app-setting-modal';
-import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { openOptionsPage } from '@src/services/background-api';
+import { FileText, Image, Maximize2, Settings, Sparkles } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import type React from 'react';
 
@@ -11,59 +10,102 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
-  const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
   const toggleSize = usePreferencesStore(s => s.toggleContainerSize);
   const containerSize = usePreferencesStore(s => s.containerSize);
-  const isSettingsModalOpen = useScriptsStore(s => s.settingsModalOpen);
-  const setIsSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
   const location = useLocation();
+
+  const handleOpenSettings = async () => {
+    try {
+      await openOptionsPage();
+    } catch (error) {
+      console.error('Failed to open options page:', error);
+    }
+  };
 
   const isScriptRouteActive = location.pathname === '/' || location.pathname.startsWith('/script');
   const isAssetRouteActive = location.pathname === '/asset';
+  const isPromptsRouteActive = location.pathname === '/prompts';
 
   return (
     <header className="bg-background/70 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
-          <Link to="/script" className="flex items-center gap-2">
-            <span className="text-lg font-bold">{title}</span>
+        {/* Logo and Brand */}
+        <div className="flex items-center gap-6">
+          <Link to="/script" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+            <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg font-bold">
+              {title}
+            </div>
+            <span className="hidden text-sm font-semibold sm:inline">CineGenie</span>
           </Link>
-          <nav className="flex items-center gap-2">
-            <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} asChild>
-              <Link to="/script">Kịch Bản</Link>
+
+          {/* Navigation Tabs */}
+          <nav className="hidden items-center gap-1 md:flex">
+            <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
+              <Link to="/script">
+                <FileText className="size-4" />
+                <span>Kịch Bản</span>
+              </Link>
             </Button>
-            <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} asChild>
-              <Link to="/asset">Tài sản</Link>
+            <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
+              <Link to="/asset">
+                <Image className="size-4" />
+                <span>Tài sản</span>
+              </Link>
+            </Button>
+            <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
+              <Link to="/prompts">
+                <Sparkles className="size-4" />
+                <span>Prompts</span>
+              </Link>
             </Button>
           </nav>
         </div>
-        <div className="flex items-center gap-2">
-          <ModeToggle />
-          <Separator orientation="vertical" className="h-6" />
+
+        {/* Actions */}
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
+            size="icon"
+            className="hidden sm:inline-flex"
             aria-label="Toggle container size"
-            title={`Container size: ${containerSize}`}
+            title={`Container: ${containerSize}`}
             onClick={toggleSize}>
-            <span className="sr-only">Toggle container size</span>
-            <span className="bg-muted/50 text-foreground inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-medium">
-              {
-                {
-                  narrow: 'N',
-                  normal: 'M',
-                  wide: 'W',
-                  fluid: 'F',
-                }[containerSize]
-              }
-            </span>
+            <Maximize2 className="size-4" />
           </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <Button variant="ghost" size="icon" aria-label="Cài đặt" onClick={() => setSettingsModalOpen(true)}>
-            <Icon icon="lucide:settings" className="h-5 w-5" />
+
+          <ModeToggle />
+
+          <Separator orientation="vertical" className="mx-1 h-6" />
+
+          <Button variant="ghost" size="icon" aria-label="Settings" title="Settings" onClick={handleOpenSettings}>
+            <Settings className="size-4" />
           </Button>
         </div>
       </div>
-      <ScriptSettingModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+
+      {/* Mobile Navigation */}
+      <div className="border-t md:hidden">
+        <nav className="flex items-center justify-around px-2 py-2">
+          <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
+            <Link to="/script">
+              <FileText className="size-4" />
+              <span className="text-xs">Kịch Bản</span>
+            </Link>
+          </Button>
+          <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
+            <Link to="/asset">
+              <Image className="size-4" />
+              <span className="text-xs">Tài sản</span>
+            </Link>
+          </Button>
+          <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
+            <Link to="/prompts">
+              <Sparkles className="size-4" />
+              <span className="text-xs">Prompts</span>
+            </Link>
+          </Button>
+        </nav>
+      </div>
     </header>
   );
 };

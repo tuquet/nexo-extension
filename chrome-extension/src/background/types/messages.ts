@@ -311,6 +311,31 @@ export type AutoFillGeminiPromptResponse = BaseResponse<{
 }>;
 
 // ============================================================================
+// Page Navigation Messages
+// ============================================================================
+
+export interface OpenExtensionPageMessage extends BaseMessage {
+  type: 'OPEN_EXTENSION_PAGE';
+  payload: {
+    page: 'options' | 'new-tab' | 'popup' | 'side-panel' | 'devtools' | 'devtools-panel';
+    newWindow?: boolean;
+    windowOptions?: {
+      type?: 'normal' | 'popup' | 'panel';
+      width?: number;
+      height?: number;
+      left?: number;
+      top?: number;
+    };
+  };
+}
+
+export type OpenExtensionPageResponse = BaseResponse<{
+  success: boolean;
+  tabId?: number;
+  windowId?: number;
+}>;
+
+// ============================================================================
 // Union Types for Type Safety
 // ============================================================================
 
@@ -327,7 +352,8 @@ export type BackgroundMessage =
   | PrimeGeminiMessage
   | GenerateScriptFromPromptMessage
   | TestGeminiConnectionMessage
-  | AutoFillGeminiPromptMessage;
+  | AutoFillGeminiPromptMessage
+  | OpenExtensionPageMessage;
 
 export type BackgroundResponse =
   | GeminiGenerateScriptResponse
@@ -341,6 +367,7 @@ export type BackgroundResponse =
   | SaveSettingsResponse
   | TestGeminiConnectionResponse
   | AutoFillGeminiPromptResponse
+  | OpenExtensionPageResponse
   | BaseResponse;
 
 // ============================================================================
@@ -377,3 +404,6 @@ export const isTestGeminiConnectionMessage = (msg: BaseMessage): msg is TestGemi
 
 export const isAutoFillGeminiPromptMessage = (msg: BaseMessage): msg is AutoFillGeminiPromptMessage =>
   msg.type === 'AUTO_FILL_GEMINI_PROMPT';
+
+export const isOpenExtensionPageMessage = (msg: BaseMessage): msg is OpenExtensionPageMessage =>
+  msg.type === 'OPEN_EXTENSION_PAGE';

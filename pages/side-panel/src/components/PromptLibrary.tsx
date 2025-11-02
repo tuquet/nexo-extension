@@ -1,16 +1,50 @@
 import { GEMINI_PROMPTS } from '../data/gemini-prompts';
+import { db } from '../db';
 import { Badge, Button, Card, CardContent, Input, toast } from '@extension/ui';
 import { Copy, Search, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PromptTemplate } from '../data/gemini-prompts';
 
 export const PromptLibrary = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [prompts, setPrompts] = useState<PromptTemplate[]>([]);
+
+  // Load prompts from DB on mount
+  useEffect(() => {
+    loadPrompts();
+  }, []);
+
+  const loadPrompts = async () => {
+    try {
+      const dbPrompts = await db.prompts.toArray();
+
+      // If no prompts in DB, use default static prompts
+      if (dbPrompts.length === 0) {
+        setPrompts(GEMINI_PROMPTS);
+      } else {
+        // Convert DB prompts to PromptTemplate format (use id as string)
+        const convertedPrompts: PromptTemplate[] = dbPrompts.map(p => ({
+          id: String(p.id),
+          title: p.title,
+          category: p.category,
+          prompt: p.prompt,
+          description: p.description,
+          tags: p.tags,
+          icon: p.icon,
+        }));
+        setPrompts(convertedPrompts);
+      }
+    } catch (error) {
+      console.error('Failed to load prompts:', error);
+      // Fallback to static prompts on error
+      setPrompts(GEMINI_PROMPTS);
+    }
+  };
 
   // Filter prompts
-  const filteredPrompts = GEMINI_PROMPTS.filter(p => {
+  const filteredPrompts = prompts.filter(p => {
     const matchSearch =
       search === '' ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
