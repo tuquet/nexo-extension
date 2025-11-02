@@ -1,5 +1,5 @@
 import { ApiAuthError, ApiContentError } from './api-errors';
-import { TEXT_ENHANCEMENT_MODEL } from '../constants';
+import { DEFAULT_MODELS } from '../constants';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { ScriptStory, AspectRatio } from '../types';
 
@@ -298,7 +298,7 @@ const enhanceText = async (
         `.trim();
 
     const response = await ai.models.generateContent({
-      model: TEXT_ENHANCEMENT_MODEL,
+      model: DEFAULT_MODELS.textEnhancement,
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,

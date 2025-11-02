@@ -1,16 +1,40 @@
-import { handlePrimeGemini } from './gemini-primer-handler';
+import {
+  handleGenerateScript,
+  handleSuggestPlotPoints,
+  handleGenerateSceneImage,
+  handleEnhanceText,
+  handleGenerateSceneVideo,
+} from './gemini-api-handler';
+import { handlePrimeGeminiWithSchema, handleGenerateScriptFromPrompt } from './gemini-handler';
+import { handleGetSettings, handleSaveSettings } from './settings-handler';
+import { handleCreateVbeeProject, handleGetVbeeProjectStatus } from './vbee-api-handler';
+import type { BackgroundMessage, BackgroundResponse } from './types/messages';
 
 /**
  * A mapping of message actions to their corresponding handler functions.
  * This allows for a scalable way to add new background tasks.
  */
-type MessageHandler = (message: unknown, sender: chrome.runtime.MessageSender) => Promise<unknown> | void;
+type MessageHandler = (message: BackgroundMessage, sender: chrome.runtime.MessageSender) => Promise<BackgroundResponse>;
 
 const messageRoutes: { [key: string]: MessageHandler } = {
-  PRIME_GEMINI_WITH_SCHEMA: handlePrimeGemini,
-  GENERATE_SCRIPT_FROM_PROMPT: handlePrimeGemini, // Re-use the same handler
-  // Add other actions here in the future
-  // EXAMPLE_ACTION: (message) => console.log(message.data),
+  // Gemini Actions (UI Automation) - legacy handlers
+  PRIME_GEMINI_WITH_SCHEMA: handlePrimeGeminiWithSchema as unknown as MessageHandler,
+  GENERATE_SCRIPT_FROM_PROMPT: handleGenerateScriptFromPrompt as unknown as MessageHandler,
+
+  // Gemini API Actions
+  GENERATE_SCRIPT: handleGenerateScript as unknown as MessageHandler,
+  SUGGEST_PLOT_POINTS: handleSuggestPlotPoints as unknown as MessageHandler,
+  GENERATE_SCENE_IMAGE: handleGenerateSceneImage as unknown as MessageHandler,
+  ENHANCE_TEXT: handleEnhanceText as unknown as MessageHandler,
+  GENERATE_SCENE_VIDEO: handleGenerateSceneVideo as unknown as MessageHandler,
+
+  // Settings Actions
+  GET_SETTINGS: handleGetSettings as unknown as MessageHandler,
+  SAVE_SETTINGS: handleSaveSettings as unknown as MessageHandler,
+
+  // Vbee API Actions
+  CREATE_VBEE_PROJECT: handleCreateVbeeProject as unknown as MessageHandler,
+  GET_VBEE_PROJECT_STATUS: handleGetVbeeProjectStatus as unknown as MessageHandler,
 };
 
 /**
@@ -18,13 +42,15 @@ const messageRoutes: { [key: string]: MessageHandler } = {
  * It delegates incoming messages to the appropriate handler based on the 'action' property.
  */
 export const initializeMessageRouter = () => {
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    const handler = messageRoutes[message.action];
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    const handler = messageRoutes[message.type || message.action]; // Support both 'type' and 'action'
     if (handler) {
-      handler(message, sender);
+      Promise.resolve(handler(message, sender))
+        .then(sendResponse)
+        .catch(error => console.error(`Error in message handler for ${message.type || message.action}:`, error));
+      return true; // Indicate that the response will be sent asynchronously.
     }
-    // Return true to indicate that the response will be sent asynchronously.
-    return true;
+    return false; // Explicitly return false if no handler is found.
   });
   console.log('Message router initialized.');
 };

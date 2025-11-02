@@ -1,5 +1,4 @@
 import EditableField from './editable-field';
-import { db } from '../../db';
 import {
   Card,
   CardHeader,
@@ -10,11 +9,12 @@ import {
   CardFooter,
   Button,
 } from '@extension/ui';
+import { db } from '@src/db';
 import { useAudioPlayerStore } from '@src/stores/use-audio-player-store';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { Video, Headphones, PlayCircle, PauseCircle, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { Scene } from '../../types';
+import type { Scene } from '@src/types';
 import type React from 'react';
 
 interface SceneCardProps {

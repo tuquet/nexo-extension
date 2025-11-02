@@ -3,11 +3,14 @@ import type { AspectRatio } from './types';
 // Tên các model của Gemini
 export const VBEE_API_BASE_URL = 'https://vbee.vn/api/v1';
 export const VBEE_PROJECT_URL = 'https://studio.vbee.vn/projects';
-export const SCRIPT_GENERATION_MODEL = 'gemini-2.5-flash';
-export const PLOT_SUGGESTION_MODEL = 'gemini-2.5-flash';
-export const TEXT_ENHANCEMENT_MODEL = 'gemini-2.5-flash';
-export const IMAGE_GENERATION_MODEL = 'imagen-4.0-generate-001';
-export const VIDEO_GENERATION_MODEL = 'veo-3.1-fast-generate-preview';
+
+export const DEFAULT_MODELS = {
+  scriptGeneration: 'gemini-2.5-flash',
+  plotSuggestion: 'gemini-2.5-flash',
+  textEnhancement: 'gemini-2.5-flash',
+  imageGeneration: 'imagen-4.0-generate-001',
+  videoGeneration: 'veo-3.1-fast-generate-preview',
+};
 
 // Danh sách các model có thể lựa chọn cho việc tạo văn bản
 export const AVAILABLE_TEXT_MODELS = [

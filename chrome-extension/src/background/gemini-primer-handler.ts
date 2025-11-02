@@ -1,4 +1,9 @@
-import { GEMINI_SCRIPT_SCHEMA } from './gemini-schema';
+import { GEMINI_SCRIPT_SCHEMA } from './constants';
+
+interface PrimeGeminiMessage {
+  action: 'PASTE_AND_SEND_SCHEMA';
+  schemaText: string;
+}
 
 export const handlePrimeGemini = async () => {
   try {
@@ -8,11 +13,13 @@ export const handlePrimeGemini = async () => {
     // Listener to ensure the content script receives the message only when the tab is fully loaded.
     const listener = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
       if (tabId === tab.id && changeInfo.status === 'complete') {
-        chrome.tabs.sendMessage(tab.id!, {
+        const primeMessage: PrimeGeminiMessage = {
           action: 'PASTE_AND_SEND_SCHEMA',
           schemaText: schemaText,
-        });
+        };
+
         // Clean up the listener after it has done its job.
+        void chrome.tabs.sendMessage(tab.id!, primeMessage);
         chrome.tabs.onUpdated.removeListener(listener);
       }
     };

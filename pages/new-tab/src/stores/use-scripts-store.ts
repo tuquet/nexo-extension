@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { produce } from 'immer';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ScriptStory } from '../types';
@@ -49,37 +50,8 @@ type ScriptsState = {
   addScript: (script: ScriptStory) => Promise<ScriptStory>;
   setActiveSceneIdentifier: (id: ActiveSceneIdentifier) => void;
   setActiveScript: (s: ScriptStory | null) => void;
+  _updateActiveScript: (updater: (draft: ScriptStory) => void) => Promise<void>;
   clearAllData: () => Promise<void>;
-};
-
-const setNestedValue = (obj: Record<string, unknown> | unknown[], path: string, value: unknown) => {
-  const keys = path
-    .replace(/\[(\w+)\]/g, '.$1')
-    .replace(/^\./, '')
-    .split('.');
-  let current: unknown = obj;
-
-  for (let i = 0; i < keys.length - 1; i++) {
-    const key = keys[i];
-    const nextKey = keys[i + 1];
-    const isNextKeyNumeric = !isNaN(parseInt(nextKey, 10));
-
-    if (typeof current !== 'object' || current === null) {
-      // Không thể đi sâu hơn, dừng lại.
-      return obj;
-    }
-
-    const currObj = current as Record<string, unknown>;
-
-    // Nếu key không tồn tại hoặc là null/undefined, tạo object/array mới
-    if (currObj[key] === undefined || currObj[key] === null) {
-      currObj[key] = isNextKeyNumeric ? [] : {};
-    }
-    current = currObj[key];
-  }
-
-  (current as Record<string, unknown>)[keys[keys.length - 1]] = value;
-  return obj;
 };
 
 /**
@@ -181,24 +153,29 @@ const useScriptsStore = create<ScriptsState>()(
         }
       },
 
-      updateRootField: async (field, value) => {
+      // Hàm helper để cập nhật activeScript một cách an toàn và hiệu quả
+      _updateActiveScript: async (updater: (draft: ScriptStory) => void) => {
         const active = get().activeScript;
         if (!active) return;
-        const updated = structuredClone(active) as ScriptStory;
-        updated[field] = value;
-        set({ activeScript: updated });
-        await get().saveActiveScript(updated);
+
+        const updatedScript = produce(active, updater);
+
+        set({ activeScript: updatedScript });
+        await get().saveActiveScript(updatedScript);
+      },
+
+      updateRootField: async (field, value) => {
+        await get()._updateActiveScript(draft => {
+          draft[field] = value;
+        });
       },
 
       updateActSummary: async (actIndex, value) => {
-        const active = get().activeScript;
-        if (!active) return;
-        const updated = structuredClone(active) as ScriptStory;
-        if (updated.acts[actIndex]) {
-          updated.acts[actIndex].summary = value;
-        }
-        set({ activeScript: updated });
-        await get().saveActiveScript(updated);
+        await get()._updateActiveScript(draft => {
+          if (draft.acts[actIndex]) {
+            draft.acts[actIndex].summary = value;
+          }
+        });
       },
 
       clearAllData: async () => {
@@ -362,39 +339,32 @@ const useScriptsStore = create<ScriptsState>()(
       },
 
       updateSceneField: async (actIndex, sceneIndex, field, value) => {
-        const active = get().activeScript;
-        if (!active) return;
-        const updated = structuredClone(active) as ScriptStory;
-        if (updated.acts[actIndex]?.scenes[sceneIndex]) {
-          (updated.acts[actIndex].scenes[sceneIndex] as unknown as Record<string, unknown>)[field] = value;
-        }
-        set({ activeScript: updated });
-        await get().saveActiveScript(updated);
+        await get()._updateActiveScript(draft => {
+          const scene = draft.acts[actIndex]?.scenes[sceneIndex];
+          if (scene) {
+            (scene as unknown as Record<string, unknown>)[field] = value;
+          }
+        });
       },
       updateDialogueLine: async (actIndex, sceneIndex, dialogueIndex, value) => {
-        const active = get().activeScript;
-        if (!active) return;
-        const updated = structuredClone(active) as ScriptStory;
-        if (updated.acts[actIndex]?.scenes[sceneIndex]?.dialogues[dialogueIndex]) {
-          updated.acts[actIndex].scenes[sceneIndex].dialogues[dialogueIndex].line = value;
-        }
-        set({ activeScript: updated });
-        await get().saveActiveScript(updated);
+        await get()._updateActiveScript(draft => {
+          const dialogue = draft.acts[actIndex]?.scenes[sceneIndex]?.dialogues[dialogueIndex];
+          if (dialogue) {
+            dialogue.line = value;
+          }
+        });
       },
       updateSceneGeneratedAssetId: async (actIndex, sceneIndex, assetType, assetId) => {
-        const active = get().activeScript;
-        if (!active) return;
-        const updated = structuredClone(active) as ScriptStory;
-        const scene = updated.acts[actIndex]?.scenes[sceneIndex];
-        if (scene) {
-          if (assetType === 'image') {
-            scene.generatedImageId = assetId;
-          } else if (assetType === 'video') {
-            scene.generatedVideoId = assetId;
+        await get()._updateActiveScript(draft => {
+          const scene = draft.acts[actIndex]?.scenes[sceneIndex];
+          if (scene) {
+            if (assetType === 'image') {
+              scene.generatedImageId = assetId;
+            } else if (assetType === 'video') {
+              scene.generatedVideoId = assetId;
+            }
           }
-        }
-        set({ activeScript: updated });
-        await get().saveActiveScript(updated);
+        });
       },
 
       addScript: async script => {
@@ -596,7 +566,6 @@ const selectPreviousSceneIdentifier = (state: ScriptsState) => {
 export type { ScriptsState };
 export {
   useScriptsStore,
-  setNestedValue,
   getAudioDuration,
   formatSrtTime,
   selectActiveScene,

@@ -1,6 +1,6 @@
 import ScriptSettingModal from '@src/components/common/app-setting-modal';
 import CreationForm from '@src/components/script/creation-form';
-import { generateScript } from '@src/services/gemini-service';
+import { generateScript } from '@src/services/background-api';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useState, useRef, useEffect } from 'react';
@@ -37,7 +37,16 @@ const CreateScriptForm = () => {
 
     try {
       if (!apiKey) throw new Error('API key is not set.');
-      const generatedScript = await generateScript(prompt, language, apiKey, scriptModel, temperature, topP);
+      const generatedScript = await generateScript({
+        prompt,
+        language,
+        apiKey,
+        modelName: scriptModel,
+        temperature,
+        topP,
+        topK: 40,
+        maxOutputTokens: 8192,
+      });
 
       if (isCancelledRef.current) return; // Dừng xử lý nếu người dùng đã hủy
 

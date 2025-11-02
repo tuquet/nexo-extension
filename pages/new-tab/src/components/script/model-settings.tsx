@@ -1,11 +1,44 @@
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Label,
+  Slider,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@extension/ui';
+import {
   AVAILABLE_IMAGE_MODELS,
   AVAILABLE_TEXT_MODELS,
   AVAILABLE_TTS_MODELS,
   AVAILABLE_VIDEO_MODELS,
-} from '../../constants';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Label, Slider } from '@extension/ui';
+} from '@src/constants';
 import { useModelSettings } from '@src/stores/use-model-settings';
+import { HelpCircle } from 'lucide-react';
+
+const LabelWithTooltip: React.FC<{ htmlFor: string; children: React.ReactNode; tooltip: string }> = ({
+  htmlFor,
+  children,
+  tooltip,
+}) => (
+  <div className="flex items-center gap-1.5">
+    <Label htmlFor={htmlFor}>{children}</Label>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <HelpCircle className="h-4 w-4 cursor-help text-slate-500" />
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </div>
+);
 
 interface ModelSettingsProps {
   disabled?: boolean;
@@ -30,7 +63,9 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
   return (
     <div className="grid grid-cols-1 gap-x-4 gap-y-6 pt-2 sm:grid-cols-2">
       <div>
-        <Label htmlFor="scriptModel">Model tạo văn bản</Label>
+        <LabelWithTooltip htmlFor="scriptModel" tooltip="Chọn model AI để tạo nội dung kịch bản chính.">
+          Model tạo văn bản
+        </LabelWithTooltip>
         <Select value={model} onValueChange={setModel} disabled={disabled}>
           <SelectTrigger id="scriptModel" className="focus:border-primary focus:ring-primary/20 w-full">
             <SelectValue />
@@ -45,7 +80,9 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
         </Select>
       </div>
       <div>
-        <Label htmlFor="imageModel">Model tạo ảnh</Label>
+        <LabelWithTooltip htmlFor="imageModel" tooltip="Chọn model AI để tạo hình ảnh cho các cảnh.">
+          Model tạo ảnh
+        </LabelWithTooltip>
         <Select value={imageModel} onValueChange={setImageModel} disabled={disabled}>
           <SelectTrigger id="imageModel" className="focus:border-primary focus:ring-primary/20 w-full">
             <SelectValue />
@@ -60,7 +97,9 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
         </Select>
       </div>
       <div>
-        <Label htmlFor="videoModel">Model tạo video</Label>
+        <LabelWithTooltip htmlFor="videoModel" tooltip="Chọn model AI để tạo video cho các cảnh.">
+          Model tạo video
+        </LabelWithTooltip>
         <Select value={videoModel} onValueChange={setVideoModel} disabled={disabled}>
           <SelectTrigger id="videoModel" className="focus:border-primary focus:ring-primary/20 w-full">
             <SelectValue />
@@ -75,7 +114,11 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
         </Select>
       </div>
       <div>
-        <Label htmlFor="ttsModel">Model tạo giọng nói (TTS)</Label>
+        <LabelWithTooltip
+          htmlFor="ttsModel"
+          tooltip="Chọn model AI để chuyển văn bản thành giọng nói (Text-to-Speech).">
+          Model tạo giọng nói (TTS)
+        </LabelWithTooltip>
         <Select value={ttsModel} onValueChange={setTtsModel} disabled={disabled || AVAILABLE_TTS_MODELS.length === 0}>
           <SelectTrigger id="ttsModel" className="focus:border-primary focus:ring-primary/20 w-full">
             <SelectValue placeholder="Chưa có model" />
@@ -94,7 +137,11 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
         </Select>
       </div>
       <div>
-        <Label htmlFor="temperature">Nhiệt độ: {temperature.toFixed(2)}</Label>
+        <LabelWithTooltip
+          htmlFor="temperature"
+          tooltip="Kiểm soát mức độ sáng tạo của AI. Giá trị cao hơn (ví dụ: 0.9) cho kết quả đa dạng hơn, giá trị thấp hơn (ví dụ: 0.2) cho kết quả nhất quán hơn.">
+          Nhiệt độ: {temperature.toFixed(2)}
+        </LabelWithTooltip>
         <Slider
           id="temperature"
           min={0}
@@ -106,7 +153,11 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
         />
       </div>
       <div>
-        <Label htmlFor="topP">Top P: {topP.toFixed(2)}</Label>
+        <LabelWithTooltip
+          htmlFor="topP"
+          tooltip="Một cách khác để kiểm soát sự ngẫu nhiên. AI sẽ chỉ xem xét các token có xác suất tích lũy đạt đến giá trị này. Thường không nên chỉnh cả Nhiệt độ và Top P cùng lúc.">
+          Top P: {topP.toFixed(2)}
+        </LabelWithTooltip>
         <Slider
           id="topP"
           min={0}

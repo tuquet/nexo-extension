@@ -20,7 +20,8 @@ import {
   SelectItem,
 } from '@extension/ui';
 import { AVAILABLE_TTS_MODELS } from '@src/constants';
-import { createVbeeProject, transformScriptToVbeeProject } from '@src/services/vbee-service';
+import { createVbeeProject } from '@src/services/background-api';
+import { transformScriptToVbeeProject } from '@src/services/vbee-service';
 import { useModelSettings } from '@src/stores/use-model-settings';
 import { useScriptsStore, selectActiveScriptCharacters, selectAllDialogueLines } from '@src/stores/use-scripts-store';
 import { Copy, Check } from 'lucide-react';
@@ -88,8 +89,11 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
 
     try {
       const { payload, updatedScript } = JSON.parse(projectJsonText) as VbeeTransformationResult;
-      const vbeeResponse = await createVbeeProject(payload, token);
-      const projectId = vbeeResponse?.result?.project?.id;
+      const vbeeResponse = await createVbeeProject({
+        projectData: payload,
+        bearerToken: token,
+      });
+      const projectId = vbeeResponse?.projectId;
       if (projectId) {
         updatedScript.buildMeta = { ...updatedScript.buildMeta, vbeeProjectId: projectId };
         await saveActiveScript(updatedScript);

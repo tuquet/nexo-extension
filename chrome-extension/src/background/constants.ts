@@ -44,3 +44,14 @@ export const GEMINI_SCRIPT_SCHEMA = `{
     }
   ]
 }`;
+
+export const PLOT_POINTS_SCHEMA = `{
+  "suggestions": {
+    "type": "array",
+    "items": {
+      "type": "string",
+      "description": "A single, concise plot point or story twist suggestion."
+    },
+    "description": "An array of 3 to 5 plot point suggestions."
+  }
+}`;

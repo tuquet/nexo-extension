@@ -1,5 +1,3 @@
-import { VIDEO_LOADING_MESSAGES, DEFAULT_ASPECT_RATIO } from '../../constants';
-import { db } from '../../db';
 import {
   Button,
   Card,
@@ -11,10 +9,12 @@ import {
   SelectContent,
   SelectItem,
 } from '@extension/ui';
+import { VIDEO_LOADING_MESSAGES, DEFAULT_ASPECT_RATIO } from '@src/constants';
+import { db } from '@src/db';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { ImagePlus, UploadCloud, Video as VideoIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import type { Scene, AspectRatio } from '../../types';
+import type { Scene, AspectRatio } from '@src/types';
 import type React from 'react';
 
 const SceneAssetCard: React.FC<{

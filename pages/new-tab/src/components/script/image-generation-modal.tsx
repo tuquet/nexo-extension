@@ -13,7 +13,7 @@ import {
   Textarea,
 } from '@extension/ui';
 import { useState, useEffect } from 'react';
-import type { AspectRatio } from '../../types';
+import type { AspectRatio } from '@src/types';
 import type React from 'react';
 
 interface ImageGenerationModalProps {

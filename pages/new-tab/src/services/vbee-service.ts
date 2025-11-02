@@ -1,4 +1,3 @@
-import { VBEE_API_BASE_URL } from '@src/constants';
 import type { ScriptStory } from '../types';
 
 /**
@@ -93,54 +92,4 @@ export const transformScriptToVbeeProject = (
   };
 
   return { payload, updatedScript };
-};
-
-/**
- * Sends a request to the Vbee API to create a new project.
- * @param payload The project data.
- * @param bearerToken The JWT token for authorization.
- * @returns The response from the Vbee API.
- */
-export const createVbeeProject = async (payload: CreateVbeeProjectPayload, bearerToken: string) => {
-  const response = await fetch(`${VBEE_API_BASE_URL}/projects`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${bearerToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`Vbee API Error: ${response.status} - ${errorData.message || 'Unknown error'}`);
-  }
-
-  return response.json();
-};
-
-/**
- * Fetches the status of a specific Vbee project.
- * @param projectId The ID of the project to check.
- * @param bearerToken The JWT token for authorization.
- * @returns The project status response from the Vbee API.
- */
-export const getVbeeProjectStatus = async (
-  projectId: string,
-  bearerToken: string,
-): Promise<VbeeProjectStatusResponse> => {
-  const response = await fetch(`${VBEE_API_BASE_URL}/projects/${projectId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${bearerToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`Vbee API Error: ${response.status} - ${errorData.message || 'Unknown error'}`);
-  }
-
-  return response.json();
 };

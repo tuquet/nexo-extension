@@ -1,7 +1,4 @@
 import { ModelSettings } from './model-settings';
-import { PREDEFINED_GENRES, PLOT_SUGGESTION_MODEL, SCRIPT_GENERATION_LOADING_MESSAGES } from '../../constants';
-import { suggestPlotPoints, getScriptGenerationPayload } from '../../services/gemini-service';
-import { useApiKey } from '../../stores/use-api-key';
 import CreatableSelect from '../script/creatable-select';
 import {
   Button,
@@ -17,13 +14,16 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@extension/ui';
+import { PREDEFINED_GENRES, DEFAULT_MODELS, SCRIPT_GENERATION_LOADING_MESSAGES } from '@src/constants';
 import usePersistentState from '@src/hooks/use-persistent-state';
+import { suggestPlotPoints } from '@src/services/background-api';
+import { useApiKey } from '@src/stores/use-api-key';
 import { useModelSettings } from '@src/stores/use-model-settings';
 import { usePreferencesStore } from '@src/stores/use-preferences-store';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { AlertCircle, Copy } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import type { AspectRatio } from '../../types';
+import type { AspectRatio } from '@src/types';
 import type { FormEvent } from 'react';
 
 const FORM_STORAGE_KEY = 'creationFormData';
@@ -56,7 +56,10 @@ const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, onImportJson, o
     `${FORM_STORAGE_KEY}_scriptLength`,
     'short',
   );
-  const [suggestionModel] = usePersistentState<string>(`${FORM_STORAGE_KEY}_suggestionModel`, PLOT_SUGGESTION_MODEL);
+  const [suggestionModel] = usePersistentState<string>(
+    `${FORM_STORAGE_KEY}_suggestionModel`,
+    DEFAULT_MODELS.plotSuggestion,
+  );
 
   const [plotSuggestions, setPlotSuggestions] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState<boolean>(false);
@@ -119,7 +122,12 @@ ${logline}
 **Genres:**
 ${genres.join(', ')}`.trim();
     try {
-      const suggestions = await suggestPlotPoints(suggestionPrompt, language, apiKey!, suggestionModel);
+      const suggestions = await suggestPlotPoints({
+        prompt: suggestionPrompt,
+        apiKey: apiKey!,
+        modelName: suggestionModel,
+        count: 5,
+      });
       setPlotSuggestions(suggestions);
     } catch (err) {
       setSuggestionError(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi gợi ý tình tiết.');
@@ -143,9 +151,14 @@ ${genres.join(', ')}`.trim();
       **Desired Script Length:** ${scriptLength}
       Based on the provided logline, genres, and desired length, please generate a full movie script.`.trim();
 
-    const { systemInstruction, userPrompt, schema } = getScriptGenerationPayload(finalPrompt, language);
+    const systemInstruction = `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${language}.
+        The script must follow the three-act structure.
+        Ensure every field in the provided JSON schema is filled with creative, relevant, and well-written content.
+        The 'roleId' in dialogue must correspond to one of the character roleIds defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roleIds for dialogue.
+        For each dialogue 'line', provide only the spoken words. Do not include parenthetical remarks, actions, or context like '(internal monologue)' or '(shouting)'.
+        IMPORTANT RULE: Always include a character with the roleId 'narrator' in the 'characters' list. For any scene that has no character dialogue, you MUST create a single entry in the 'dialogues' array. This entry will have the 'roleId' set to 'narrator' and the 'line' will be the exact content of the 'action' field for that scene. This ensures every scene has content for voice-over.`;
 
-    const fullPromptText = `--- SYSTEM PROMPT ---\n${systemInstruction}\n\n--- USER PROMPT ---\n${userPrompt}\n\n--- JSON SCHEMA ---\n${JSON.stringify(schema, null, 2)}`;
+    const fullPromptText = `--- SYSTEM PROMPT ---\n${systemInstruction}\n\n--- USER PROMPT ---\n${finalPrompt}`;
 
     void navigator.clipboard.writeText(fullPromptText).then(() => {
       toast.success('Đã sao chép toàn bộ prompt vào clipboard!');
@@ -195,7 +208,7 @@ ${genres.join(', ')}`.trim();
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6 w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 rounded-md bg-slate-100 p-1 dark:bg-slate-800">
           <TabsTrigger value="ai">Tạo bằng AI</TabsTrigger>
           <TabsTrigger value="json">Nhập từ JSON</TabsTrigger>
         </TabsList>

@@ -1,9 +1,9 @@
 import EditableField from './editable-field';
 import SceneCard from './script-scene-card';
-import { useScriptsStore } from '../../stores/use-scripts-store';
 import { Badge, Button, Textarea } from '@extension/ui';
+import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useEffect, useState, useRef } from 'react';
-import type { ScriptStory } from '../../types';
+import type { ScriptStory } from '@src/types';
 import type { FC } from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';

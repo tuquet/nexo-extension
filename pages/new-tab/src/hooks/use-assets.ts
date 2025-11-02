@@ -1,9 +1,8 @@
 import { db } from '../db';
 import {
-  generateSceneImage as geminiGenerateSceneImage,
-  generateSceneVideo as geminiGenerateSceneVideo,
-  blobToBase64,
-} from '../services/gemini-service';
+  generateSceneImage as backgroundGenerateSceneImage,
+  generateSceneVideo as backgroundGenerateSceneVideo,
+} from '../services/background-api';
 import { useApiKey } from '../stores/use-api-key';
 import { useScriptsStore } from '../stores/use-scripts-store';
 import type { ScriptStory, AspectRatio } from '../types';
@@ -32,6 +31,19 @@ const clone = <T>(v: T): T =>
     ? // use native structuredClone when available for accurate cloning
       structuredClone(v)
     : JSON.parse(JSON.stringify(v));
+
+/**
+ * Convert Blob to base64 string
+ * Exported for potential future use with video startImage feature
+ */
+export const blobToBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
 export const useAssets = (setError: (error: string | null) => void) => {
   const getApiKey = () => useApiKey.getState().apiKey;
 
@@ -54,8 +66,14 @@ export const useAssets = (setError: (error: string | null) => void) => {
     useScriptsStore.getState().setActiveScript(working);
 
     try {
-      const imgUrl = await geminiGenerateSceneImage(prompt, aspectRatio, apiKey, modelName, negativePrompt);
-      const imgBlob = dataUrlToBlob(imgUrl);
+      const { imageUrl } = await backgroundGenerateSceneImage({
+        prompt,
+        negativePrompt,
+        aspectRatio,
+        apiKey,
+        modelName,
+      });
+      const imgBlob = dataUrlToBlob(imageUrl);
       const imageId = await db.images.add({ data: imgBlob, scriptId });
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
 
@@ -85,7 +103,8 @@ export const useAssets = (setError: (error: string | null) => void) => {
     actIndex: number,
     sceneIndex: number,
     modelName: string,
-    aspectRatio: AspectRatio,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _aspectRatio: AspectRatio, // TODO: Use aspectRatio when video API supports it
   ) => {
     const apiKey = getApiKey();
     if (!script?.id || !apiKey) return;
@@ -100,13 +119,20 @@ export const useAssets = (setError: (error: string | null) => void) => {
     const prompt = `Cinematic shot for a movie scene. Location: ${scene.location} (${scene.time}). Action: ${scene.action}. Visual style: ${scene.visual_style}. Audio style: ${scene.audio_style}.`;
 
     try {
-      let startImage;
-      if (scene.generatedImageId) {
-        const img = await db.images.get(scene.generatedImageId);
-        if (img?.data) startImage = { mimeType: img.data.type, data: await blobToBase64(img.data) };
-      }
+      // TODO: Support startImage when video API is implemented
+      // let startImage;
+      // if (scene.generatedImageId) {
+      //   const img = await db.images.get(scene.generatedImageId);
+      //   if (img?.data) startImage = { mimeType: img.data.type, data: await blobToBase64(img.data) };
+      // }
 
-      const videoBlob = await geminiGenerateSceneVideo(prompt, aspectRatio, apiKey, modelName, startImage);
+      const { videoUrl } = await backgroundGenerateSceneVideo({
+        prompt,
+        apiKey,
+        modelName,
+      });
+      // Convert base64 data URL to Blob
+      const videoBlob = dataUrlToBlob(videoUrl);
       const videoId = await db.videos.add({ data: videoBlob, scriptId });
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
 

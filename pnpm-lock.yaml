@@ -11,6 +11,9 @@ importers:
       crypto-js:
         specifier: ^4.2.0
         version: 4.2.0
+      immer:
+        specifier: ^10.2.0
+        version: 10.2.0
       lucide-react:
         specifier: ^0.548.0
         version: 0.548.0(react@19.2.0)
@@ -162,6 +165,12 @@ importers:
       '@extension/storage':
         specifier: workspace:*
         version: link:../packages/storage
+      '@google/genai':
+        specifier: ^1.27.0
+        version: 1.27.0
+      '@google/generative-ai':
+        specifier: ^0.24.1
+        version: 0.24.1
       webextension-polyfill:
         specifier: ^0.12.0
         version: 0.12.0
@@ -609,7 +618,7 @@ importers:
         version: 4.1.12
       zustand:
         specifier: ^4.4.0
-        version: 4.5.7(@types/react@19.1.12)(react@19.2.0)
+        version: 4.5.7(@types/react@19.1.12)(immer@10.2.0)(react@19.2.0)
     devDependencies:
       '@extension/tailwindcss-config':
         specifier: workspace:*
@@ -1041,6 +1050,10 @@ packages:
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
+
+  '@google/generative-ai@0.24.1':
+    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}
+    engines: {node: '>=18.0.0'}
 
   '@hookform/resolvers@5.2.2':
     resolution: {integrity: sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==}
@@ -4056,6 +4069,9 @@ packages:
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
 
+  immer@10.2.0:
+    resolution: {integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==}
+
   immutable@5.1.2:
     resolution: {integrity: sha512-qHKXW1q6liAk1Oys6umoaZbDRqjcjgSrbnrifHsfsttza7zcvRAsL7mMV6xWcyhwQy7Xj5v4hhbr6b+iDYwlmQ==}
 
@@ -6668,6 +6684,8 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@google/generative-ai@0.24.1': {}
 
   '@hookform/resolvers@5.2.2(react-hook-form@7.65.0(react@19.2.0))':
     dependencies:
@@ -10175,6 +10193,8 @@ snapshots:
 
   immediate@3.0.6: {}
 
+  immer@10.2.0: {}
+
   immutable@5.1.2: {}
 
   import-fresh@3.3.1:
@@ -12793,9 +12813,10 @@ snapshots:
 
   zod@4.1.12: {}
 
-  zustand@4.5.7(@types/react@19.1.12)(react@19.2.0):
+  zustand@4.5.7(@types/react@19.1.12)(immer@10.2.0)(react@19.2.0):
     dependencies:
       use-sync-external-store: 1.6.0(react@19.2.0)
     optionalDependencies:
       '@types/react': 19.1.12
+      immer: 10.2.0
       react: 19.2.0

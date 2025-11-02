@@ -1,7 +1,3 @@
-import { db } from '../../db';
-import { useAssets } from '../../hooks/use-assets';
-import { useStoreHydration } from '../../hooks/use-store-hydration';
-import { useScriptsStore } from '../../stores/use-scripts-store';
 import {
   Button,
   Input,
@@ -32,7 +28,10 @@ import {
   PaginationLink,
   PaginationNext,
 } from '@extension/ui';
-import { ASSET_EVENTS } from '@src/hooks/use-assets';
+import { db } from '@src/db';
+import { useAssets, ASSET_EVENTS } from '@src/hooks/use-assets';
+import { useStoreHydration } from '@src/hooks/use-store-hydration';
+import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { Search, Download, Trash2, ExternalLink, Eye, Music, Image, CheckCircle2, X } from 'lucide-react';
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

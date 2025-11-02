@@ -1,61 +1,93 @@
 import '@src/Popup.css';
-import { t } from '@extension/i18n';
-import { PROJECT_URL_OBJECT, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
+import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import { exampleThemeStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
-
-const notificationOptions = {
-  type: 'basic',
-  iconUrl: chrome.runtime.getURL('icon-34.png'),
-  title: 'Injecting content script error',
-  message: 'You cannot inject script here!',
-} as const;
+import { cn, ErrorDisplay, LoadingSpinner, Button } from '@extension/ui';
+import { LayoutDashboard, PanelLeftOpen, PanelRightClose, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const Popup = () => {
   const { isLight } = useStorage(exampleThemeStorage);
-  const logo = isLight ? 'popup/logo_vertical.svg' : 'popup/logo_vertical_dark.svg';
+  const [isPanelEnabled, setIsPanelEnabled] = useState(false);
 
-  const goGithubSite = () => chrome.tabs.create(PROJECT_URL_OBJECT);
+  // Khi popup mở, kiểm tra trạng thái của side panel
+  useEffect(() => {
+    const checkPanelState = async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        const { enabled } = await chrome.sidePanel.getOptions({ tabId: tab.id });
+        setIsPanelEnabled(!!enabled);
+      }
+    };
+    void checkPanelState();
+  }, []);
 
-  const injectContentScript = async () => {
-    const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
+  /**
+   * Mở trang giao diện chính.
+   * Kiểm tra xem tab đã tồn tại chưa, nếu có thì kích hoạt nó.
+   * Nếu không, tạo một tab mới.
+   * @param forceNew - Nếu là true, luôn tạo một tab mới.
+   */
+  const openNewTab = async (forceNew = false) => {
+    const newTabUrl = chrome.runtime.getURL('new-tab/index.html');
 
-    if (tab.url!.startsWith('about:') || tab.url!.startsWith('chrome:')) {
-      chrome.notifications.create('inject-error', notificationOptions);
+    if (forceNew) {
+      await chrome.tabs.create({ url: newTabUrl });
+      return;
     }
 
-    await chrome.scripting
-      .executeScript({
-        target: { tabId: tab.id! },
-        files: ['/content-runtime/example.iife.js', '/content-runtime/all.iife.js'],
-      })
-      .catch(err => {
-        // Handling errors related to other paths
-        if (err.message.includes('Cannot access a chrome:// URL')) {
-          chrome.notifications.create('inject-error', notificationOptions);
-        }
-      });
+    const tabs = await chrome.tabs.query({ url: newTabUrl });
+
+    if (tabs.length > 0 && tabs[0].id) {
+      // Kích hoạt tab đã tồn tại và focus vào cửa sổ của nó
+      await chrome.tabs.update(tabs[0].id, { active: true });
+      await chrome.windows.update(tabs[0].windowId, { focused: true });
+    } else {
+      // Tạo tab mới nếu chưa có
+      await chrome.tabs.create({ url: newTabUrl });
+    }
+  };
+
+  const toggleSidePanel = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab.id) return;
+
+    if (isPanelEnabled) {
+      // Nếu đang bật, tắt nó đi
+      await chrome.sidePanel.setOptions({ tabId: tab.id, enabled: false });
+      setIsPanelEnabled(false);
+    } else {
+      // Nếu đang tắt, bật nó lên
+      await chrome.sidePanel.setOptions({ tabId: tab.id, path: '/side-panel/index.html', enabled: true });
+      // Và mở nó trong cửa sổ hiện tại
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+      setIsPanelEnabled(true);
+    }
+  };
+
+  const openOptionsPage = () => {
+    chrome.runtime.openOptionsPage();
   };
 
   return (
-    <div className={cn('App', isLight ? 'bg-slate-50' : 'bg-gray-800')}>
-      <header className={cn('App-header', isLight ? 'text-gray-900' : 'text-gray-100')}>
-        <button onClick={goGithubSite}>
-          <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-        </button>
-        <p>
-          Edit <code>pages/popup/src/Popup.tsx</code>
-        </p>
-        <button
-          className={cn(
-            'mt-4 rounded px-4 py-1 font-bold shadow hover:scale-105',
-            isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white',
-          )}
-          onClick={injectContentScript}>
-          {t('injectButton')}
-        </button>
-        <ToggleButton />
-      </header>
+    <div className={cn('h-screen w-full', isLight ? 'bg-slate-50' : 'bg-gray-800')}>
+      <div className="flex w-full flex-col space-y-3 p-4">
+        {/* Main Navigation */}
+        <Button onClick={() => void openNewTab()} variant="outline" className="w-full justify-start">
+          <LayoutDashboard className="mr-2 h-4 w-4" />
+          Mở giao diện chính
+        </Button>
+
+        {/* Tools */}
+        <Button onClick={toggleSidePanel} variant="outline" className="w-full justify-start">
+          {isPanelEnabled ? <PanelRightClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
+          <span>{isPanelEnabled ? 'Đóng thanh bên' : 'Mở thanh bên'}</span>
+        </Button>
+
+        <Button onClick={openOptionsPage} variant="outline" className="w-full justify-start">
+          <Settings className="mr-2 h-4 w-4" />
+          Mở trang tùy chọn
+        </Button>
+      </div>
     </div>
   );
 };

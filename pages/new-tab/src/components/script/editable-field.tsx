@@ -1,6 +1,7 @@
-import { enhanceText } from '../../services/gemini-service';
-import { useApiKey } from '../../stores/use-api-key';
 import { Input, Textarea, Button } from '@extension/ui';
+import { enhanceText } from '@src/services/background-api';
+import { useApiKey } from '@src/stores/use-api-key';
+import { useModelSettings } from '@src/stores/use-model-settings';
 import { useState, useRef, useEffect } from 'react';
 import type React from 'react';
 
@@ -28,6 +29,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const { apiKey } = useApiKey();
+  const { model } = useModelSettings();
 
   useEffect(() => {
     setValue(initialValue);
@@ -57,7 +59,12 @@ const EditableField: React.FC<EditableFieldProps> = ({
     if (!value.trim() || !apiKey) return;
     setIsEnhancing(true);
     try {
-      const enhancedValue = await enhanceText(value, context, language, apiKey);
+      const enhancedValue = await enhanceText({
+        text: value,
+        context: `${context} (Language: ${language})`,
+        apiKey,
+        modelName: model,
+      });
       setValue(enhancedValue);
     } catch (error) {
       console.error('Failed to enhance text:', error);

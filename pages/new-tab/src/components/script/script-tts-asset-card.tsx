@@ -19,7 +19,7 @@ import {
 } from '@extension/ui'; // Assuming DownloadCloud is exported from here
 import { VBEE_PROJECT_URL } from '@src/constants';
 import { db } from '@src/db';
-import { getVbeeProjectStatus } from '@src/services/vbee-service';
+import { getVbeeProjectStatus } from '@src/services/background-api';
 import { formatSrtTime, getAudioDuration, useScriptsStore, selectAllDialogues } from '@src/stores/use-scripts-store'; // Assuming DownloadCloud is exported from here
 import { Mic, Link, Download, RefreshCw, AlertTriangle, Hourglass, Check, FileText } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -77,7 +77,10 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
       if (!vbee_token) {
         throw new Error('Vui lòng trích xuất Vbee Token trong mục "Tạo dự án" trước.');
       }
-      const response = await getVbeeProjectStatus(vbeeProjectId as string, vbee_token);
+      const response = await getVbeeProjectStatus({
+        projectId: vbeeProjectId as string,
+        bearerToken: vbee_token,
+      });
       const project = response.result.project as VbeeProjectStatus;
       setProjectStatus(project);
 
@@ -244,7 +247,7 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
     } finally {
       setIsDownloading(false);
     }
-  }, [vbeeProjectId, script?.id]);
+  }, [vbeeProjectId, script]);
 
   const handleExportSrt = useCallback(async () => {
     if (!script?.id) return;

@@ -1,5 +1,4 @@
 import ScriptActionButton from './script-action-button';
-import { useScriptsStore } from '../../stores/use-scripts-store';
 import {
   Button,
   Select,
@@ -13,10 +12,11 @@ import {
   TabsList,
   TabsTrigger,
 } from '@extension/ui';
+import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { Settings } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { ScriptsState } from '../../stores/use-scripts-store';
+import type { ScriptsState } from '@src/stores/use-scripts-store';
 import type React from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';

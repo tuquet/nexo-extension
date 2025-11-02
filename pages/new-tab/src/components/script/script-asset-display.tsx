@@ -1,9 +1,12 @@
 import ImageGenerationModal from './image-generation-modal';
 import SceneAssetCard from './script-scene-asset-card';
 import ScriptTtsAssetCard from './script-tts-asset-card';
-import { DEFAULT_IMAGE_NEGATIVE_PROMPT } from '../../constants';
-import { useAssets } from '../../hooks/use-assets';
-import { useApiKey } from '../../stores/use-api-key';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@extension/ui';
+import { DEFAULT_IMAGE_NEGATIVE_PROMPT } from '@src/constants';
+import { useAssets } from '@src/hooks/use-assets';
+import { useApiKey } from '@src/stores/use-api-key';
+import { useModelSettings } from '@src/stores/use-model-settings';
+import { usePreferencesStore } from '@src/stores/use-preferences-store';
 import {
   useScriptsStore,
   selectActiveScene,
@@ -11,12 +14,9 @@ import {
   selectCurrentSceneNumber,
   selectNextSceneIdentifier,
   selectPreviousSceneIdentifier,
-} from '../../stores/use-scripts-store';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@extension/ui';
-import { useModelSettings } from '@src/stores/use-model-settings';
-import { usePreferencesStore } from '@src/stores/use-preferences-store';
+} from '@src/stores/use-scripts-store';
 import { useState } from 'react';
-import type { AspectRatio } from '../../types';
+import type { AspectRatio } from '@src/types';
 import type React from 'react';
 
 interface AssetDisplayProps {

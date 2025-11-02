@@ -1,5 +1,5 @@
-import { useApiKey } from '../../stores/use-api-key';
 import { Input, Button, Dialog, DialogPortal, DialogOverlay, DialogContent, DialogTitle } from '@extension/ui';
+import { useApiKey } from '@src/stores/use-api-key';
 import { useState, useEffect } from 'react';
 import type React from 'react';
 
