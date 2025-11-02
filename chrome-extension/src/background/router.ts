@@ -4,7 +4,9 @@ import {
   handleGenerateSceneImage,
   handleEnhanceText,
   handleGenerateSceneVideo,
+  handleTestGeminiConnection,
 } from './gemini-api-handler';
+import { handleAutoFillGeminiPrompt } from './gemini-automation-handler';
 import { handlePrimeGeminiWithSchema, handleGenerateScriptFromPrompt } from './gemini-handler';
 import { handleGetSettings, handleSaveSettings } from './settings-handler';
 import { handleCreateVbeeProject, handleGetVbeeProjectStatus } from './vbee-api-handler';
@@ -27,6 +29,10 @@ const messageRoutes: { [key: string]: MessageHandler } = {
   GENERATE_SCENE_IMAGE: handleGenerateSceneImage as unknown as MessageHandler,
   ENHANCE_TEXT: handleEnhanceText as unknown as MessageHandler,
   GENERATE_SCENE_VIDEO: handleGenerateSceneVideo as unknown as MessageHandler,
+  TEST_GEMINI_CONNECTION: handleTestGeminiConnection as unknown as MessageHandler,
+
+  // Browser Automation Actions
+  AUTO_FILL_GEMINI_PROMPT: handleAutoFillGeminiPrompt as unknown as MessageHandler,
 
   // Settings Actions
   GET_SETTINGS: handleGetSettings as unknown as MessageHandler,
@@ -43,13 +49,22 @@ const messageRoutes: { [key: string]: MessageHandler } = {
  */
 export const initializeMessageRouter = () => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[Router] Received message:', message.type || message.action, message);
     const handler = messageRoutes[message.type || message.action]; // Support both 'type' and 'action'
     if (handler) {
+      console.log('[Router] Found handler for:', message.type || message.action);
       Promise.resolve(handler(message, sender))
-        .then(sendResponse)
-        .catch(error => console.error(`Error in message handler for ${message.type || message.action}:`, error));
+        .then(response => {
+          console.log('[Router] Handler response:', response);
+          sendResponse(response);
+        })
+        .catch(error => {
+          console.error(`Error in message handler for ${message.type || message.action}:`, error);
+          sendResponse({ success: false, error: { message: error.message } });
+        });
       return true; // Indicate that the response will be sent asynchronously.
     }
+    console.warn('[Router] No handler found for:', message.type || message.action);
     return false; // Explicitly return false if no handler is found.
   });
   console.log('Message router initialized.');

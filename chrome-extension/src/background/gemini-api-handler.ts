@@ -283,3 +283,54 @@ export const handleGenerateSceneVideo = async (
     })(),
   );
 };
+
+/**
+ * Test Gemini API key validity with a minimal API call
+ */
+export const handleTestGeminiConnection = async (message: {
+  type: string;
+  payload: { apiKey: string };
+}): Promise<BaseResponse<{ valid: boolean; model?: string }>> =>
+  handleApiResponse<{ valid: boolean; model?: string }>(
+    (async () => {
+      const { apiKey } = message.payload;
+
+      if (!apiKey || apiKey.length < 20) {
+        throw new Error('API key is invalid or too short');
+      }
+
+      try {
+        const client = getAiClient(apiKey);
+
+        // Minimal test prompt - just verify API responds
+        const result = await client.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: 'Test',
+          config: {
+            temperature: 1.0,
+          },
+        });
+
+        const text = result.text;
+        if (!text) {
+          throw new Error('Invalid response from Gemini API');
+        }
+
+        return { valid: true, model: 'gemini-2.5-flash' };
+      } catch (error) {
+        if (error instanceof Error) {
+          // Check for auth errors
+          if (error.message.includes('API_KEY_INVALID') || error.message.includes('401')) {
+            throw new Error('Invalid API key - please check your Google AI Studio key');
+          }
+          if (error.message.includes('403')) {
+            throw new Error('API key access denied - check permissions in Google AI Studio');
+          }
+          if (error.message.includes('quota')) {
+            throw new Error('API quota exceeded - your API key is valid but out of quota');
+          }
+        }
+        throw error;
+      }
+    })(),
+  );

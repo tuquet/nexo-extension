@@ -4,12 +4,27 @@ import Header from './layout/layout-header';
 import AssetGalleryPage from './pages/gallery/page';
 import ScriptDetailPage from './pages/script/detail';
 import ScriptListPage from './pages/script/list';
+import { usePreferencesStore } from './stores/use-preferences-store';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { ErrorDisplay, LoadingSpinner, ThemeProvider, Toaster } from '@extension/ui';
+import { ErrorDisplay, LoadingSpinner, ThemeProvider, Toaster, useTheme } from '@extension/ui';
+import { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+// Sync component to bridge usePreferencesStore (chrome.storage) with ThemeProvider (DOM)
+const ThemeSync = () => {
+  const theme = usePreferencesStore(s => s.theme);
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    setTheme(theme);
+  }, [theme, setTheme]);
+
+  return null;
+};
+
 const NewTab = () => (
-  <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+  <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeSync />
     <HashRouter>
       <div className="bg-background min-h-screen">
         <Header />

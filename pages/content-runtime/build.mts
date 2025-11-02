@@ -21,6 +21,7 @@ const configs = Object.entries(getContentScriptEntries(matchesDir)).map(([name, 
     publicDir: resolve(rootDir, 'public'),
     plugins: [IS_DEV && makeEntryPointPlugin()],
     build: {
+      emptyOutDir: false, // Don't clean outDir - multiple builds share the same folder
       lib: {
         name: name,
         formats: ['iife'],

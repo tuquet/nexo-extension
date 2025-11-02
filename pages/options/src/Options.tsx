@@ -1,26 +1,31 @@
 import '@src/Options.css';
-import { t } from '@extension/i18n';
-import { PROJECT_URL_OBJECT, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
+import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { ThemeProvider, ErrorDisplay, LoadingSpinner, Toaster, useTheme } from '@extension/ui';
+import OptionsLayout from '@src/components/layout/OptionsLayout';
+import { useEffect } from 'react';
 
-const Options = () => {
-  const { isLight } = useStorage(exampleThemeStorage);
-  const logo = isLight ? 'options/logo_horizontal.svg' : 'options/logo_horizontal_dark.svg';
+// Sync theme from chrome.storage to ThemeProvider on mount
+const ThemeSync = () => {
+  const { setTheme } = useTheme();
 
-  const goGithubSite = () => chrome.tabs.create(PROJECT_URL_OBJECT);
+  useEffect(() => {
+    chrome.storage.local.get(['preferences'], result => {
+      const theme = result.preferences?.state?.theme;
+      if (theme) {
+        setTheme(theme);
+      }
+    });
+  }, [setTheme]);
 
-  return (
-    <div className={cn('App', isLight ? 'bg-slate-50 text-gray-900' : 'bg-gray-800 text-gray-100')}>
-      <button onClick={goGithubSite}>
-        <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-      </button>
-      <p>
-        Edit <code>pages/options/src/Options.tsx</code>
-      </p>
-      <ToggleButton onClick={exampleThemeStorage.toggle}>{t('toggleTheme')}</ToggleButton>
-    </div>
-  );
+  return null;
 };
+
+const Options = () => (
+  <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeSync />
+    <OptionsLayout />
+    <Toaster />
+  </ThemeProvider>
+);
 
 export default withErrorBoundary(withSuspense(Options, <LoadingSpinner />), ErrorDisplay);

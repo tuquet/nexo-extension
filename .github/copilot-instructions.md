@@ -155,8 +155,23 @@ Files of interest (quick map)
   - stores/useScriptsStore.ts — Canonical zustand store for scripts (init, add, save, delete)
   - stores/usePreferencesStore.ts — UI preferences (theme, containerSize, compactMode)
   - stores/useApiKey.ts — API key storage with persist middleware
+  - stores/useModelSettings.ts — AI model configuration (text, image, video, TTS models)
   - hooks/use-assets.ts — Asset generation hooks (image, video, audio)
   - components/* — UI components: AssetDisplay, AssetGallery, ScriptDisplay, ScriptHeader, CreationForm
+
+**Options Page** (Settings UI):
+- pages/options/src/
+  - Options.tsx — Entry point with ThemeProvider + Toaster
+  - components/layout/
+    - OptionsLayout.tsx — Tab-based navigation (General, AI Models, Display, TTS, Advanced)
+    - OptionsHeader.tsx — Header with logo + theme toggle
+    - OptionsFooter.tsx — Simple footer
+  - components/tabs/
+    - GeneralTab.tsx — API keys (Google AI, Vbee), connection test, status badges
+    - AIModelsTab.tsx — Model selection, temperature, topP sliders
+    - DisplayTab.tsx — Theme, layout preferences, font scale, container size
+    - TTSTab.tsx — Voice selection, speaking rate, pitch, volume
+    - AdvancedTab.tsx — Data export/import, storage usage, cache management, reset
 
 **Shared Packages**:
 - packages/ui — Shared shadcn/ui components (Button, Dialog, Card, etc.)

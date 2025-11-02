@@ -281,6 +281,36 @@ export interface GenerateScriptFromPromptMessage extends BaseMessage {
 }
 
 // ============================================================================
+// API Key Validation Messages
+// ============================================================================
+
+export interface TestGeminiConnectionMessage extends BaseMessage {
+  type: 'TEST_GEMINI_CONNECTION';
+  payload: {
+    apiKey: string;
+  };
+}
+
+export type TestGeminiConnectionResponse = BaseResponse<{ valid: boolean; model?: string }>;
+
+// ============================================================================
+// Browser Automation Messages
+// ============================================================================
+
+export interface AutoFillGeminiPromptMessage extends BaseMessage {
+  type: 'AUTO_FILL_GEMINI_PROMPT';
+  payload: {
+    prompt: string;
+    autoSend?: boolean;
+  };
+}
+
+export type AutoFillGeminiPromptResponse = BaseResponse<{
+  tabId: number;
+  url: string;
+}>;
+
+// ============================================================================
 // Union Types for Type Safety
 // ============================================================================
 
@@ -295,7 +325,9 @@ export type BackgroundMessage =
   | GetSettingsMessage
   | SaveSettingsMessage
   | PrimeGeminiMessage
-  | GenerateScriptFromPromptMessage;
+  | GenerateScriptFromPromptMessage
+  | TestGeminiConnectionMessage
+  | AutoFillGeminiPromptMessage;
 
 export type BackgroundResponse =
   | GeminiGenerateScriptResponse
@@ -307,6 +339,8 @@ export type BackgroundResponse =
   | VbeeGetProjectStatusResponse
   | GetSettingsResponse
   | SaveSettingsResponse
+  | TestGeminiConnectionResponse
+  | AutoFillGeminiPromptResponse
   | BaseResponse;
 
 // ============================================================================
@@ -337,3 +371,9 @@ export const isVbeeGetProjectStatusMessage = (msg: BaseMessage): msg is VbeeGetP
 export const isGetSettingsMessage = (msg: BaseMessage): msg is GetSettingsMessage => msg.type === 'GET_SETTINGS';
 
 export const isSaveSettingsMessage = (msg: BaseMessage): msg is SaveSettingsMessage => msg.type === 'SAVE_SETTINGS';
+
+export const isTestGeminiConnectionMessage = (msg: BaseMessage): msg is TestGeminiConnectionMessage =>
+  msg.type === 'TEST_GEMINI_CONNECTION';
+
+export const isAutoFillGeminiPromptMessage = (msg: BaseMessage): msg is AutoFillGeminiPromptMessage =>
+  msg.type === 'AUTO_FILL_GEMINI_PROMPT';

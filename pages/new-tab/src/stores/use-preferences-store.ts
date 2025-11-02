@@ -26,7 +26,7 @@ type PreferencesState = {
 
 const SIZES: ContainerSize[] = ['narrow', 'normal', 'wide', 'fluid'];
 
-// Persist wrapper (localStorage)
+// Persist wrapper (chrome.storage.local for cross-page sync)
 const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set, get) => ({
@@ -56,7 +56,7 @@ const usePreferencesStore = create<PreferencesState>()(
       setDefaultAspectRatio: ar => set({ defaultAspectRatio: ar }),
     }),
     {
-      name: 'preferences', // storage key
+      name: 'preferences', // storage key (same as Options page)
       version: 1,
       partialize: state =>
         Object.fromEntries(
@@ -65,6 +65,34 @@ const usePreferencesStore = create<PreferencesState>()(
     },
   ),
 );
+
+// Listen for chrome.storage changes from Options page and sync to store
+if (typeof chrome !== 'undefined' && chrome.storage) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.preferences) {
+      const newPrefs = changes.preferences.newValue;
+      if (newPrefs?.state) {
+        const store = usePreferencesStore.getState();
+        // Only update if values actually changed to avoid infinite loops
+        if (
+          newPrefs.state.theme !== store.theme ||
+          newPrefs.state.containerSize !== store.containerSize ||
+          newPrefs.state.compactMode !== store.compactMode ||
+          newPrefs.state.fontScale !== store.fontScale ||
+          newPrefs.state.defaultAspectRatio !== store.defaultAspectRatio
+        ) {
+          usePreferencesStore.setState({
+            theme: newPrefs.state.theme || store.theme,
+            containerSize: newPrefs.state.containerSize || store.containerSize,
+            compactMode: newPrefs.state.compactMode ?? store.compactMode,
+            fontScale: newPrefs.state.fontScale ?? store.fontScale,
+            defaultAspectRatio: newPrefs.state.defaultAspectRatio || store.defaultAspectRatio,
+          });
+        }
+      }
+    }
+  });
+}
 
 export type { PreferencesState, ContainerSize };
 export { usePreferencesStore };
