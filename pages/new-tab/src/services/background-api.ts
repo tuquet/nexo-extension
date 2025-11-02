@@ -129,12 +129,16 @@ export const backgroundAPI = {
 
   /**
    * Generate a video for a scene
-   * @note Currently not implemented in background
    */
   generateSceneVideo: async (params: {
     prompt: string;
+    aspectRatio: AspectRatio;
     apiKey: string;
     modelName: string;
+    startImage?: {
+      mimeType: string;
+      data: string;
+    };
   }): Promise<{ videoUrl: string }> => {
     const message: GeminiGenerateSceneVideoMessage = {
       type: 'GENERATE_SCENE_VIDEO',

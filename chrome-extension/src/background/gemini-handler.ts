@@ -1,6 +1,8 @@
-import { GEMINI_SCRIPT_SCHEMA } from './constants';
+import { SCRIPT_GENERATION_SCHEMA } from './constants';
 
 const GEMINI_URL = 'https://gemini.google.com/';
+// Legacy: Convert schema object to JSON string for old handler
+const GEMINI_SCRIPT_SCHEMA = JSON.stringify(SCRIPT_GENERATION_SCHEMA);
 
 /**
  * Tìm một tab Gemini đang mở, nếu không có thì tạo một tab mới.

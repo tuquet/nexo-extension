@@ -15,6 +15,7 @@ interface AppSettings extends MessageAppSettings {
     scriptGeneration: string;
     plotSuggestion: string;
     imageGeneration: string;
+    videoGeneration: string;
     ttsModel: string;
     temperature: number;
     topP: number;
@@ -41,6 +42,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     scriptGeneration: DEFAULT_MODELS.scriptGeneration,
     plotSuggestion: DEFAULT_MODELS.plotSuggestion,
     imageGeneration: DEFAULT_MODELS.imageGeneration,
+    videoGeneration: DEFAULT_MODELS.videoGeneration,
     ttsModel: 'n_hanoi_male_baotrungreviewphim_review_vc',
     temperature: 0.7,
     topP: 1.0,

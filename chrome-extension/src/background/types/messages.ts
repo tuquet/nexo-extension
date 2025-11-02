@@ -197,8 +197,13 @@ export interface GeminiGenerateSceneVideoMessage extends BaseMessage {
   type: 'GENERATE_SCENE_VIDEO';
   payload: {
     prompt: string;
+    aspectRatio: AspectRatio;
     apiKey: string;
     modelName: string;
+    startImage?: {
+      mimeType: string;
+      data: string;
+    };
   };
 }
 

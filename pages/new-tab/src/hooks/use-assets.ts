@@ -103,8 +103,7 @@ export const useAssets = (setError: (error: string | null) => void) => {
     actIndex: number,
     sceneIndex: number,
     modelName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _aspectRatio: AspectRatio, // TODO: Use aspectRatio when video API supports it
+    aspectRatio: AspectRatio,
   ) => {
     const apiKey = getApiKey();
     if (!script?.id || !apiKey) return;
@@ -128,6 +127,7 @@ export const useAssets = (setError: (error: string | null) => void) => {
 
       const { videoUrl } = await backgroundGenerateSceneVideo({
         prompt,
+        aspectRatio,
         apiKey,
         modelName,
       });

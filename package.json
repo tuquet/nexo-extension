@@ -43,7 +43,8 @@
     "lucide-react": "^0.548.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.4",
+    "@google/genai": "^1.27.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.9",

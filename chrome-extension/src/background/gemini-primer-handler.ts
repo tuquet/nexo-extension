@@ -1,4 +1,4 @@
-import { GEMINI_SCRIPT_SCHEMA } from './constants';
+import { SCRIPT_GENERATION_SCHEMA } from './constants';
 
 interface PrimeGeminiMessage {
   action: 'PASTE_AND_SEND_SCHEMA';
@@ -7,7 +7,8 @@ interface PrimeGeminiMessage {
 
 export const handlePrimeGemini = async () => {
   try {
-    const schemaText = GEMINI_SCRIPT_SCHEMA;
+    // Legacy: Convert schema object to JSON string for old handler
+    const schemaText = JSON.stringify(SCRIPT_GENERATION_SCHEMA, null, 2);
     const tab = await chrome.tabs.create({ url: 'https://gemini.google.com/' });
 
     // Listener to ensure the content script receives the message only when the tab is fully loaded.

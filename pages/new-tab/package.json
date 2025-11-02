@@ -24,7 +24,6 @@
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
     "@extension/ui": "workspace:*",
-    "@google/genai": "^1.27.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "antd": "^5.27.6",
