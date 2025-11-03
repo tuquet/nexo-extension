@@ -4,7 +4,7 @@ import { AIGenerationTab } from '@src/components/script/generation/ai-generation
 import { JsonImportTab } from '@src/components/script/generation/json-import-tab';
 import { SCRIPT_GENERATION_LOADING_MESSAGES } from '@src/constants';
 import { useApiKey } from '@src/stores/use-api-key';
-import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { useUIStateStore } from '@src/stores/use-ui-state-store';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PromptRecord } from '@extension/database';
@@ -43,7 +43,7 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
   isLoading,
 }) => {
   const { isApiKeySet } = useApiKey();
-  const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
+  const setSettingsModalOpen = useUIStateStore(s => s.setSettingsModalOpen);
   const [activeTab, setActiveTab] = useState('template');
   const [selectedTemplate, setSelectedTemplate] = useState<PromptRecord | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(SCRIPT_GENERATION_LOADING_MESSAGES[0]);

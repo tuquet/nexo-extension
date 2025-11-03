@@ -1,48 +1,15 @@
 import { db } from '../db';
-import {
-  generateSceneImage as backgroundGenerateSceneImage,
-  generateSceneVideo as backgroundGenerateSceneVideo,
-} from '../services/background-api';
+import { assetGenerationService, ASSET_EVENTS } from '../services/asset-generation-service';
+import { imageRepository, videoRepository } from '../services/repositories';
 import { useApiKey } from '../stores/use-api-key';
 import { useScriptsStore } from '../stores/use-scripts-store';
-import type { ScriptStory, AspectRatio } from '../types';
-
-/**
- * Chuyển đổi một chuỗi data URL (ví dụ: "data:image/jpeg;base64,...") thành một Blob.
- * @param dataUrl Chuỗi data URL.
- * @returns Một đối tượng Blob.
- */
-const dataUrlToBlob = (dataUrl: string): Blob => {
-  const parts = dataUrl.split(',');
-  const mimeType = parts[0].match(/:(.*?);/)?.[1];
-  const b64 = atob(parts[1]);
-  let n = b64.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = b64.charCodeAt(n);
-  }
-  return new Blob([u8arr], { type: mimeType });
-};
-
-const ASSET_EVENTS = { CHANGED: 'assets-changed' } as const;
+import type { AspectRatio, ScriptStory } from '../types';
 
 const clone = <T>(v: T): T =>
   typeof structuredClone === 'function'
     ? // use native structuredClone when available for accurate cloning
       structuredClone(v)
     : JSON.parse(JSON.stringify(v));
-
-/**
- * Convert Blob to base64 string
- * Exported for potential future use with video startImage feature
- */
-export const blobToBase64 = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 
 export const useAssets = (setError: (error: string | null) => void) => {
   const getApiKey = () => useApiKey.getState().apiKey;
@@ -58,7 +25,6 @@ export const useAssets = (setError: (error: string | null) => void) => {
   ) => {
     const apiKey = getApiKey();
     if (!script?.id || !apiKey) return;
-    const scriptId = script.id;
 
     const working = clone(script);
     working.acts[actIndex].scenes[sceneIndex].isGeneratingImage = true;
@@ -66,16 +32,14 @@ export const useAssets = (setError: (error: string | null) => void) => {
     useScriptsStore.getState().setActiveScript(working);
 
     try {
-      const { imageUrl } = await backgroundGenerateSceneImage({
+      const imageId = await assetGenerationService.generateImage({
         prompt,
         negativePrompt,
         aspectRatio,
         apiKey,
         modelName,
+        scriptId: script.id,
       });
-      const imgBlob = dataUrlToBlob(imageUrl);
-      const imageId = await db.images.add({ data: imgBlob, scriptId });
-      window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
 
       const updated = clone(working);
       const scene = updated.acts[actIndex].scenes[sceneIndex];
@@ -107,7 +71,6 @@ export const useAssets = (setError: (error: string | null) => void) => {
   ) => {
     const apiKey = getApiKey();
     if (!script?.id || !apiKey) return;
-    const scriptId = script.id;
 
     const working = clone(script);
     working.acts[actIndex].scenes[sceneIndex].isGeneratingVideo = true;
@@ -121,20 +84,17 @@ export const useAssets = (setError: (error: string | null) => void) => {
       // TODO: Support startImage when video API is implemented
       // let startImage;
       // if (scene.generatedImageId) {
-      //   const img = await db.images.get(scene.generatedImageId);
+      //   const img = await imageRepository.get(scene.generatedImageId);
       //   if (img?.data) startImage = { mimeType: img.data.type, data: await blobToBase64(img.data) };
       // }
 
-      const { videoUrl } = await backgroundGenerateSceneVideo({
+      const videoId = await assetGenerationService.generateVideo({
         prompt,
         aspectRatio,
         apiKey,
         modelName,
+        scriptId: script.id,
       });
-      // Convert base64 data URL to Blob
-      const videoBlob = dataUrlToBlob(videoUrl);
-      const videoId = await db.videos.add({ data: videoBlob, scriptId });
-      window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
 
       const updated = clone(working);
       const s = updated.acts[actIndex].scenes[sceneIndex];
@@ -156,7 +116,7 @@ export const useAssets = (setError: (error: string | null) => void) => {
     if (!scene.generatedImageId) return;
 
     try {
-      await db.images.delete(scene.generatedImageId);
+      await imageRepository.delete(scene.generatedImageId);
       delete scene.generatedImageId;
       await useScriptsStore.getState().saveActiveScript(updated);
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
@@ -172,7 +132,7 @@ export const useAssets = (setError: (error: string | null) => void) => {
     if (!scene.generatedVideoId) return;
 
     try {
-      await db.videos.delete(scene.generatedVideoId);
+      await videoRepository.delete(scene.generatedVideoId);
       delete scene.generatedVideoId;
       await useScriptsStore.getState().saveActiveScript(updated);
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
@@ -185,9 +145,9 @@ export const useAssets = (setError: (error: string | null) => void) => {
   const deleteAssetFromGallery = async (type: 'image' | 'video' | 'audio', assetId: number, scriptId: number) => {
     try {
       await (type === 'image'
-        ? db.images.delete(assetId)
+        ? imageRepository.delete(assetId)
         : type === 'video'
-          ? db.videos.delete(assetId)
+          ? videoRepository.delete(assetId)
           : db.audios.delete(assetId));
       const script = await db.scripts.get(scriptId);
       if (!script) return;
@@ -239,4 +199,5 @@ export const useAssets = (setError: (error: string | null) => void) => {
   };
 };
 
+// Re-export ASSET_EVENTS for backward compatibility
 export { ASSET_EVENTS };

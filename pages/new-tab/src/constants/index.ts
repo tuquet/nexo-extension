@@ -27,12 +27,6 @@ export const AVAILABLE_VIDEO_MODELS: { value: string; label: string }[] = [
   { value: 'veo-4.0-hq-generate', label: 'Veo 4.0 HQ (Chất lượng cao)' },
 ];
 
-// Danh sách các model cho Live API (tương tác thời gian thực)
-export const AVAILABLE_LIVE_MODELS = [
-  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Chất lượng cao)' },
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Nhanh & Tiết kiệm)' },
-];
-
 export const AVAILABLE_TTS_MODELS: { value: string; label: string }[] = [
   { value: 'n_hanoi_male_baotrungreviewphim_review_vc', label: 'Bảo Trung Review Phim (Nam HN)' },
   { value: 'n_hanoi_male_baotrungdoctruyen_story_vc', label: 'Bảo Trung Đọc Truyện (Nam HN)' },

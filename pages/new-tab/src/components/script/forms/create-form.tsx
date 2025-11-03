@@ -3,6 +3,7 @@ import ScriptSettingModal from '@src/components/common/app-setting-modal';
 import { GenerationForm } from '@src/components/script/generation/generation-form';
 import { useScriptGeneration } from '@src/hooks/use-script-generation';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { useUIStateStore } from '@src/stores/use-ui-state-store';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,8 +11,8 @@ const CreateForm = () => {
   const importDataFromString = useScriptsStore(s => s.importDataFromString);
   const importData = useScriptsStore(s => s.importData);
   const newScript = useScriptsStore(s => s.newScript);
-  const isSettingsModalOpen = useScriptsStore(s => s.settingsModalOpen);
-  const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
+  const isSettingsModalOpen = useUIStateStore(s => s.settingsModalOpen);
+  const setSettingsModalOpen = useUIStateStore(s => s.setSettingsModalOpen);
   const navigate = useNavigate();
 
   // Use custom hook for script generation logic

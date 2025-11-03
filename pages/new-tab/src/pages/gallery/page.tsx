@@ -29,6 +29,7 @@ import {
   PaginationNext,
 } from '@extension/ui';
 import { db } from '@src/db';
+import { useAssetCleanup } from '@src/hooks';
 import { useAssets, ASSET_EVENTS } from '@src/hooks/use-assets';
 import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
@@ -49,6 +50,8 @@ interface Asset {
 }
 
 const AssetGalleryPage: React.FC = () => {
+  useAssetCleanup(); // Automatic memory cleanup for all asset URLs
+
   const navigate = useNavigate();
   const setActiveScript = useScriptsStore(s => s.setActiveScript);
   const savedScripts = useScriptsStore(s => s.savedScripts);

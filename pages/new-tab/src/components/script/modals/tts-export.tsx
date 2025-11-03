@@ -20,6 +20,7 @@ import {
   SelectItem,
 } from '@extension/ui';
 import { AVAILABLE_TTS_MODELS } from '@src/constants';
+import { useErrorHandler } from '@src/hooks';
 import { createVbeeProject } from '@src/services/background-api';
 import { transformScriptToVbeeProject } from '@src/services/vbee-service';
 import { useModelSettings } from '@src/stores/use-model-settings';
@@ -39,7 +40,7 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
   const [projectJsonText, setProjectJsonText] = useState(''); // Payload for Project tab
   const [plainText, setPlainText] = useState(''); // Plain text for TTS tab
   const [token, setToken] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError, clearError } = useErrorHandler({ showToast: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('project');
   const [copied, setCopied] = useState<'project' | 'text' | null>(null);
@@ -77,7 +78,7 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
     }
 
     setIsSubmitting(true);
-    setError(null);
+    clearError();
 
     // Lấy phiên bản mới nhất của activeScript từ store ngay trước khi thực hiện hành động
     const currentActiveScript = useScriptsStore.getState().activeScript;
@@ -101,8 +102,7 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
       }
       onClose();
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'Đã xảy ra lỗi không xác định.';
-      setError(errorMessage);
+      setError(e instanceof Error ? e.message : 'Đã xảy ra lỗi không xác định.');
       console.error('Lỗi khi xuất dự án Vbee:', e);
     } finally {
       setIsSubmitting(false);
@@ -120,7 +120,7 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
     }
 
     setIsSubmitting(true);
-    setError(null);
+    clearError();
 
     try {
       // TODO: Implement the API call for plain text TTS
@@ -129,12 +129,11 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
       // await createTtsFromText(plainText, token);
       // onClose();
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'Đã xảy ra lỗi không xác định.';
-      setError(errorMessage);
+      setError(e instanceof Error ? e.message : 'Đã xảy ra lỗi không xác định.');
     } finally {
       setIsSubmitting(false);
     }
-  }, [plainText, token]);
+  }, [plainText, token, clearError, setError]);
 
   const { ttsModel } = useModelSettings();
 
@@ -303,4 +302,4 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default TtsExport;
+export { TtsExport };

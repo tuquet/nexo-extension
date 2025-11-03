@@ -13,6 +13,7 @@ import {
   TabsTrigger,
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { useUIStateStore } from '@src/stores/use-ui-state-store';
 import { Settings } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -26,10 +27,10 @@ const Header: React.FC = () => {
   const { id: idFromUrl } = useParams<{ id: string }>();
   const scripts = useScriptsStore((s: ScriptsState) => s.savedScripts);
   const activeScript = useScriptsStore((s: ScriptsState) => s.activeScript);
-  const currentView = useScriptsStore(s => s.currentView);
-  const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
-  const scriptViewMode = useScriptsStore(s => s.scriptViewMode);
-  const setScriptViewMode = useScriptsStore(s => s.setScriptViewMode);
+  const currentView = useUIStateStore(s => s.currentView);
+  const setModelSettingsModalOpen = useUIStateStore(s => s.setModelSettingsModalOpen);
+  const scriptViewMode = useUIStateStore(s => s.scriptViewMode);
+  const setScriptViewMode = useUIStateStore(s => s.setScriptViewMode);
   const confirmationTimeoutRef = useRef<number | null>(null);
   const [selectedValue, setSelectedValue] = useState<string | undefined>(idFromUrl);
 

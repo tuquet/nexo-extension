@@ -1,8 +1,8 @@
 import { Alert, AlertDescription, Input, Textarea, Button } from '@extension/ui';
 import { enhanceText } from '@src/services/background-api';
+import { validateDialogueLine } from '@src/services/validation-service';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useModelSettings } from '@src/stores/use-model-settings';
-import { validateDialogueLine } from '@src/utils/dialogue-validator';
 import { AlertCircle } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type React from 'react';

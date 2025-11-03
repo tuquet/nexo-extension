@@ -5,12 +5,14 @@ import ScriptContent from '@src/components/script/display/content';
 import Header from '@src/components/script/display/header';
 import ResponsiveDetailLayout from '@src/components/script/display/responsive-detail-layout';
 import ModelSettings from '@src/components/script/modals/model-settings';
-import TtsExport from '@src/components/script/modals/tts-export';
+import { TtsExport } from '@src/components/script/modals/tts-export';
 import AudioPlayer from '@src/components/script/ui/audio-player';
+import { useAssetCleanup, useErrorHandler, useScriptOperations } from '@src/hooks';
 import { useAssets } from '@src/hooks/use-assets';
 import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { useUIStateStore } from '@src/stores/use-ui-state-store';
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -19,37 +21,38 @@ const ScriptDetailPage = () => {
     void useApiKey.getState().loadApiKey();
   }, []);
 
+  useAssetCleanup(); // Automatic memory cleanup for asset URLs
+
   const hasHydrated = useStoreHydration();
   const { id: idFromUrl } = useParams<{ id: string }>();
   const activeScript = useScriptsStore(s => s.activeScript);
   const scriptsError = useScriptsStore(s => s.scriptsError);
-  const selectScript = useScriptsStore(s => s.selectScript);
-  const [error, setError] = useState<string | null>(null);
+  const { loadScript } = useScriptOperations();
+  const { error, setError } = useErrorHandler({ showToast: false });
 
   const [isTtsModalOpen, setIsTtsModalOpen] = useState(false);
-  // initialize asset helpers (we don't need the returned functions here)
+  // initialize asset helpers
   void useAssets(setError);
 
-  // UI and process-specific state
-  const isImporting = useScriptsStore(s => s.isImporting);
-  const scriptViewMode = useScriptsStore(s => s.scriptViewMode);
-  const isModelSettingsOpen = useScriptsStore(s => s.modelSettingsModalOpen);
-  const setModelSettingsModalOpen = useScriptsStore(s => s.setModelSettingsModalOpen);
-  // modal state is managed in the store
+  // UI state from dedicated UI store
+  const isImporting = useUIStateStore(s => s.isImporting);
+  const scriptViewMode = useUIStateStore(s => s.scriptViewMode);
+  const isModelSettingsOpen = useUIStateStore(s => s.modelSettingsModalOpen);
+  const setModelSettingsModalOpen = useUIStateStore(s => s.setModelSettingsModalOpen);
 
   // Effect to sync script errors with the main error state
   useEffect(() => {
-    setError(scriptsError);
-  }, [scriptsError]);
+    if (scriptsError) setError(scriptsError);
+  }, [scriptsError, setError]);
 
   // Đồng bộ state với URL.
   // Hook này sẽ chạy khi component được mount, hoặc khi id trên URL thay đổi.
   useEffect(() => {
     if (hasHydrated) {
       const scriptIdFromUrl = idFromUrl ? parseInt(idFromUrl, 10) : null;
-      if (scriptIdFromUrl !== null) selectScript(scriptIdFromUrl);
+      if (scriptIdFromUrl !== null) loadScript(scriptIdFromUrl);
     }
-  }, [idFromUrl, hasHydrated, selectScript]);
+  }, [idFromUrl, hasHydrated, loadScript]);
 
   const NoScriptFallback = () => (
     <div className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">

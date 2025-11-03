@@ -1,4 +1,7 @@
+import { useUIStateStore } from './use-ui-state-store';
 import { db } from '../db';
+import { exportService } from '../services/export-service';
+import { scriptRepository } from '../services/repositories';
 import { produce } from 'immer';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -12,16 +15,6 @@ type ScriptsState = {
   activeScript: ScriptStory | null;
   activeSceneIdentifier: ActiveSceneIdentifier;
   scriptsError: string | null;
-  currentView: 'script' | 'assets';
-  setCurrentView: (v: 'script' | 'assets') => void;
-  scriptViewMode: 'formatted' | 'json';
-  setScriptViewMode: (m: 'formatted' | 'json') => void;
-  isImporting: boolean;
-  isZipping: boolean;
-  settingsModalOpen: boolean;
-  modelSettingsModalOpen: boolean;
-  setModelSettingsModalOpen: (v: boolean) => void;
-  setSettingsModalOpen: (v: boolean) => void;
   importData: (event: React.ChangeEvent<HTMLInputElement>) => Promise<number | undefined>;
   importDataFromString: (jsonString: string) => Promise<number | undefined>;
   exportData: () => Promise<void>;
@@ -77,7 +70,7 @@ const _processAndSaveScripts = async (jsonString: string): Promise<number | unde
     return rest as ScriptStory;
   });
 
-  const newIds = (await db.scripts.bulkAdd(scriptsToAdd, { allKeys: true })) as number[];
+  const newIds = await scriptRepository.bulkAdd(scriptsToAdd);
   return newIds.length > 0 ? newIds[newIds.length - 1] : undefined;
 };
 
@@ -88,13 +81,7 @@ const useScriptsStore = create<ScriptsState>()(
       savedScripts: [],
       activeScript: null,
       activeSceneIdentifier: null,
-      currentView: 'script',
-      scriptViewMode: 'formatted',
       scriptsError: null,
-      isImporting: false,
-      isZipping: false,
-      settingsModalOpen: false,
-      modelSettingsModalOpen: false,
 
       init: async () => {
         if (useScriptsStore.persist.hasHydrated() && get().activeScript) return;
@@ -107,7 +94,7 @@ const useScriptsStore = create<ScriptsState>()(
 
       reloadFromDB: async () => {
         try {
-          const scripts = await db.scripts.toArray();
+          const scripts = await scriptRepository.getAll();
           set({ savedScripts: scripts });
         } catch (err) {
           console.error('Failed to reload scripts from DB:', err);
@@ -133,7 +120,7 @@ const useScriptsStore = create<ScriptsState>()(
 
       saveActiveScript: async scriptToSave => {
         try {
-          await db.scripts.put(scriptToSave);
+          await scriptRepository.update(scriptToSave);
           set(state => ({
             savedScripts: state.savedScripts.map(s => (s.id === scriptToSave.id ? scriptToSave : s)),
             activeScript: state.activeScript?.id === scriptToSave.id ? scriptToSave : state.activeScript,
@@ -147,7 +134,7 @@ const useScriptsStore = create<ScriptsState>()(
       deleteActiveScript: async id => {
         if (id === undefined) return;
         try {
-          await db.scripts.delete(id);
+          await scriptRepository.delete(id);
           await db.images.where({ scriptId: id }).delete();
           await db.videos.where({ scriptId: id }).delete();
           const remaining = get().savedScripts.filter(s => s.id !== id);
@@ -205,7 +192,8 @@ const useScriptsStore = create<ScriptsState>()(
         if (!files || files.length === 0) return undefined;
 
         try {
-          set({ isImporting: true, scriptsError: null });
+          useUIStateStore.getState().setIsImporting(true);
+          set({ scriptsError: null });
 
           const readFileAsText = (file: File): Promise<string> =>
             new Promise((resolve, reject) => {
@@ -225,14 +213,16 @@ const useScriptsStore = create<ScriptsState>()(
             }
           }
 
-          const allScripts = await db.scripts.toArray();
+          const allScripts = await scriptRepository.getAll();
           const lastScript = allScripts.find(s => s.id === lastImportedId);
           set({ savedScripts: allScripts, activeScript: lastScript });
           return lastImportedId;
         } catch (err) {
           console.error('Lỗi nhập dữ liệu:', err);
-          set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.' });
           throw err; // Ném lỗi ra ngoài để component có thể bắt
+        } finally {
+          useUIStateStore.getState().setIsImporting(false);
         }
       },
 
@@ -240,35 +230,33 @@ const useScriptsStore = create<ScriptsState>()(
         if (!jsonString.trim()) return undefined;
 
         try {
-          set({ isImporting: true, scriptsError: null });
+          useUIStateStore.getState().setIsImporting(true);
+          set({ scriptsError: null });
 
           const lastImportedId = await _processAndSaveScripts(jsonString);
-          const allScripts = await db.scripts.toArray();
+          const allScripts = await scriptRepository.getAll();
           const lastScript = allScripts.find(s => s.id === lastImportedId);
           set({ savedScripts: allScripts, activeScript: lastScript });
           return lastImportedId;
         } catch (err) {
           console.error('Lỗi nhập dữ liệu từ chuỗi:', err);
-          set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.', isImporting: false });
+          set({ scriptsError: err instanceof Error ? err.message : 'Không thể nhập dữ liệu.' });
           throw err;
+        } finally {
+          useUIStateStore.getState().setIsImporting(false);
         }
       },
 
       exportData: async () => {
         try {
-          const allScripts = get().savedScripts;
-          const jsonString = JSON.stringify(allScripts, null, 2);
-          const blob = new Blob([jsonString], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          const defaultName = `cinegenie-scripts-${new Date().toISOString().slice(0, 10)}.json`;
           const active = get().activeScript;
-          const aliasPart = active?.alias ? active.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
-          a.download = aliasPart ? `${aliasPart}.json` : defaultName;
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
+          if (active) {
+            await exportService.exportScriptAsJson(active);
+          } else {
+            // Export all scripts if no active script
+            const allScripts = get().savedScripts;
+            await exportService.exportScriptsAsJson(allScripts);
+          }
         } catch (error) {
           console.error('Lỗi xuất dữ liệu:', error);
           set({ scriptsError: 'Đã xảy ra lỗi trong quá trình xuất dữ liệu kịch bản.' });
@@ -278,74 +266,15 @@ const useScriptsStore = create<ScriptsState>()(
       exportZip: async () => {
         const activeScript = get().activeScript;
         if (!activeScript) return;
-        set({ isZipping: true, scriptsError: null });
+        useUIStateStore.getState().setIsZipping(true);
+        set({ scriptsError: null });
         try {
-          const JSZip = (await import('jszip')).default;
-          const zip = new JSZip();
-
-          const scriptJson = JSON.stringify(activeScript, null, 2);
-          zip.file('script.json', scriptJson);
-
-          const audioRecord = await db.audios.where({ scriptId: activeScript.id }).first();
-          if (audioRecord?.data) {
-            zip.file('full_script_audio.mp3', audioRecord.data);
-          }
-
-          for (const act of activeScript.acts) {
-            for (const scene of act.scenes) {
-              if (scene.generatedImageId) {
-                const imageRecord = await db.images.get(scene.generatedImageId);
-                if (imageRecord?.data) {
-                  zip.file(`scene_${act.act_number}_${scene.scene_number}.png`, imageRecord.data as Blob);
-                }
-              }
-              if (scene.generatedVideoId) {
-                const videoRecord = await db.videos.get(scene.generatedVideoId);
-                if (videoRecord?.data) {
-                  zip.file(`scene_${act.act_number}_${scene.scene_number}.mp4`, videoRecord.data as Blob);
-                }
-              }
-              for (const [dialogueIndex, dialogue] of scene.dialogues.entries()) {
-                if (dialogue.generatedAudioId) {
-                  try {
-                    // Fetch audio blob from IndexedDB using the ID
-                    const audioRecord = await db.audios.get(dialogue.generatedAudioId);
-                    if (audioRecord?.data) {
-                      zip.file(
-                        `scene_${scene.scene_number}_dialogue_${dialogueIndex + 1}.mp3`,
-                        audioRecord.data as Blob,
-                      );
-                    } else {
-                      console.warn(
-                        `No audio found for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1} (ID: ${dialogue.generatedAudioId})`,
-                      );
-                    }
-                  } catch (e) {
-                    console.warn(
-                      `Could not fetch audio for scene ${scene.scene_number}, dialogue ${dialogueIndex + 1}:`,
-                      e,
-                    );
-                  }
-                }
-              }
-            }
-          }
-
-          const zipBlob = await zip.generateAsync({ type: 'blob' });
-          const url = URL.createObjectURL(zipBlob);
-          const a = document.createElement('a');
-          const aliasPart = activeScript.alias ? activeScript.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase() : null;
-          const safeTitle = aliasPart || activeScript.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'script';
-          a.href = url;
-          a.download = `${safeTitle}.zip`;
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
+          await exportService.exportScriptAsZip(activeScript);
         } catch (err) {
           console.error('Lỗi xuất file ZIP:', err);
           set({ scriptsError: err instanceof Error ? err.message : 'Không thể tạo file ZIP.' });
         } finally {
-          set({ isZipping: false });
+          useUIStateStore.getState().setIsZipping(false);
         }
       },
 
@@ -380,7 +309,7 @@ const useScriptsStore = create<ScriptsState>()(
 
       addScript: async (script): Promise<ScriptStory> => {
         try {
-          const newId = await db.scripts.add(script);
+          const newId = await scriptRepository.add(script);
           const scriptWithId = { ...script, id: newId } as ScriptStory;
           set(state => {
             const newActiveSceneIdentifier = scriptWithId.acts?.[0]?.scenes?.[0]
@@ -402,10 +331,6 @@ const useScriptsStore = create<ScriptsState>()(
 
       setActiveSceneIdentifier: id => set({ activeSceneIdentifier: id }),
       setActiveScript: s => set({ activeScript: s }),
-      setCurrentView: v => set({ currentView: v }),
-      setScriptViewMode: m => set({ scriptViewMode: m }),
-      setSettingsModalOpen: v => set({ settingsModalOpen: v }),
-      setModelSettingsModalOpen: v => set({ modelSettingsModalOpen: v }),
     }),
     {
       name: 'cinegenie-scripts-storage', // Tên để lưu trong storage

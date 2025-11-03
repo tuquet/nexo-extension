@@ -1,4 +1,4 @@
-import TtsExport from '../modals/tts-export';
+import { TtsExport } from '../modals/tts-export';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,7 @@ import {
   ButtonGroup,
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
+import { useUIStateStore } from '@src/stores/use-ui-state-store';
 import { FileJson, ChevronDown, Trash, FolderDown, MicVocal, Wand2 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
@@ -37,7 +38,7 @@ const ActionButton = () => {
   };
   const exportData = useScriptsStore(s => s.exportData);
   const exportZip = useScriptsStore(s => s.exportZip);
-  const isZipping = useScriptsStore(s => s.isZipping);
+  const isZipping = useUIStateStore(s => s.isZipping);
 
   const [isVbeeModalOpen, setIsVbeeModalOpen] = useState(false);
 

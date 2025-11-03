@@ -1,4 +1,5 @@
 import { Button, Label, Textarea } from '@extension/ui';
+import { useErrorHandler } from '@src/hooks';
 import { useRef, useState } from 'react';
 
 interface JsonImportTabProps {
@@ -7,13 +8,13 @@ interface JsonImportTabProps {
   onImportFile: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImportJson, onImportFile }) => {
+const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImportJson, onImportFile }) => {
   const importFileRef = useRef<HTMLInputElement>(null);
   const [jsonText, setJsonText] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError, clearError } = useErrorHandler({ showToast: false });
 
   const handleImportClick = () => {
-    setError(null);
+    clearError();
     if (!jsonText.trim()) {
       setError('Vui lòng dán nội dung JSON vào ô bên dưới.');
       return;
@@ -62,3 +63,5 @@ export const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImpor
     </div>
   );
 };
+
+export { JsonImportTab };
