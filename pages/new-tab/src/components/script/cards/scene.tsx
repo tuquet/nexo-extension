@@ -1,4 +1,4 @@
-import EditableField from './editable-field';
+import EditableField from '../ui/editable-field';
 import {
   Card,
   CardHeader,
@@ -49,7 +49,7 @@ const InfoPill: React.FC<{
   </div>
 );
 
-const SceneCard: React.FC<SceneCardProps> = ({ scene, language, actIndex, sceneIndex }) => {
+const Scene: React.FC<SceneCardProps> = ({ scene, language, actIndex, sceneIndex }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const { playingSource, isPlaying, isLoading, togglePlay } = useAudioPlayerStore();
   const updateSceneField = useScriptsStore(s => s.updateSceneField);
@@ -239,4 +239,4 @@ const SceneCard: React.FC<SceneCardProps> = ({ scene, language, actIndex, sceneI
   );
 };
 
-export default SceneCard;
+export default Scene;

@@ -11,12 +11,13 @@ import {
   Slider,
   Switch,
   toast,
+  useTheme,
 } from '@extension/ui';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const DisplayTab = () => {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+  const { theme: currentTheme, setTheme: setThemeProvider } = useTheme();
   const [containerSize, setContainerSize] = useState<'narrow' | 'normal' | 'wide' | 'fluid'>('normal');
   const [compactMode, setCompactMode] = useState(false);
   const [fontScale, setFontScale] = useState(1);
@@ -28,7 +29,6 @@ const DisplayTab = () => {
     chrome.storage.local.get(['preferences'], result => {
       const prefs = result.preferences;
       if (prefs?.state) {
-        if (prefs.state.theme) setTheme(prefs.state.theme);
         if (prefs.state.containerSize) setContainerSize(prefs.state.containerSize);
         if (prefs.state.compactMode !== undefined) setCompactMode(prefs.state.compactMode);
         if (prefs.state.fontScale !== undefined) setFontScale(prefs.state.fontScale);
@@ -38,27 +38,17 @@ const DisplayTab = () => {
     });
   }, []);
 
-  const applyThemeImmediately = (newTheme: 'light' | 'dark' | 'system') => {
-    const root = document.documentElement;
-    const isDark =
-      newTheme === 'dark' || (newTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-    root.classList.remove('light', 'dark');
-    root.classList.add(isDark ? 'dark' : 'light');
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
+    await setThemeProvider(newTheme);
+    toast.success('Theme đã được cập nhật', {
+      description: 'Thay đổi áp dụng cho tất cả trang extension',
+    });
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme);
-    applyThemeImmediately(newTheme);
-    // Auto-save theme immediately for instant feedback
-    savePreferences(newTheme);
-  };
-
-  const savePreferences = async (themeOverride?: 'light' | 'dark' | 'system') => {
+  const savePreferences = async () => {
     try {
       const preferences = {
         state: {
-          theme: themeOverride || theme,
           containerSize,
           compactMode,
           fontScale,
@@ -99,26 +89,28 @@ const DisplayTab = () => {
           <CardDescription>Choose your preferred color theme</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <RadioGroup value={theme} onValueChange={(v: string) => handleThemeChange(v as 'light' | 'dark' | 'system')}>
+          <RadioGroup
+            value={currentTheme}
+            onValueChange={(v: string) => handleThemeChange(v as 'light' | 'dark' | 'system')}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="light" id="light" />
               <Label htmlFor="light" className="flex items-center gap-2">
                 <Sun className="size-4" />
-                Light
+                Sáng
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="dark" id="dark" />
               <Label htmlFor="dark" className="flex items-center gap-2">
                 <Moon className="size-4" />
-                Dark
+                Tối
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="system" id="system" />
               <Label htmlFor="system" className="flex items-center gap-2">
                 <Monitor className="size-4" />
-                System
+                Hệ thống
               </Label>
             </div>
           </RadioGroup>

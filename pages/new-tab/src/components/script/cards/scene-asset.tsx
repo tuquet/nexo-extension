@@ -17,7 +17,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Scene, AspectRatio } from '@src/types';
 import type React from 'react';
 
-const SceneAssetCard: React.FC<{
+const SceneAsset: React.FC<{
   scriptId: number | undefined;
   scene: Scene;
   actIndex: number;
@@ -316,4 +316,4 @@ const SceneAssetCard: React.FC<{
   );
 };
 
-export default SceneAssetCard;
+export default SceneAsset;

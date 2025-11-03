@@ -1,11 +1,22 @@
 import { GEMINI_PROMPTS } from '../data/gemini-prompts';
 import { db } from '../db';
 import { Badge, Button, Card, CardContent, Input, toast } from '@extension/ui';
-import { Copy, Search, Sparkles } from 'lucide-react';
+import { Copy, Search, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PromptTemplate } from '../data/gemini-prompts';
 
-export const PromptLibrary = () => {
+interface AutomatePromptData {
+  prompt: string;
+  systemInstruction?: string;
+  language: 'en-US' | 'vi-VN';
+  timestamp: number;
+}
+
+interface PromptLibraryProps {
+  automatePromptData?: AutomatePromptData | null;
+}
+
+export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -57,22 +68,38 @@ export const PromptLibrary = () => {
   });
 
   // Handle use prompt - send to background for automation
-  const handleUsePrompt = async (prompt: PromptTemplate) => {
+  const handleUsePrompt = async (prompt: PromptTemplate | 'automate') => {
     setIsProcessing(true);
 
     try {
+      let promptText = '';
+      let titleText = '';
+
+      if (prompt === 'automate' && automatePromptData) {
+        promptText = automatePromptData.prompt;
+        titleText = 'Template automation';
+      } else if (typeof prompt === 'object') {
+        promptText = prompt.prompt;
+        titleText = prompt.title;
+      }
+
       const response = await chrome.runtime.sendMessage({
         type: 'AUTO_FILL_GEMINI_PROMPT',
         payload: {
-          prompt: prompt.prompt,
+          prompt: promptText,
           autoSend: false, // Let user review before sending
         },
       });
 
       if (response?.success) {
-        toast.success(`"${prompt.title}" đã được điền vào Gemini`, {
+        toast.success(`"${titleText}" đã được điền vào Gemini`, {
           description: 'Tab Gemini đã được mở. Bạn có thể chỉnh sửa trước khi gửi.',
         });
+
+        // Clear automate data after use
+        if (prompt === 'automate') {
+          await chrome.storage.local.remove('automatePromptData');
+        }
       } else {
         toast.error('Không thể điền prompt', {
           description: response?.error?.message || 'Vui lòng thử lại',
@@ -118,6 +145,31 @@ export const PromptLibrary = () => {
         <h2 className="mb-2 text-lg font-semibold">Thư viện Prompt</h2>
         <p className="text-muted-foreground text-xs">Click "Sử dụng" để tự động điền prompt vào Google AI Studio</p>
       </div>
+
+      {/* Automate prompt button (if available) */}
+      {automatePromptData && (
+        <div className="border-b p-4">
+          <Card className="border-primary bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold">Prompt từ Template</h3>
+                  <p className="text-muted-foreground mt-1 text-xs">Sử dụng prompt đã được chuẩn bị từ New Tab</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleUsePrompt('automate')}
+                  disabled={isProcessing}
+                  className="shrink-0">
+                  <Zap className="mr-1 size-3" />
+                  Sử dụng ngay
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="border-b p-4">

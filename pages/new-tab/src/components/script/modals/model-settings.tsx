@@ -1,4 +1,4 @@
-import { ModelSettings } from './model-settings';
+import { ModelSettings as ModelSettingsForm } from '../settings/model-settings';
 import { Button, Dialog, DialogContent, DialogOverlay, DialogPortal, DialogTitle } from '@extension/ui';
 import type React from 'react';
 
@@ -8,7 +8,7 @@ interface ModelSettingsModalProps {
   onSave: () => void;
 }
 
-const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({ isOpen, onClose, onSave }) => {
+const ModelSettings: React.FC<ModelSettingsModalProps> = ({ isOpen, onClose, onSave }) => {
   const handleSaveClick = () => {
     onSave();
     onClose();
@@ -24,7 +24,7 @@ const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({ isOpen, onClose
             <p className="text-sm text-slate-600 dark:text-slate-400">
               Tùy chỉnh các model AI được sử dụng để tạo kịch bản.
             </p>
-            <ModelSettings />
+            <ModelSettingsForm />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" onClick={onClose}>
@@ -38,4 +38,4 @@ const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({ isOpen, onClose
   );
 };
 
-export default ModelSettingsModal;
+export default ModelSettings;

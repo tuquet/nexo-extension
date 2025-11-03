@@ -1,6 +1,6 @@
-import ImageGenerationModal from './image-generation-modal';
-import SceneAssetCard from './script-scene-asset-card';
-import ScriptTtsAssetCard from './script-tts-asset-card';
+import SceneAsset from '../cards/scene-asset';
+import TtsAsset from '../cards/tts-asset';
+import ImageGenerationModal from '../modals/image-generation';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@extension/ui';
 import { DEFAULT_IMAGE_NEGATIVE_PROMPT } from '@src/constants';
 import { useAssets } from '@src/hooks/use-assets';
@@ -133,7 +133,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts, setError }) 
               </CardAction>
             </CardHeader>
             <CardContent>
-              <SceneAssetCard
+              <SceneAsset
                 scriptId={activeScript.id}
                 scene={activeScene}
                 actIndex={activeScene.actIndex}
@@ -157,7 +157,7 @@ const AssetDisplay: React.FC<AssetDisplayProps> = ({ onGenerateTts, setError }) 
           <>
             <div className="border-t border-slate-200 dark:border-slate-700"></div>
             <div className="p-6">
-              <ScriptTtsAssetCard onGenerateTts={onGenerateTts} script={activeScript} />
+              <TtsAsset onGenerateTts={onGenerateTts} script={activeScript} />
             </div>
           </>
         )}

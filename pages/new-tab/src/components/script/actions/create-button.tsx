@@ -2,7 +2,7 @@ import { Button } from '@extension/ui';
 import { PlusCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const ScriptCreateButton = () => (
+const CreateButton = () => (
   <Link to="/script/new">
     <Button>
       <PlusCircle className="mr-2 h-4 w-4" />
@@ -11,4 +11,4 @@ const ScriptCreateButton = () => (
   </Link>
 );
 
-export default ScriptCreateButton;
+export default CreateButton;

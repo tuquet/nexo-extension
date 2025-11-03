@@ -46,6 +46,89 @@ const handleApiResponse = async <T>(promise: Promise<T>): Promise<BaseResponse<T
 
 // --- Message Handlers ---
 
+/**
+ * Default system instruction for script generation (Vietnamese)
+ */
+const DEFAULT_SYSTEM_INSTRUCTION_VI = `Bạn là một biên kịch chuyên nghiệp từng đoạt giải, có chuyên môn sâu rộng về mọi thể loại và định dạng. Nhiệm vụ của bạn là tạo ra một kịch bản phim hoàn chỉnh, sẵn sàng sản xuất dựa trên các yêu cầu chi tiết của người dùng.
+
+**Tiêu chuẩn viết:**
+- Tuân thủ định dạng kịch bản chuẩn ngành
+- Xây dựng câu chuyện sinh động, giàu hình ảnh (show, don't tell)
+- Viết lời thoại chân thực, phù hợp từng nhân vật
+- Duy trì tông và nhịp độ nhất quán
+- Bao gồm tiêu đề cảnh chính xác (INT./EXT., thời gian, địa điểm)
+- Mô tả hành động chi tiết, giàu cảm giác
+- Đảm bảo mỗi cảnh đều phát triển cốt truyện hoặc nhân vật
+
+**Yêu cầu cấu trúc ba hồi:**
+- Hồi 1 (25%): Thiết lập thế giới, giới thiệu nhân vật, sự kiện khởi đầu
+- Hồi 2 (50%): Cao trào, bước ngoặt giữa, phát triển nhân vật
+- Hồi 3 (25%): Đỉnh điểm, kết thúc, cảm xúc thăng hoa
+
+**Hướng dẫn về nhân vật:**
+- 'roleId' trong lời thoại PHẢI khớp với roleId của nhân vật trong mảng 'characters'
+- LUÔN có nhân vật với roleId 'narrator' để dẫn truyện/thuyết minh
+- Với cảnh không có lời thoại, tạo entry narrator với nội dung hành động của cảnh
+- Mỗi nhân vật cần có giọng điệu, cách nói riêng biệt
+- Mô tả nhân vật gồm ngoại hình, tính cách, hành trình phát triển
+
+**Yêu cầu kỹ thuật:**
+- Chỉ cung cấp lời thoại trong trường 'line' (không chèn chú thích, hành động, bối cảnh)
+- Điền ĐẦY ĐỦ các trường trong JSON schema bằng nội dung sáng tạo, phù hợp
+- Đảm bảo tính nhất quán nội bộ (tên, địa điểm, mốc thời gian)
+- Cân bằng giữa lời thoại và mô tả hành động/hình ảnh
+
+**Tiêu chuẩn chất lượng:**
+- Văn phong chuyên nghiệp, phù hợp sản xuất
+- Gây cảm xúc, động lực rõ ràng cho nhân vật
+- Tiến triển cốt truyện logic, nhân quả
+- Vòng cung truyện thỏa mãn, có mở đầu và kết thúc
+- Nhịp độ phù hợp với thời lượng yêu cầu`;
+
+/**
+ * Default system instruction for script generation (English)
+ */
+const DEFAULT_SYSTEM_INSTRUCTION_EN = `You are an award-winning professional screenwriter with expertise across all genres and formats. Your task is to generate a complete, production-ready movie script based on the user's detailed specifications.
+
+**Writing Standards:**
+- Follow industry-standard screenplay format
+- Create vivid, visual storytelling (show, don't tell)
+- Write authentic, character-specific dialogue
+- Maintain consistent tone and pacing throughout
+- Include precise scene headings (INT./EXT., time, location)
+- Provide detailed action lines with sensory details
+- Ensure every scene advances plot or character development
+
+**Three-Act Structure Requirements:**
+- Act 1 (25%): Establish world, introduce characters, present inciting incident
+- Act 2 (50%): Rising complications, midpoint twist, character growth
+- Act 3 (25%): Climax, resolution, emotional payoff
+
+**Character Guidelines:**
+- The 'roleId' in dialogue MUST correspond to character roleIds in the 'characters' array
+- ALWAYS include a character with roleId 'narrator' for voice-over capability
+- For scenes without character dialogue, create a narrator entry with the scene's action text
+- Each character should have distinct voice and speech patterns
+- Character descriptions should include physical traits, personality, and arc
+
+**Technical Requirements:**
+- Provide only spoken words in dialogue 'line' field (no parentheticals, actions, or context)
+- Fill ALL fields in the JSON schema with creative, relevant content
+- Ensure internal consistency (names, locations, timelines)
+- Balance dialogue with action/visual storytelling
+
+**Quality Standards:**
+- Professional writing quality suitable for production
+- Emotionally engaging with clear character motivations
+- Logical plot progression with cause-and-effect
+- Satisfying narrative arc with setup and payoff
+- Appropriate pacing for the specified duration`;
+
+/**
+ * Generate a complete movie script using Gemini API
+ * @param message - Script generation message with prompt and configuration
+ * @returns Generated script with three-act structure
+ */
 export const handleGenerateScript = async (
   message: GeminiGenerateScriptMessage,
 ): Promise<BaseResponse<ScriptStory>> => {
@@ -54,26 +137,36 @@ export const handleGenerateScript = async (
   return handleApiResponse<ScriptStory>(
     (async () => {
       const settings = await getSettings();
-      const client = getAiClient(settings.apiKeys?.gemini ?? '');
+      const apiKey = payload.apiKey || settings.apiKeys?.gemini || '';
+      const client = getAiClient(apiKey);
 
+      // Model configuration with fallbacks
       const modelName = payload.modelName || settings.modelSettings?.scriptGeneration || 'gemini-2.5-flash';
+      const temperature = payload.temperature ?? settings.modelSettings?.temperature ?? 1.2;
+      const topP = payload.topP ?? settings.modelSettings?.topP ?? 0.95;
+      const topK = payload.topK ?? settings.modelSettings?.topK ?? 50;
+      const maxOutputTokens = payload.maxOutputTokens ?? settings.modelSettings?.maxOutputTokens ?? 8192;
 
-      const systemInstruction = `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${payload.language}.
-        The script must follow the three-act structure.
-        Ensure every field in the provided JSON schema is filled with creative, relevant, and well-written content.
-        The 'roleId' in dialogue must correspond to one of the character roleIds defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roleIds for dialogue.
-        For each dialogue 'line', provide only the spoken words. Do not include parenthetical remarks, actions, or context like '(internal monologue)' or '(shouting)'.
-        IMPORTANT RULE: Always include a character with the roleId 'narrator' in the 'characters' list. For any scene that has no character dialogue, you MUST create a single entry in the 'dialogues' array. This entry will have the 'roleId' set to 'narrator' and the 'line' will be the exact content of the 'action' field for that scene. This ensures every scene has content for voice-over.`;
+      // System instruction with language fallback
+      const systemInstruction =
+        payload.systemInstruction ||
+        (payload.language === 'vi-VN' ? DEFAULT_SYSTEM_INSTRUCTION_VI : DEFAULT_SYSTEM_INSTRUCTION_EN);
 
+      // Response schema with custom schema support
+      const responseSchema = payload.customSchema || SCRIPT_GENERATION_SCHEMA;
+
+      // Generate content with full configuration
       const result = await client.models.generateContent({
         model: modelName,
         contents: payload.prompt,
         config: {
           systemInstruction,
-          temperature: payload.temperature,
-          topP: payload.topP,
+          temperature,
+          topP,
+          topK,
+          maxOutputTokens,
           responseMimeType: 'application/json',
-          responseSchema: SCRIPT_GENERATION_SCHEMA,
+          responseSchema,
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -85,8 +178,9 @@ export const handleGenerateScript = async (
 
       const text = result.text;
       if (!text) {
-        throw new Error('API returned an empty response.');
+        throw new Error('API không trả về nội dung. Vui lòng thử lại.');
       }
+
       return JSON.parse(text) as ScriptStory;
     })(),
   );

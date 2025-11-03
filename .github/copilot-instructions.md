@@ -6,7 +6,7 @@ Keep changes scoped and verified with the project's lint/typecheck tooling. If y
 
 ---
 
-Key project facts
+## Quick Start Facts
 
 - **Monorepo**: pnpm workspaces + Turbo (`pnpm-workspace.yaml`, `turbo.json`)
 - **Chrome Extension MV3**: Background service worker architecture with message-passing
@@ -15,6 +15,26 @@ Key project facts
 - **State management**: Zustand with persist middleware + IndexedDB via Dexie wrapper
 - **AI Integration**: Google GenAI SDK (`@google/genai`) for Gemini, Imagen, Veo APIs
 - **Styling**: Tailwind CSS with shared config in `packages/tailwindcss-config`
+
+---
+
+## User Journey & Workflow
+
+```
+1. Prompts (Templates) 📝
+   └─ Create/edit templates with variables & system instructions
+   └─ Preview & test prompts before generation
+
+2. Scripts (Generation) 🎬  
+   └─ Select template → Fill variables → Generate via API
+   └─ Edit script (with validation & AI enhancement)
+   └─ Import/export JSON with versioning
+
+3. Assets (Media) 🎨
+   └─ Generate images (Imagen), videos (Veo), audio (Vbee TTS)
+   └─ Link assets to specific scenes
+   └─ Download/export for production
+```
 
 ---
 
@@ -93,19 +113,25 @@ UI Design System & Component Patterns
 // ✅ Good: Use UI components with variants
 import { Button, Card, CardHeader, CardTitle, CardContent } from '@extension/ui';
 
-<Card>
-  <CardHeader>
-    <CardTitle>Script Title</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <Button variant="outline" size="sm">Edit</Button>
-  </CardContent>
-</Card>
+const MyComponent = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Script Title</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <Button variant="outline" size="sm">Edit</Button>
+    </CardContent>
+  </Card>
+);
 
-// ❌ Bad: Custom styled divs with inline colors
-<div style={{ backgroundColor: '#fff', borderRadius: '8px' }}>
-  <button className="bg-blue-500">Edit</button>
-</div>
+export { MyComponent };
+
+// ❌ Bad: Custom styled divs with inline colors + inline exports
+export const MyComponent = () => (
+  <div style={{ backgroundColor: '#fff', borderRadius: '8px' }}>
+    <button className="bg-blue-500">Edit</button>
+  </div>
+);
 ```
 
 **Accessibility**:
@@ -125,17 +151,360 @@ import { Button, Card, CardHeader, CardTitle, CardContent } from '@extension/ui'
 
 ---
 
-Patterns & conventions to follow
+## Patterns & Conventions to Follow
 
-- Exports & import order: ESLint rules are strict — prefer named exports, keep types imported with `import type` where possible, and keep import order consistent.
-- No `any`: Replace `any` with concrete types or use `unknown` then narrow. The linter enforces `@typescript-eslint/no-explicit-any`.
+**ESLint Rules (Strictly Enforced)**:
+- **`import-x/exports-last`**: ALL exports MUST be at the end of file
+  ```typescript
+  // ✅ Good
+  const helper = () => {};
+  const Component = () => {};
+  export { helper, Component }; // At end
+  
+  // ❌ Bad
+  export const helper = () => {}; // Export inline
+  const Component = () => {};
+  ```
+- **`import-x/first`**: Imports MUST be at top, before any code
+- **`import-x/order`**: Alphabetical, groups: builtin → external → internal → parent → sibling → index → type
+- **`import-x/newline-after-import`**: Blank line after import block required
+- **`import-x/consistent-type-specifier-style`**: Use `import type` for type-only imports
+- **`@typescript-eslint/consistent-type-imports`**: Type imports must use `import type`
+- **`@typescript-eslint/consistent-type-exports`**: Type exports must use `export type`
+- **`func-style`**: Use function expressions, not declarations (const fn = () => {})
+- **`arrow-body-style`**: Omit braces when possible (const fn = () => value)
+- **`prefer-const`**: Use const unless reassignment needed
+- **`no-var`**: Never use var
+
+**Code Patterns**:
 - Small helper functions: utilities that mutate nested objects commonly use `setNestedValue(obj, path, value)` pattern (see `useScriptsStore.ts`). Keep these pure-ish and well-typed.
 - Error messages and UI text sometimes use Vietnamese strings — preserve locale in user-visible strings unless intentionally changing UX.
 - IndexedDB usage: use the `db` wrapper methods (`toArray`, `add`, `put`, `delete`, `where(...).delete`) and ensure to clear dependent assets on script delete.
 
 ---
 
-Files of interest (quick map)
+## SOLID Principles in Practice
+
+This codebase demonstrates strong adherence to SOLID for extensibility and maintainability. Follow these patterns when adding features:
+
+### **S - Single Responsibility Principle**
+Each module has ONE reason to change:
+
+```typescript
+// ✅ GOOD: Separated concerns
+// background/router.ts - ONLY routing logic
+const messageRoutes = { 
+  GENERATE_SCRIPT: handleGenerateScript,
+  GENERATE_IMAGE: handleGenerateSceneImage,
+};
+
+// gemini-api-handler.ts - ONLY API calls
+export const handleGenerateScript = async (message) => { ... }
+
+// settings-handler.ts - ONLY settings persistence
+export const handleGetSettings = async () => { ... }
+
+// ❌ BAD: Mixed responsibilities
+const handleGenerateScriptAndSave = async (message) => {
+  const script = await callAPI(message);      // API concern
+  await chrome.storage.local.set({ script }); // Storage concern
+  await navigateToScript(script.id);          // Navigation concern
+};
+```
+
+**Real example:** `use-script-generation.ts` hook encapsulates generation logic but delegates to:
+- `generateScript()` for API calls
+- `addScript()` for store updates
+- `navigate()` for routing
+- `toast()` for notifications
+
+### **O - Open/Closed Principle**
+Open for extension, closed for modification:
+
+```typescript
+// ✅ GOOD: Extensible router pattern
+// Adding new handler requires ZERO changes to router logic
+const messageRoutes: { [key: string]: MessageHandler } = {
+  GENERATE_SCRIPT: handleGenerateScript,
+  GENERATE_IMAGE: handleGenerateSceneImage,
+  // Add new: just register here, router.ts unchanged
+  NEW_FEATURE: handleNewFeature,
+};
+
+// ❌ BAD: if/else chain requires modification
+const router = (message) => {
+  if (message.type === 'GENERATE_SCRIPT') return handleGenerateScript();
+  if (message.type === 'GENERATE_IMAGE') return handleGenerateSceneImage();
+  // Adding new feature requires modifying this function
+};
+```
+
+**Real example:** Background router uses dictionary pattern - adding new API endpoints requires only:
+1. Add handler function
+2. Register in `messageRoutes` object
+3. Zero changes to router logic
+
+### **L - Liskov Substitution Principle**
+Subtypes must be substitutable for base types:
+
+```typescript
+// ✅ GOOD: All handlers conform to MessageHandler signature
+type MessageHandler = (
+  message: BackgroundMessage,
+  sender: chrome.runtime.MessageSender
+) => Promise<BackgroundResponse>;
+
+// Any handler can be substituted
+const handleGenerateScript: MessageHandler = async (message, sender) => { ... }
+const handleGenerateImage: MessageHandler = async (message, sender) => { ... }
+
+// ❌ BAD: Inconsistent signatures break substitutability
+const handleA = async (message) => { ... }              // Missing sender
+const handleB = async (message, sender, extra) => { ... } // Extra param
+```
+
+**Real example:** All background handlers implement same interface - router doesn't care about implementation details, only interface contract.
+
+### **I - Interface Segregation Principle**
+Clients shouldn't depend on interfaces they don't use:
+
+```typescript
+// ✅ GOOD: Specific message types
+interface GeminiGenerateScriptMessage {
+  type: 'GENERATE_SCRIPT';
+  payload: {
+    prompt: string;
+    language: 'en-US' | 'vi-VN';
+    apiKey: string;
+    modelName: string;
+    temperature: number;
+    // ... only fields needed for script generation
+  };
+}
+
+interface GeminiGenerateImageMessage {
+  type: 'GENERATE_SCENE_IMAGE';
+  payload: {
+    prompt: string;
+    aspectRatio: AspectRatio;
+    // ... only fields needed for image generation
+  };
+}
+
+// ❌ BAD: Fat interface with unused fields
+interface AllInOneMessage {
+  type: string;
+  prompt?: string;
+  language?: string;
+  apiKey?: string;
+  aspectRatio?: string;
+  temperature?: number;
+  // ... image handler doesn't need temperature
+  // ... script handler doesn't need aspectRatio
+}
+```
+
+**Real example:** `chrome-extension/src/background/types/messages.ts` uses discriminated unions - each message type has ONLY the fields it needs.
+
+### **D - Dependency Inversion Principle**
+Depend on abstractions, not concretions:
+
+```typescript
+// ✅ GOOD: Hooks depend on abstractions
+export const useScriptGeneration = () => {
+  const { apiKey } = useApiKey();           // Abstract: any key provider
+  const addScript = useScriptsStore(s => s.addScript); // Abstract: any store
+  const navigate = useNavigate();            // Abstract: any router
+  
+  // Logic doesn't care HOW these are implemented
+};
+
+// ❌ BAD: Direct dependency on implementation
+export const useScriptGeneration = () => {
+  const apiKey = chrome.storage.local.get('apiKey'); // Concrete storage
+  const addScript = (script) => {
+    db.scripts.add(script);                 // Concrete database
+  };
+};
+```
+
+**Real example:** `background-api.ts` abstracts chrome message passing:
+- UI components call `generateScript(params)` (abstraction)
+- Implementation uses `chrome.runtime.sendMessage()` (concrete)
+- Future: could swap to WebSocket without changing callers
+
+### **When to Apply SOLID**
+
+**DO apply when:**
+- Adding new API handlers (use router pattern)
+- Creating new hooks (separate concerns)
+- Adding validation (create dedicated validators)
+- Implementing new stores (single responsibility per store)
+
+**DON'T over-engineer:**
+- Simple utility functions (formatDate, clamp, etc.)
+- Component-specific helpers (no reuse needed)
+- One-off scripts or migrations
+
+---
+
+## Folder Structure & Organization
+
+The `pages/new-tab/src/` directory follows a **feature-based organization** pattern aligned with SOLID Single Responsibility Principle. Each folder has ONE clear purpose.
+
+### **Project Structure**
+
+```
+pages/new-tab/src/
+├── components/
+│   ├── common/                   # Shared UI components across features
+│   │   └── app-setting-modal.tsx
+│   │
+│   ├── layout/                   # Layout-specific components
+│   │   ├── container-wrapper.tsx
+│   │   └── header.tsx
+│   │
+│   ├── gallery/                  # Asset gallery feature
+│   │   └── [gallery components]
+│   │
+│   ├── prompts/                  # Prompt template management
+│   │   └── [prompt components]
+│   │
+│   └── script/                   # Script management feature (MAIN FEATURE)
+│       ├── forms/                # User input forms
+│       │   ├── create-form.tsx
+│       │   ├── manual-creation-form.tsx
+│       │   └── template-selector.tsx
+│       │
+│       ├── modals/               # Modal dialogs
+│       │   ├── image-generation.tsx
+│       │   ├── json-import.tsx
+│       │   ├── model-settings.tsx
+│       │   └── tts-export.tsx
+│       │
+│       ├── display/              # Read-only display components
+│       │   ├── asset-display.tsx
+│       │   ├── content.tsx
+│       │   ├── header.tsx
+│       │   ├── loader.tsx
+│       │   └── responsive-detail-layout.tsx
+│       │
+│       ├── cards/                # Card components (list items, scene items)
+│       │   ├── scene.tsx
+│       │   ├── scene-asset.tsx
+│       │   ├── tts-asset.tsx
+│       │   └── vbee-project-asset.tsx
+│       │
+│       ├── generation/           # AI generation forms
+│       │   ├── ai-generation-tab.tsx
+│       │   ├── generation-form.tsx
+│       │   ├── json-import-tab.tsx
+│       │   ├── plot-suggestions.tsx
+│       │   └── variable-inputs.tsx
+│       │
+│       ├── actions/              # Action buttons & triggers
+│       │   ├── action-button.tsx
+│       │   └── create-button.tsx
+│       │
+│       ├── settings/             # Settings & configuration
+│       │   ├── advanced-model-options.tsx
+│       │   └── model-settings.tsx
+│       │
+│       └── ui/                   # Reusable UI elements (script-specific)
+│           ├── audio-player.tsx
+│           ├── editable-field.tsx
+│           └── creatable-select.tsx
+│
+├── pages/                        # Route pages (React Router)
+│   ├── gallery/                  # Asset gallery routes
+│   ├── home/                     # Home page
+│   ├── prompts/                  # Prompt management routes
+│   └── script/                   # Script CRUD routes
+│       ├── create.tsx            # Create script page
+│       ├── detail.tsx            # Script detail page
+│       ├── list.tsx              # Script list page
+│       └── breakpoints.ts        # Responsive breakpoints
+│
+├── hooks/                        # Custom React hooks
+│   ├── use-assets.ts             # Asset generation hooks
+│   ├── use-script-generation.ts  # Script generation logic
+│   └── [other hooks]
+│
+├── stores/                       # Zustand state management
+│   ├── use-scripts-store.ts      # Canonical script state
+│   ├── use-preferences-store.ts  # UI preferences
+│   ├── use-api-key.ts            # API key storage
+│   └── [other stores]
+│
+├── services/                     # API communication layer
+│   ├── background-api.ts         # Background service worker proxy
+│   ├── gemini-service.ts         # Gemini API wrapper
+│   ├── vbee-service.ts           # Vbee TTS API wrapper
+│   └── api-errors.ts             # Error handling
+│
+├── utils/                        # Utility functions
+│   ├── dialogue-validator.ts     # TTS quality validation
+│   └── prompt-builder.ts         # Template processing
+│
+├── constants/                    # Constants & configuration
+│   ├── index.ts                  # Main constants (models, genres, etc.)
+│   └── script-generation.ts      # Script generation specific
+│
+└── types/                        # TypeScript type definitions
+    ├── index.ts                  # Main types (ScriptStory, Scene, etc.)
+    └── script-generation.ts      # Generation-specific types
+```
+
+### **Organizational Principles**
+
+1. **Feature-based grouping**: Script components are grouped by responsibility (forms, modals, display), not by file type
+2. **SOLID Single Responsibility**: Each folder has ONE clear purpose
+   - `forms/` = User input
+   - `modals/` = Dialog overlays
+   - `display/` = Read-only presentation
+   - `cards/` = List item components
+   - `actions/` = Action triggers
+   - `settings/` = Configuration UI
+   - `ui/` = Reusable UI primitives
+
+3. **Scalability**: New components have obvious home
+   - New form component? → `script/forms/`
+   - New modal dialog? → `script/modals/`
+   - New card type? → `script/cards/`
+
+4. **Avoid deep nesting**: Maximum 2 levels under `components/` (feature → responsibility)
+
+### **Where to Add New Components**
+
+| Component Type | Location | Example |
+|----------------|----------|---------|
+| Script form | `components/script/forms/` | create-form.tsx |
+| Modal dialog | `components/script/modals/` | image-generation.tsx |
+| Read-only display | `components/script/display/` | content.tsx |
+| List/card item | `components/script/cards/` | scene.tsx |
+| Action button | `components/script/actions/` | action-button.tsx |
+| Settings UI | `components/script/settings/` | model-settings.tsx |
+| Reusable UI element | `components/script/ui/` | editable-field.tsx |
+| AI generation feature | `components/script/generation/` | ai-generation-tab.tsx |
+| Cross-feature component | `components/common/` | app-setting-modal.tsx |
+| Route page | `pages/{feature}/` | pages/script/detail.tsx |
+
+### **Import Path Guidelines**
+
+- **Absolute imports** for cross-feature: `@src/components/script/forms/create-script-form`
+- **Relative imports** within same feature: `../modals/image-generation-modal` (from script/display/)
+- **Always follow ESLint import order**: builtin → external → internal → parent → sibling → index → type
+
+### **Anti-Patterns to Avoid**
+
+❌ **Flat structure with 25+ files** (old pattern before refactor)
+❌ **Mixing concerns** (forms + modals + display in one folder)
+❌ **Deep nesting** (components/script/forms/user-input/fields/)
+❌ **Type-based folders** (components/containers/, components/presentational/)
+
+---
+
+## Files of interest (quick map)
 
 **Chrome Extension Background (Critical for API calls)**:
 - chrome-extension/src/background/
@@ -148,16 +517,19 @@ Files of interest (quick map)
 
 **Frontend (New Tab Page)**:
 - pages/new-tab/src/
-  - App.tsx — Top-level entry (mounts stores, handles import/export/zip)
-  - NewTab.tsx — React Router HashRouter + Routes (Scripts, AssetGallery pages)
-  - db.ts — IndexedDB wrapper (Dexie) used across app
+  - NewTab.tsx — React Router HashRouter + Routes (Prompts, Scripts, AssetGallery pages)
+  - db.ts — Re-exports shared database from @extension/database package
   - services/background-api.ts — **Frontend wrapper for background communication** (sendMessage, unwrapResponse)
-  - stores/useScriptsStore.ts — Canonical zustand store for scripts (init, add, save, delete)
-  - stores/usePreferencesStore.ts — UI preferences (theme, containerSize, compactMode)
-  - stores/useApiKey.ts — API key storage with persist middleware
-  - stores/useModelSettings.ts — AI model configuration (text, image, video, TTS models)
+  - stores/use-scripts-store.ts — Canonical zustand store for scripts (init, reloadFromDB, add, save, delete)
+  - stores/use-preferences-store.ts — UI preferences (theme, containerSize, compactMode)
+  - stores/use-api-key.ts — API key storage with persist middleware
+  - stores/use-model-settings.ts — AI model configuration (text, image, video, TTS models)
   - hooks/use-assets.ts — Asset generation hooks (image, video, audio)
-  - components/* — UI components: AssetDisplay, AssetGallery, ScriptDisplay, ScriptHeader, CreationForm
+  - utils/dialogue-validator.ts — Validates dialogue lines for TTS quality (no stage directions)
+  - utils/prompt-builder.ts — Template processing, variable replacement, validation
+  - components/script/* — Script editing components: EditableField, SceneCard, CreationForm
+  - pages/prompts/* — Prompt template management with variable support
+  - pages/script/* — Script list and CRUD operations
 
 **Options Page** (Settings UI):
 - pages/options/src/
@@ -174,13 +546,14 @@ Files of interest (quick map)
     - AdvancedTab.tsx — Data export/import, storage usage, cache management, reset
 
 **Shared Packages**:
-- packages/ui — Shared shadcn/ui components (Button, Dialog, Card, etc.)
+- packages/database — Centralized Dexie database singleton (scripts, prompts, images, videos, audios)
+- packages/ui — Shared shadcn/ui components (Button, Dialog, Card, Alert, etc.)
 - packages/shared — Common utilities and types
 - packages/tailwindcss-config — Shared Tailwind configuration
 
 ---
 
-Common pitfalls & quick fixes
+## Common Pitfalls & Quick Fixes
 
 - **API calls in UI pages will fail silently**: NEVER call external APIs directly from UI pages. Always use `pages/new-tab/src/services/background-api.ts` methods which proxy through background service worker.
 - **Message protocol types**: When adding new API calls, update `chrome-extension/src/background/types/messages.ts` with new message/response types, add handler in appropriate file, register in `router.ts`.
@@ -192,19 +565,76 @@ Common pitfalls & quick fixes
 
 ---
 
-When to ask for clarification
+## Critical Performance Patterns
 
-- If the change touches cross-package public APIs (packages/*), ask before rearranging exports.
-- If you need to modify UX text in Vietnamese, confirm if locale files or localization strategy should be updated.
+**Asset Generation Queue** (prevents quota exhaustion):
+- Limit concurrent API calls to avoid rate limits
+- User can spam "Generate Image" → queue system needed
+- See `use-assets.ts` for generation hooks
+
+**IndexedDB Best Practices**:
+- Store assets as **Blobs**, not base64 (performance!)
+- Use `db.scripts.toArray()` for list views
+- Clear dependent assets on delete: `db.images.where({ scriptId }).delete()`
+- Event-driven updates: `window.dispatchEvent(new CustomEvent('assets-changed'))`
+
+**Store Reload Pattern**:
+```typescript
+// ✅ After bulk DB operations, reload store from DB
+const reloadFromDB = useScriptsStore.getState().reloadFromDB;
+await db.scripts.bulkAdd(items);
+await reloadFromDB(); // Triggers re-render
+
+// ❌ Don't rely on store state after direct DB mutation
+await db.scripts.add(item);
+// Store is now stale!
+```
+
+**Validation on Edit**:
+- Dialogue lines: Check for stage directions `(action)` or `[note]`
+- See `utils/dialogue-validator.ts` for TTS quality enforcement
+- Warnings appear in `EditableField` component
 
 ---
 
-If you modify or add tests
+## Known Improvement Opportunities
+
+**Error Recovery** (Missing):
+- No retry logic for API failures
+- Long operations (video gen) can timeout without recovery
+- Add exponential backoff wrapper for critical API calls
+
+**Progress Tracking** (Missing):
+- Video generation polls every 10s but shows no progress %
+- User has no ETA or cancel option
+- Implement progress events via message protocol
+
+**Undo/Redo** (Missing):
+- Script edits are permanent
+- AI enhancements cannot be reverted
+- History stack needed in `useScriptsStore`
+
+**Export/Import** (Needs versioning):
+- No schema version in exports
+- Cannot handle breaking changes between versions
+- Add migration system for legacy imports
+
+---
+
+## When to Ask for Clarification
+
+- If the change touches cross-package public APIs (packages/*), ask before rearranging exports.
+- If you need to modify UX text in Vietnamese, confirm if locale files or localization strategy should be updated.
+- When adding new message types, confirm handler registration in `router.ts`
+
+---
+
+## If You Modify or Add Tests
 
 - Run package-level type-check and lint. There is no single test runner configured that we can rely on; prefer small type-safe unit tests in the package where appropriate.
 
 ---
 
-Need more info?
+## Need More Info?
 
 If anything above is unclear, point to the file you want to change and I'll fetch the minimal surrounding files and note exactly which commands to run to validate changes.

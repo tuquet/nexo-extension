@@ -26,6 +26,7 @@ export * from './ui/alert-dialog';
 export * from './ui/table';
 export * from './ui/breadcrumb';
 export * from './ui/accordion';
+export * from './ui/alert';
 export * from './ui/dropdown-menu';
 export * from './ui/field';
 export * from './ui/navigation-menu';

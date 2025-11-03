@@ -1,8 +1,9 @@
 /**
  * Prompts Management Page
- * CRUD interface for managing prompt templates
+ * CRUD interface for managing prompt templates with advanced options
  */
 
+import { PromptForm } from './prompt-form';
 import {
   Button,
   Card,
@@ -20,21 +21,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Label,
-  Textarea,
-  RadioGroup,
-  RadioGroupItem,
   toast,
 } from '@extension/ui';
 import { db } from '@src/db';
 import { Edit, Plus, Search, Trash2, Copy, Download, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { PromptFormData } from './prompt-form';
 import type { PromptRecord } from '@src/db';
 
 // Default prompts for initial import
@@ -49,14 +41,6 @@ const CATEGORIES = [
   { value: 'general', label: 'General' },
 ] as const;
 
-const CATEGORY_ICONS: Record<string, string> = {
-  'script-generation': '🎬',
-  'image-generation': '🖼️',
-  'video-generation': '🎥',
-  'character-dev': '👤',
-  general: '💡',
-};
-
 const PromptsListPage = () => {
   const [prompts, setPrompts] = useState<PromptRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,16 +50,6 @@ const PromptsListPage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<PromptRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    category: 'general' as PromptRecord['category'],
-    prompt: '',
-    description: '',
-    tags: '',
-    icon: '',
-  });
 
   useEffect(() => {
     loadPrompts();
@@ -107,23 +81,23 @@ const PromptsListPage = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleCreate = async () => {
+  const handleCreate = async (data: PromptFormData) => {
     try {
       const newPrompt: PromptRecord = {
-        title: formData.title,
-        category: formData.category,
-        prompt: formData.prompt,
-        description: formData.description || undefined,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : undefined,
-        icon: formData.icon || CATEGORY_ICONS[formData.category],
+        ...data,
         createdAt: new Date(),
         updatedAt: new Date(),
+        metadata: {
+          author: 'User',
+          version: '1.0.0',
+          usageCount: 0,
+          isFavorite: false,
+        },
       };
 
       await db.prompts.add(newPrompt);
       await loadPrompts();
       setIsCreateDialogOpen(false);
-      resetForm();
       toast.success('Prompt created successfully');
     } catch (error) {
       console.error('Failed to create prompt:', error);
@@ -131,23 +105,17 @@ const PromptsListPage = () => {
     }
   };
 
-  const handleEdit = async () => {
+  const handleEdit = async (data: PromptFormData) => {
     if (!currentPrompt?.id) return;
 
     try {
       await db.prompts.update(currentPrompt.id, {
-        title: formData.title,
-        category: formData.category,
-        prompt: formData.prompt,
-        description: formData.description || undefined,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : undefined,
-        icon: formData.icon || CATEGORY_ICONS[formData.category],
+        ...data,
         updatedAt: new Date(),
       });
       await loadPrompts();
       setIsEditDialogOpen(false);
       setCurrentPrompt(null);
-      resetForm();
       toast.success('Prompt updated successfully');
     } catch (error) {
       console.error('Failed to update prompt:', error);
@@ -244,50 +212,66 @@ const PromptsListPage = () => {
 
       try {
         const text = await file.text();
-        const data = JSON.parse(text) as PromptRecord[];
-        await db.prompts.bulkAdd(data);
+        const rawData = JSON.parse(text);
+
+        // Handle both single object and array of objects
+        const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+
+        // Transform and validate data
+        const validatedData: PromptRecord[] = dataArray.map((item: Record<string, unknown>) => {
+          // Remove id if exists (let DB auto-generate)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...rest } = item;
+
+          return {
+            ...rest,
+            // Ensure required fields
+            title: (item.title as string) || 'Untitled Prompt',
+            category: (item.category as PromptRecord['category']) || 'general',
+            prompt: (item.prompt as string) || '',
+            // Convert date strings to Date objects
+            createdAt: item.createdAt ? new Date(item.createdAt as string) : new Date(),
+            updatedAt: item.updatedAt ? new Date(item.updatedAt as string) : new Date(),
+            // Handle metadata dates
+            metadata: item.metadata
+              ? {
+                  ...(item.metadata as Record<string, unknown>),
+                  lastUsedAt:
+                    (item.metadata as Record<string, unknown>).lastUsedAt !== null &&
+                    (item.metadata as Record<string, unknown>).lastUsedAt !== undefined
+                      ? new Date((item.metadata as Record<string, unknown>).lastUsedAt as string)
+                      : undefined,
+                }
+              : undefined,
+          };
+        });
+
+        await db.prompts.bulkAdd(validatedData);
         await loadPrompts();
-        toast.success(`Imported ${data.length} prompts`);
+        toast.success(`Imported ${validatedData.length} prompt${validatedData.length > 1 ? 's' : ''}`);
       } catch (error) {
         console.error('Failed to import prompts:', error);
-        toast.error('Failed to import prompts');
+        toast.error('Failed to import prompts', {
+          description: error instanceof Error ? error.message : 'Invalid JSON format',
+        });
       }
     };
     input.click();
   };
 
   const openCreateDialog = () => {
-    resetForm();
+    setCurrentPrompt(null);
     setIsCreateDialogOpen(true);
   };
 
   const openEditDialog = (prompt: PromptRecord) => {
     setCurrentPrompt(prompt);
-    setFormData({
-      title: prompt.title,
-      category: prompt.category,
-      prompt: prompt.prompt,
-      description: prompt.description || '',
-      tags: prompt.tags?.join(', ') || '',
-      icon: prompt.icon || '',
-    });
     setIsEditDialogOpen(true);
   };
 
   const openDeleteDialog = (prompt: PromptRecord) => {
     setCurrentPrompt(prompt);
     setIsDeleteDialogOpen(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      category: 'general',
-      prompt: '',
-      description: '',
-      tags: '',
-      icon: '',
-    });
   };
 
   return (
@@ -398,167 +382,21 @@ const PromptsListPage = () => {
         </CardContent>
       </Card>
 
-      {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Prompt</DialogTitle>
-            <DialogDescription>Add a new prompt template to your library</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-title">Title</Label>
-              <Input
-                id="create-title"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter prompt title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <RadioGroup
-                value={formData.category}
-                onValueChange={v => setFormData({ ...formData, category: v as PromptRecord['category'] })}>
-                {CATEGORIES.slice(1).map(cat => (
-                  <div key={cat.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={cat.value} id={`create-${cat.value}`} />
-                    <Label htmlFor={`create-${cat.value}`}>{cat.label}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-prompt">Prompt</Label>
-              <Textarea
-                id="create-prompt"
-                value={formData.prompt}
-                onChange={e => setFormData({ ...formData, prompt: e.target.value })}
-                placeholder="Enter the prompt text"
-                rows={8}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-description">Description (optional)</Label>
-              <Input
-                id="create-description"
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Short description"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-tags">Tags (comma-separated)</Label>
-                <Input
-                  id="create-tags"
-                  value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="tag1, tag2, tag3"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-icon">Icon (emoji)</Label>
-                <Input
-                  id="create-icon"
-                  value={formData.icon}
-                  onChange={e => setFormData({ ...formData, icon: e.target.value })}
-                  placeholder="🎬"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={!formData.title || !formData.prompt}>
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Create/Edit Prompt Form */}
+      <PromptForm
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={handleCreate}
+        mode="create"
+      />
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Prompt</DialogTitle>
-            <DialogDescription>Update your prompt template</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter prompt title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <RadioGroup
-                value={formData.category}
-                onValueChange={v => setFormData({ ...formData, category: v as PromptRecord['category'] })}>
-                {CATEGORIES.slice(1).map(cat => (
-                  <div key={cat.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={cat.value} id={`edit-${cat.value}`} />
-                    <Label htmlFor={`edit-${cat.value}`}>{cat.label}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-prompt">Prompt</Label>
-              <Textarea
-                id="edit-prompt"
-                value={formData.prompt}
-                onChange={e => setFormData({ ...formData, prompt: e.target.value })}
-                placeholder="Enter the prompt text"
-                rows={8}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description (optional)</Label>
-              <Input
-                id="edit-description"
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Short description"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-tags">Tags (comma-separated)</Label>
-                <Input
-                  id="edit-tags"
-                  value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="tag1, tag2, tag3"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-icon">Icon (emoji)</Label>
-                <Input
-                  id="edit-icon"
-                  value={formData.icon}
-                  onChange={e => setFormData({ ...formData, icon: e.target.value })}
-                  placeholder="🎬"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} disabled={!formData.title || !formData.prompt}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PromptForm
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={handleEdit}
+        mode="edit"
+        initialData={currentPrompt || undefined}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

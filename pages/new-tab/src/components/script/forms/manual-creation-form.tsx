@@ -1,5 +1,5 @@
-import { ModelSettings } from './model-settings';
-import CreatableSelect from '../script/creatable-select';
+import { ModelSettings } from '../settings/model-settings';
+import CreatableSelect from '../ui/creatable-select';
 import {
   Button,
   Select,
@@ -42,7 +42,7 @@ interface CreationFormProps {
   onCancel: () => void;
 }
 
-const CreationForm: React.FC<CreationFormProps> = ({ onGenerate, onImportJson, onImportFile, isLoading }) => {
+const ManualCreationForm: React.FC<CreationFormProps> = ({ onGenerate, onImportJson, onImportFile, isLoading }) => {
   const { apiKey, isApiKeySet } = useApiKey();
   const setSettingsModalOpen = useScriptsStore(s => s.setSettingsModalOpen);
   const { model, temperature, topP } = useModelSettings();
@@ -418,4 +418,4 @@ ${genres.join(', ')}`.trim();
   );
 };
 
-export default CreationForm;
+export default ManualCreationForm;

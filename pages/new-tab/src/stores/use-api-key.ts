@@ -1,4 +1,3 @@
-import { decryptData, encryptData } from './secure-storage';
 import { create } from 'zustand';
 
 interface ApiKeyStore {
@@ -13,10 +12,23 @@ const useApiKey = create<ApiKeyStore>((set, get) => ({
   apiKey: null,
   isLoaded: false,
   setApiKey: async k => {
-    const encryptedKey = k ? encryptData(k) : '';
-    // Sử dụng chrome.storage.local để lưu trữ an toàn
-    await chrome.storage.local.set({ apiKey: encryptedKey });
-    set({ apiKey: k });
+    try {
+      // Save to app_settings structure to match background handler
+      const result = await chrome.storage.local.get('app_settings');
+      const appSettings = result.app_settings || {};
+      const updatedSettings = {
+        ...appSettings,
+        apiKeys: {
+          ...(appSettings.apiKeys || {}),
+          gemini: k || '',
+          vbee: appSettings.apiKeys?.vbee || '',
+        },
+      };
+      await chrome.storage.local.set({ app_settings: updatedSettings });
+      set({ apiKey: k });
+    } catch (error) {
+      console.error('Không thể lưu API key:', error);
+    }
   },
   isApiKeySet: () => !!get().apiKey?.trim(),
   loadApiKey: async () => {
@@ -24,11 +36,10 @@ const useApiKey = create<ApiKeyStore>((set, get) => ({
     if (get().isLoaded) return;
 
     try {
-      // Lấy key đã mã hóa từ chrome.storage
-      const result = await chrome.storage.local.get('apiKey');
-      if (result.apiKey && typeof result.apiKey === 'string') {
-        const decryptedKey = decryptData(result.apiKey);
-        set({ apiKey: decryptedKey, isLoaded: true });
+      // Load from app_settings structure
+      const result = await chrome.storage.local.get('app_settings');
+      if (result.app_settings?.apiKeys?.gemini) {
+        set({ apiKey: result.app_settings.apiKeys.gemini, isLoaded: true });
       } else {
         set({ isLoaded: true }); // Đánh dấu đã tải xong dù không có key
       }

@@ -27,6 +27,7 @@ type ScriptsState = {
   exportData: () => Promise<void>;
   exportZip: () => Promise<void>;
   init: () => Promise<void>;
+  reloadFromDB: () => Promise<void>;
   selectScript: (id: number) => void;
   newScript: () => void;
   saveActiveScript: (script: ScriptStory) => Promise<void>;
@@ -101,6 +102,16 @@ const useScriptsStore = create<ScriptsState>()(
         if (scripts.length > 0 && !get().activeScript) {
           const latest = scripts[scripts.length - 1];
           get().selectScript(latest.id as number);
+        }
+      },
+
+      reloadFromDB: async () => {
+        try {
+          const scripts = await db.scripts.toArray();
+          set({ savedScripts: scripts });
+        } catch (err) {
+          console.error('Failed to reload scripts from DB:', err);
+          set({ scriptsError: 'Không thể tải lại danh sách kịch bản.' });
         }
       },
 
@@ -367,7 +378,7 @@ const useScriptsStore = create<ScriptsState>()(
         });
       },
 
-      addScript: async script => {
+      addScript: async (script): Promise<ScriptStory> => {
         try {
           const newId = await db.scripts.add(script);
           const scriptWithId = { ...script, id: newId } as ScriptStory;

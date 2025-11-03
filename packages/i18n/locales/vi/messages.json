@@ -1,0 +1,45 @@
+{
+  "extensionDescription": {
+    "description": "Extension description",
+    "message": "Chrome extension boilerplate được phát triển với Vite, React và Typescript"
+  },
+  "extensionName": {
+    "description": "Extension name",
+    "message": "Chrome extension boilerplate"
+  },
+  "toggleTheme": {
+    "message": "Chuyển đổi giao diện"
+  },
+  "injectButton": {
+    "message": "Nhấp để tiêm Content Scripts"
+  },
+  "greeting": {
+    "description": "Greeting message",
+    "message": "Xin chào, tên tôi là $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "John Doe"
+      }
+    }
+  },
+  "hello": {
+    "description": "Placeholder example",
+    "message": "Xin chào $1"
+  },
+  "displayErrorInfo": {
+    "message": "Đã xảy ra lỗi"
+  },
+  "displayErrorDescription": {
+    "message": "Xin lỗi, đã có lỗi xảy ra khi tải trang."
+  },
+  "displayErrorDetailsInfo": {
+    "message": "Chi tiết lỗi:"
+  },
+  "displayErrorUnknownErrorInfo": {
+    "message": "Lỗi không xác định"
+  },
+  "displayErrorReset": {
+    "message": "Chạy lại"
+  }
+}

@@ -1,12 +1,12 @@
 import { withErrorBoundary, withSuspense } from '@extension/shared';
 import { Button, ErrorDisplay, LoadingSpinner } from '@extension/ui';
-import AudioPlayer from '@src/components/script/audio-player';
-import ModelSettingsModal from '@src/components/script/model-settings-modal';
-import ResponsiveDetailLayout from '@src/components/script/responsive-detail-layout';
-import AssetDisplay from '@src/components/script/script-asset-display';
-import ScriptDisplay from '@src/components/script/script-display';
-import ScriptHeader from '@src/components/script/script-header';
-import ScriptTtsExportModal from '@src/components/script/script-tts-export-modal';
+import AssetDisplay from '@src/components/script/display/asset-display';
+import ScriptContent from '@src/components/script/display/content';
+import Header from '@src/components/script/display/header';
+import ResponsiveDetailLayout from '@src/components/script/display/responsive-detail-layout';
+import ModelSettings from '@src/components/script/modals/model-settings';
+import TtsExport from '@src/components/script/modals/tts-export';
+import AudioPlayer from '@src/components/script/ui/audio-player';
 import { useAssets } from '@src/hooks/use-assets';
 import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useApiKey } from '@src/stores/use-api-key';
@@ -86,15 +86,15 @@ const ScriptDetailPage = () => {
     <div>
       <AudioPlayer />
       {activeScript && (
-        <ModelSettingsModal
+        <ModelSettings
           isOpen={isModelSettingsOpen}
           onClose={() => setModelSettingsModalOpen(false)}
           onSave={() => {}}
         />
       )}
-      {activeScript && <ScriptTtsExportModal isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} />}
+      {activeScript && <TtsExport isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} />}
 
-      <ScriptHeader />
+      <Header />
       {error && <div className="error">{error}</div>}
       {isImporting && (
         <div
@@ -114,7 +114,7 @@ const ScriptDetailPage = () => {
           </div>
         ) : (
           <ResponsiveDetailLayout
-            scriptContent={<ScriptDisplay script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />}
+            scriptContent={<ScriptContent script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />}
             assetContent={<AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} setError={setError} />}
           />
         )}

@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react';
 import type { AspectRatio } from '@src/types';
 import type React from 'react';
 
-interface ImageGenerationModalProps {
+interface ImageGenerationProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (finalPrompt: string, finalNegativePrompt: string, finalAspectRatio: AspectRatio) => void;
@@ -26,7 +26,7 @@ interface ImageGenerationModalProps {
   isGenerating: boolean;
 }
 
-const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
+const ImageGeneration: React.FC<ImageGenerationProps> = ({
   isOpen,
   onClose,
   onSubmit,
@@ -130,4 +130,4 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
   );
 };
 
-export default ImageGenerationModal;
+export default ImageGeneration;

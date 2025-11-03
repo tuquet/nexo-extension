@@ -2,13 +2,13 @@ import { Button, Dialog, DialogPortal, DialogOverlay, DialogContent, DialogTitle
 import { useState } from 'react';
 import type React from 'react';
 
-interface JsonImportModalProps {
+interface JsonImportProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (jsonString: string) => void;
 }
 
-const JsonImportModal: React.FC<JsonImportModalProps> = ({ isOpen, onClose, onImport }) => {
+const JsonImport: React.FC<JsonImportProps> = ({ isOpen, onClose, onImport }) => {
   const [jsonText, setJsonText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -56,4 +56,4 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ isOpen, onClose, onIm
   );
 };
 
-export default JsonImportModal;
+export default JsonImport;

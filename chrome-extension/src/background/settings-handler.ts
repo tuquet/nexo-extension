@@ -19,6 +19,8 @@ interface AppSettings extends MessageAppSettings {
     ttsModel: string;
     temperature: number;
     topP: number;
+    topK: number;
+    maxOutputTokens: number;
   };
   preferences?: {
     aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
@@ -44,8 +46,10 @@ const DEFAULT_SETTINGS: AppSettings = {
     imageGeneration: DEFAULT_MODELS.imageGeneration,
     videoGeneration: DEFAULT_MODELS.videoGeneration,
     ttsModel: 'n_hanoi_male_baotrungreviewphim_review_vc',
-    temperature: 0.7,
-    topP: 1.0,
+    temperature: 1.2,
+    topP: 0.95,
+    topK: 50,
+    maxOutputTokens: 8192,
   },
   preferences: {
     aspectRatio: '16:9',
@@ -97,18 +101,13 @@ export const handleGetSettings = async (
     const settings = await getSettings();
     return {
       success: true,
-      data: {
-        geminiApiKey: settings.apiKeys?.gemini,
-        vbeeApiKey: settings.apiKeys?.vbee,
-        defaultLanguage: 'vi-VN',
-        defaultVoiceCode: settings.modelSettings?.ttsModel,
-      },
+      data: settings,
     };
   } catch (error) {
     return {
       success: false,
       error: {
-        message: error instanceof Error ? error.message : 'Failed to get settings',
+        message: error instanceof Error ? error.message : 'Không thể lấy cài đặt',
         code: 'SETTINGS_ERROR',
       },
     };
@@ -118,32 +117,16 @@ export const handleGetSettings = async (
 export const handleSaveSettings = async (message: SaveSettingsMessage): Promise<BaseResponse<void>> => {
   try {
     const { payload } = message;
-    const currentSettings = await getSettings();
-    const updateData: Partial<AppSettings> = {};
-
-    if (payload.geminiApiKey !== undefined || payload.vbeeApiKey !== undefined) {
-      updateData.apiKeys = {
-        gemini: payload.geminiApiKey ?? currentSettings.apiKeys?.gemini ?? '',
-        vbee: payload.vbeeApiKey ?? currentSettings.apiKeys?.vbee ?? '',
-      };
-    }
-    if (payload.defaultVoiceCode !== undefined && currentSettings.modelSettings) {
-      updateData.modelSettings = {
-        ...currentSettings.modelSettings,
-        ttsModel: payload.defaultVoiceCode,
-      };
-    }
-
-    const success = await saveSettings(updateData);
+    const success = await saveSettings(payload);
     if (success) {
       return { success: true };
     }
-    throw new Error('Failed to save settings');
+    throw new Error('Không thể lưu cài đặt');
   } catch (error) {
     return {
       success: false,
       error: {
-        message: error instanceof Error ? error.message : 'Failed to save settings',
+        message: error instanceof Error ? error.message : 'Không thể lưu cài đặt',
         code: 'SETTINGS_ERROR',
       },
     };

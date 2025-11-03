@@ -22,9 +22,14 @@ const GeneralTab = () => {
 
   useEffect(() => {
     // Load existing keys and status from chrome.storage
-    chrome.storage.local.get(['apiKey', 'vbee_token', 'apiKeyStatus', 'apiKeyStatusTimestamp'], result => {
-      if (result.apiKey) setApiKey(result.apiKey);
-      if (result.vbee_token) setVbeeToken(result.vbee_token);
+    chrome.storage.local.get(['app_settings', 'apiKeyStatus', 'apiKeyStatusTimestamp'], result => {
+      // Load API keys from app_settings structure
+      if (result.app_settings?.apiKeys?.gemini) {
+        setApiKey(result.app_settings.apiKeys.gemini);
+      }
+      if (result.app_settings?.apiKeys?.vbee) {
+        setVbeeToken(result.app_settings.apiKeys.vbee);
+      }
 
       // Restore API key status if cached and not expired (5 minutes)
       if (result.apiKeyStatus && result.apiKeyStatusTimestamp) {
@@ -56,19 +61,41 @@ const GeneralTab = () => {
 
   const handleSaveApiKey = async () => {
     try {
-      await chrome.storage.local.set({ apiKey });
-      toast.success('API key saved successfully');
+      // Save to app_settings structure
+      const result = await chrome.storage.local.get('app_settings');
+      const appSettings = result.app_settings || {};
+      const updatedSettings = {
+        ...appSettings,
+        apiKeys: {
+          ...(appSettings.apiKeys || {}),
+          gemini: apiKey,
+          vbee: appSettings.apiKeys?.vbee || '',
+        },
+      };
+      await chrome.storage.local.set({ app_settings: updatedSettings });
+      toast.success('API key đã được lưu thành công');
     } catch {
-      toast.error('Failed to save API key');
+      toast.error('Không thể lưu API key');
     }
   };
 
   const handleSaveVbeeToken = async () => {
     try {
-      await chrome.storage.local.set({ vbee_token: vbeeToken });
-      toast.success('Vbee token saved successfully');
+      // Save to app_settings structure
+      const result = await chrome.storage.local.get('app_settings');
+      const appSettings = result.app_settings || {};
+      const updatedSettings = {
+        ...appSettings,
+        apiKeys: {
+          ...(appSettings.apiKeys || {}),
+          gemini: appSettings.apiKeys?.gemini || '',
+          vbee: vbeeToken,
+        },
+      };
+      await chrome.storage.local.set({ app_settings: updatedSettings });
+      toast.success('Vbee token đã được lưu thành công');
     } catch {
-      toast.error('Failed to save Vbee token');
+      toast.error('Không thể lưu Vbee token');
     }
   };
 

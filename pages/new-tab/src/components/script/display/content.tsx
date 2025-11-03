@@ -1,5 +1,5 @@
-import EditableField from './editable-field';
-import SceneCard from './script-scene-card';
+import Scene from '../cards/scene';
+import EditableField from '../ui/editable-field';
 import { Badge, Button, Textarea } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useEffect, useState, useRef } from 'react';
@@ -8,13 +8,13 @@ import type { FC } from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
 
-interface ScriptDisplayProps {
+interface ScriptContentProps {
   script: ScriptStory;
   language: 'en-US' | 'vi-VN';
   viewMode: ScriptViewMode;
 }
 
-const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) => {
+const ScriptContent: FC<ScriptContentProps> = ({ script, language, viewMode }) => {
   const updateRootField = useScriptsStore(s => s.updateRootField);
   const updateActSummary = useScriptsStore(s => s.updateActSummary);
   const activeSceneIdentifier = useScriptsStore(s => s.activeSceneIdentifier);
@@ -138,7 +138,7 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
                       : 'hover:ring-primary/50 hover:ring-2'
                   }`}
                   id={`scene-${actIndex}-${sceneIndex}`}>
-                  <SceneCard actIndex={actIndex} sceneIndex={sceneIndex} scene={scene} language={language} />
+                  <Scene actIndex={actIndex} sceneIndex={sceneIndex} scene={scene} language={language} />
                 </div>
               );
             })}
@@ -149,4 +149,4 @@ const ScriptDisplay: FC<ScriptDisplayProps> = ({ script, language, viewMode }) =
   );
 };
 
-export default ScriptDisplay;
+export default ScriptContent;

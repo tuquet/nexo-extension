@@ -142,12 +142,14 @@ export interface GeminiGenerateScriptMessage extends BaseMessage {
   payload: {
     prompt: string;
     language: 'en-US' | 'vi-VN';
-    apiKey: string;
-    modelName: string;
-    temperature: number;
-    topP: number;
-    topK: number;
-    maxOutputTokens: number;
+    apiKey?: string;
+    modelName?: string;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    maxOutputTokens?: number;
+    systemInstruction?: string;
+    customSchema?: unknown;
   };
 }
 
@@ -242,10 +244,25 @@ export type VbeeGetProjectStatusResponse = BaseResponse<VbeeProjectStatusRespons
 // ============================================================================
 
 export interface AppSettings {
-  geminiApiKey?: string;
-  vbeeApiKey?: string;
-  defaultLanguage?: 'en-US' | 'vi-VN';
-  defaultVoiceCode?: string;
+  apiKeys?: {
+    gemini: string;
+    vbee: string;
+  };
+  modelSettings?: {
+    scriptGeneration: string;
+    plotSuggestion: string;
+    imageGeneration: string;
+    videoGeneration: string;
+    ttsModel: string;
+    temperature: number;
+    topP: number;
+    topK: number;
+    maxOutputTokens: number;
+  };
+  preferences?: {
+    aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
+    theme: 'light' | 'dark' | 'system';
+  };
 }
 
 export interface GetSettingsMessage extends BaseMessage {
@@ -260,6 +277,29 @@ export interface SaveSettingsMessage extends BaseMessage {
 }
 
 export type SaveSettingsResponse = BaseResponse<void>;
+
+// ============================================================================
+// Script Automation Messages
+// ============================================================================
+
+export interface SaveGeneratedScriptMessage extends BaseMessage {
+  type: 'SAVE_GENERATED_SCRIPT';
+  payload: {
+    scriptJSON: string;
+  };
+}
+
+export type SaveGeneratedScriptResponse = BaseResponse<{ scriptId: number }>;
+
+export interface CloseCurrentTabMessage extends BaseMessage {
+  type: 'CLOSE_CURRENT_TAB';
+}
+
+export type CloseCurrentTabResponse = BaseResponse<void>;
+
+// ============================================================================
+// Browser Automation Messages
+// ============================================================================
 
 // ============================================================================
 // Gemini UI Automation Messages (existing)
@@ -279,6 +319,34 @@ export interface GenerateScriptFromPromptMessage extends BaseMessage {
     prompt: string;
   };
 }
+
+// ============================================================================
+// Enhanced Prompt-Based Generation Messages
+// ============================================================================
+
+export interface GenerateWithPromptTemplateMessage extends BaseMessage {
+  type: 'GENERATE_WITH_PROMPT_TEMPLATE';
+  payload: {
+    promptId: number; // ID of PromptRecord to use
+    userInput: string; // User's actual input/query
+    variables?: Record<string, string>; // Variable replacements for {{variable}} syntax
+    language?: 'en-US' | 'vi-VN';
+    contextData?: {
+      // Optional context injection
+      scriptId?: number;
+      characterIds?: string[];
+    };
+  };
+}
+
+export type GenerateWithPromptTemplateResponse = BaseResponse<{
+  result: unknown; // Type depends on prompt's outputFormat
+  promptUsed: {
+    id: number;
+    title: string;
+    category: string;
+  };
+}>;
 
 // ============================================================================
 // API Key Validation Messages
@@ -349,8 +417,11 @@ export type BackgroundMessage =
   | VbeeGetProjectStatusMessage
   | GetSettingsMessage
   | SaveSettingsMessage
+  | SaveGeneratedScriptMessage
+  | CloseCurrentTabMessage
   | PrimeGeminiMessage
   | GenerateScriptFromPromptMessage
+  | GenerateWithPromptTemplateMessage
   | TestGeminiConnectionMessage
   | AutoFillGeminiPromptMessage
   | OpenExtensionPageMessage;
@@ -365,9 +436,12 @@ export type BackgroundResponse =
   | VbeeGetProjectStatusResponse
   | GetSettingsResponse
   | SaveSettingsResponse
+  | SaveGeneratedScriptResponse
+  | CloseCurrentTabResponse
   | TestGeminiConnectionResponse
   | AutoFillGeminiPromptResponse
   | OpenExtensionPageResponse
+  | GenerateWithPromptTemplateResponse
   | BaseResponse;
 
 // ============================================================================

@@ -5,13 +5,9 @@ import { persist } from 'zustand/middleware';
 import type { AspectRatio } from '@src/types';
 // ...existing code...
 
-type Theme = 'light' | 'dark' | 'system';
 type ContainerSize = 'narrow' | 'normal' | 'wide' | 'fluid';
 
 type PreferencesState = {
-  theme: Theme;
-  setTheme: (t: Theme) => void;
-  toggleTheme: () => void;
   compactMode: boolean;
   setCompactMode: (v: boolean) => void;
   fontScale: number;
@@ -32,9 +28,6 @@ const SIZES: ContainerSize[] = ['narrow', 'normal', 'wide', 'fluid'];
 const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set, get) => ({
-      theme: 'system',
-      setTheme: t => set({ theme: t }),
-      toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       compactMode: false,
       setCompactMode: v => set({ compactMode: v }),
       fontScale: 1,
@@ -48,7 +41,6 @@ const usePreferencesStore = create<PreferencesState>()(
       },
       resetPreferences: () =>
         set({
-          theme: 'system',
           compactMode: false,
           fontScale: 1,
           containerSize: 'normal',
@@ -80,7 +72,6 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
         const store = usePreferencesStore.getState();
         // Only update if values actually changed to avoid infinite loops
         if (
-          newPrefs.state.theme !== store.theme ||
           newPrefs.state.containerSize !== store.containerSize ||
           newPrefs.state.compactMode !== store.compactMode ||
           newPrefs.state.fontScale !== store.fontScale ||
@@ -88,7 +79,6 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
           newPrefs.state.typingDelay !== store.typingDelay
         ) {
           usePreferencesStore.setState({
-            theme: newPrefs.state.theme || store.theme,
             containerSize: newPrefs.state.containerSize || store.containerSize,
             compactMode: newPrefs.state.compactMode ?? store.compactMode,
             fontScale: newPrefs.state.fontScale ?? store.fontScale,

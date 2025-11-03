@@ -43,7 +43,7 @@ interface ScriptTtsAssetCardProps {
   script: ScriptStory | null;
 }
 
-const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script }) => {
+const TtsAsset: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script }) => {
   // Always call hooks at the top level
   const vbeeProjectId = script?.buildMeta?.vbeeProjectId;
 
@@ -452,4 +452,4 @@ const ScriptTtsAssetCard: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, 
   );
 };
 
-export default ScriptTtsAssetCard;
+export default TtsAsset;

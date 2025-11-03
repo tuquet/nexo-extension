@@ -1,5 +1,5 @@
-import CreateScriptForm from '@src/components/script/create-script-form';
+import CreateForm from '@src/components/script/forms/create-form';
 
-const createPage = () => <CreateScriptForm />;
+const CreatePage = () => <CreateForm />;
 
-export default createPage;
+export default CreatePage;

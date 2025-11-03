@@ -197,6 +197,16 @@ importers:
         specifier: ^9.5.2
         version: 9.5.4(typescript@5.9.3)(webpack@5.94.0)
 
+  packages/database:
+    dependencies:
+      dexie:
+        specifier: ^4.0.11
+        version: 4.2.1
+    devDependencies:
+      '@extension/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+
   packages/dev-utils:
     devDependencies:
       '@extension/shared':
@@ -559,6 +569,9 @@ importers:
       '@ant-design/v5-patch-for-react-19':
         specifier: ^1.0.3
         version: 1.0.3(antd@5.28.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@extension/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@extension/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -682,6 +695,9 @@ importers:
 
   pages/side-panel:
     dependencies:
+      '@extension/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@extension/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

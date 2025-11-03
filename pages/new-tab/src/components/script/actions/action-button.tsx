@@ -1,4 +1,4 @@
-import ScriptTtsExportModal from './script-tts-export-modal';
+import TtsExport from '../modals/tts-export';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import { FileJson, ChevronDown, Trash, FolderDown, MicVocal, Wand2 } from 'lucid
 import { useState, useRef } from 'react';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
 
-const ScriptActionButton = () => {
+const ActionButton = () => {
   const activeScript = useScriptsStore((s: ScriptsState) => s.activeScript);
   const deleteActiveScript = useScriptsStore((s: ScriptsState) => s.deleteActiveScript);
   const [confirmationPending, setConfirmationPending] = useState<'deleteScript' | null>(null);
@@ -98,9 +98,9 @@ const ScriptActionButton = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
-      <ScriptTtsExportModal isOpen={isVbeeModalOpen} onClose={() => setIsVbeeModalOpen(false)} />
+      <TtsExport isOpen={isVbeeModalOpen} onClose={() => setIsVbeeModalOpen(false)} />
     </>
   );
 };
 
-export default ScriptActionButton;
+export default ActionButton;

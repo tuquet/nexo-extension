@@ -22,7 +22,10 @@ export const openSidePanel = async (): Promise<void> => {
   try {
     // Chrome 114+ supports sidePanel API
     if (chrome.sidePanel) {
-      await chrome.sidePanel.open();
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.windowId) {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+      }
     } else {
       console.warn('Side panel API not available');
     }

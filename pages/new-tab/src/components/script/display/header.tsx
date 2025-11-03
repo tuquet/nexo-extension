@@ -1,4 +1,4 @@
-import ScriptActionButton from './script-action-button';
+import ActionButton from '../actions/action-button';
 import {
   Button,
   Select,
@@ -21,7 +21,7 @@ import type React from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
 
-const ScriptHeader: React.FC = () => {
+const Header: React.FC = () => {
   const navigate = useNavigate();
   const { id: idFromUrl } = useParams<{ id: string }>();
   const scripts = useScriptsStore((s: ScriptsState) => s.savedScripts);
@@ -93,11 +93,11 @@ const ScriptHeader: React.FC = () => {
           <Button variant="outline" onClick={() => setModelSettingsModalOpen(true)} disabled={!activeScript}>
             <Settings className="mr-2 h-4 w-4" /> Tùy chỉnh Model
           </Button>
-          <ScriptActionButton />
+          <ActionButton />
         </div>
       </div>
     </div>
   );
 };
 
-export default ScriptHeader;
+export default Header;

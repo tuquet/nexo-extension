@@ -29,12 +29,12 @@ import { useState, useEffect, useCallback } from 'react';
 import type { VbeeTransformationResult } from '@src/services/vbee-service';
 import type React from 'react';
 
-interface ScriptTtsExportModalProps {
+interface TtsExportProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onClose }) => {
+const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
   const activeScript = useScriptsStore(s => s.activeScript);
   const [projectJsonText, setProjectJsonText] = useState(''); // Payload for Project tab
   const [plainText, setPlainText] = useState(''); // Plain text for TTS tab
@@ -303,4 +303,4 @@ const ScriptTtsExportModal: React.FC<ScriptTtsExportModalProps> = ({ isOpen, onC
   );
 };
 
-export default ScriptTtsExportModal;
+export default TtsExport;
