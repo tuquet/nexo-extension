@@ -9,8 +9,8 @@ const SidePanel = () => {
   const { isLight } = useStorage(exampleThemeStorage);
 
   return (
-    <div className={cn('flex h-screen flex-col', isLight ? 'bg-slate-50' : 'bg-gray-900')}>
-      <main className="flex-grow overflow-y-auto">
+    <div className={cn('flex h-screen max-h-screen flex-col overflow-hidden', isLight ? 'bg-slate-50' : 'bg-gray-900')}>
+      <main className="flex flex-1 flex-col overflow-y-auto">
         <Routes>
           <Route path="/" element={<HomePage />} />
           {/* Bạn có thể thêm các route khác ở đây */}

@@ -168,6 +168,7 @@ export const buildGenerationFormData = (
 
 /**
  * Format full prompt for clipboard copy
+ * Includes system instruction, user prompt, AND JSON schema guide
  * Both prompt and systemInstruction should already have variables replaced
  */
 export const formatFullPromptForClipboard = (
@@ -183,7 +184,14 @@ export const formatFullPromptForClipboard = (
     finalSystemInstruction = replaceVariables(finalSystemInstruction, variableValues);
   }
 
-  return `--- SYSTEM PROMPT ---\n${finalSystemInstruction}\n\n--- USER PROMPT ---\n${prompt}`;
+  return `--- SYSTEM PROMPT ---
+${finalSystemInstruction}
+
+--- USER PROMPT ---
+${prompt}
+
+--- REQUIRED JSON OUTPUT SCHEMA ---
+${READABLE_SCRIPT_SCHEMA_GUIDE}`;
 };
 
 /**

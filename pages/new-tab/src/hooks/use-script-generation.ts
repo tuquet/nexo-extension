@@ -65,31 +65,70 @@ export const useScriptGeneration = () => {
 
   const generateWithAutomate = useCallback(async (formData: GenerationFormData) => {
     try {
-      const currentWindow = await chrome.windows.getCurrent();
-
-      if (!currentWindow?.id) {
-        toast.error(ERROR_MESSAGES.SIDE_PANEL_FAILED, {
-          description: ERROR_MESSAGES.WINDOW_NOT_FOUND,
-        });
-        return { success: false, error: ERROR_MESSAGES.WINDOW_NOT_FOUND } as const;
-      }
-
-      await chrome.sidePanel.open({ windowId: currentWindow.id });
-
       // Build full prompt with system instruction + user prompt + JSON schema guide
       const fullPrompt = formatPromptForAutomation(formData.prompt, formData.systemInstruction, formData.language);
 
-      await chrome.storage.local.set({
-        automatePromptData: {
-          prompt: fullPrompt, // Full context including schema
-          systemInstruction: formData.systemInstruction,
+      // NEW: Direct automation without side-panel
+      // Send message to background to trigger automation
+      const GEMINI_STUDIO_URL = 'https://aistudio.google.com/';
+
+      // Find or create AI Studio tab
+      const tabs = await chrome.tabs.query({ url: `${GEMINI_STUDIO_URL}*` });
+      let targetTab: chrome.tabs.Tab;
+
+      if (tabs.length > 0 && tabs[0]) {
+        // Use existing tab
+        targetTab = tabs[0];
+        if (targetTab.id) {
+          await chrome.tabs.update(targetTab.id, { active: true });
+        }
+      } else {
+        // Create new tab
+        targetTab = await chrome.tabs.create({ url: GEMINI_STUDIO_URL, active: true });
+      }
+
+      if (!targetTab.id) {
+        throw new Error('Failed to get tab ID');
+      }
+
+      // Wait for tab to load
+      await new Promise<void>(resolve => {
+        const listener = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+          if (tabId === targetTab.id && changeInfo.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
+          }
+        };
+        chrome.tabs.onUpdated.addListener(listener);
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }, 10000);
+      });
+
+      // Inject content script and run full automation
+      await chrome.scripting.executeScript({
+        target: { tabId: targetTab.id },
+        files: ['content-runtime/geminiAutoFill.iife.js'],
+      });
+
+      // Wait for content script to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Send AUTOMATE_FULL_FLOW message to content script
+      await chrome.tabs.sendMessage(targetTab.id, {
+        type: 'AUTOMATE_FULL_FLOW',
+        payload: {
+          prompt: fullPrompt,
           language: formData.language,
-          timestamp: Date.now(),
+          maxWaitTime: 120000, // 2 minutes
         },
       });
 
-      toast.success(SUCCESS_MESSAGES.SIDE_PANEL_OPENED, {
-        description: SUCCESS_MESSAGES.SIDE_PANEL_DESCRIPTION,
+      toast.success('Automation started', {
+        description: 'AI Studio is generating your script. The tab will close automatically when done.',
       });
 
       return { success: true } as const;

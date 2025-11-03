@@ -126,9 +126,13 @@ const Popup = () => {
   };
 
   return (
-    <div className={cn('min-h-[400px] w-[340px]', isLight ? 'bg-background' : 'bg-background')}>
+    <div
+      className={cn(
+        'flex h-[600px] max-h-[600px] w-[340px] flex-col overflow-hidden',
+        isLight ? 'bg-background' : 'bg-background',
+      )}>
       {/* Header */}
-      <div className="from-primary/10 to-primary/5 border-b bg-gradient-to-r px-4 py-3">
+      <div className="from-primary/10 to-primary/5 shrink-0 border-b bg-gradient-to-r px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg font-bold">
             CG
@@ -141,7 +145,7 @@ const Popup = () => {
       </div>
 
       {/* Main Content */}
-      <div className="space-y-3 p-3">
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
         {/* Quick Actions */}
         <Card>
           <CardHeader className="pb-3">
@@ -217,7 +221,7 @@ const Popup = () => {
       </div>
 
       {/* Footer */}
-      <div className="border-t px-4 py-2">
+      <div className="shrink-0 border-t px-4 py-2">
         <p className="text-muted-foreground text-center text-xs">v0.5.0 • CineGenie Extension</p>
       </div>
     </div>
