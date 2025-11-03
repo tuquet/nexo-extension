@@ -62,4 +62,70 @@ export class PageOpenerService implements IPageOpenerService {
       console.warn('Action API openPopup not available');
     }
   }
+
+  /**
+   * Open extension page (new-tab, options, popup, side-panel, etc.)
+   *
+   * @param params Page name, window options
+   * @returns Tab ID and window ID if opened
+   */
+  async openExtensionPage(params: {
+    page: string;
+    newWindow?: boolean;
+    windowOptions?: {
+      type?: 'normal' | 'popup';
+      width?: number;
+      height?: number;
+      left?: number;
+      top?: number;
+    };
+  }): Promise<{ tabId?: number; windowId?: number }> {
+    const { page, newWindow, windowOptions } = params;
+
+    // Special handling for side panel
+    if (page === 'side-panel') {
+      await this.openSidePanel();
+      return {};
+    }
+
+    // Build URL for extension page
+    const url = chrome.runtime.getURL(`${page}/index.html`);
+
+    if (newWindow) {
+      // Open in new window
+      const window = await chrome.windows.create({
+        url,
+        type: windowOptions?.type || 'popup',
+        width: windowOptions?.width || 800,
+        height: windowOptions?.height || 600,
+        left: windowOptions?.left,
+        top: windowOptions?.top,
+      });
+
+      return {
+        tabId: window.tabs?.[0]?.id,
+        windowId: window.id,
+      };
+    } else {
+      // Open in new tab
+      const tab = await chrome.tabs.create({ url, active: true });
+      return {
+        tabId: tab.id,
+        windowId: tab.windowId,
+      };
+    }
+  }
+
+  /**
+   * Close current tab
+   *
+   * Gets current tab and closes it.
+   * Useful for closing automation tabs after completion.
+   */
+  async closeCurrentTab(): Promise<void> {
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (currentTab?.id) {
+      await chrome.tabs.remove(currentTab.id);
+    }
+  }
 }

@@ -143,4 +143,36 @@ export interface IPageOpenerService {
   openSidePanel(): Promise<void>;
   openNewTab(url?: string): Promise<void>;
   openPopup(): Promise<void>;
+  openExtensionPage(params: {
+    page: string;
+    newWindow?: boolean;
+    windowOptions?: {
+      type?: 'normal' | 'popup';
+      width?: number;
+      height?: number;
+      left?: number;
+      top?: number;
+    };
+  }): Promise<{ tabId?: number; windowId?: number }>;
+  closeCurrentTab(): Promise<void>;
+}
+
+/**
+ * Automation Service interface - browser automation
+ */
+export interface IAutomationService {
+  autoFillGeminiPrompt(params: {
+    prompt: string;
+    autoSend?: boolean;
+    typingDelay?: number;
+  }): Promise<{ success: boolean }>;
+  findOrCreateTab(url: string): Promise<chrome.tabs.Tab>;
+  injectContentScript(tabId: number, scriptPath: string): Promise<void>;
+}
+
+/**
+ * Script Service interface - database operations via messaging
+ */
+export interface IScriptService {
+  saveGeneratedScript(scriptJSON: string): Promise<{ scriptId: number }>;
 }

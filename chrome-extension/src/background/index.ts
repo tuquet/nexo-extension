@@ -17,17 +17,24 @@
 import 'webextension-polyfill';
 import { container } from './core/di-container';
 import { router, initializeMessageRouter } from './core/router';
+import { AutoFillPromptHandler } from './handlers/auto-fill-prompt-handler';
+import { CloseTabHandler } from './handlers/close-tab-handler';
 import { EnhanceTextHandler } from './handlers/enhance-text-handler';
 import { GenerateImageHandler } from './handlers/generate-image-handler';
 import { GenerateScriptHandler } from './handlers/generate-script-handler';
 import { GenerateVideoHandler } from './handlers/generate-video-handler';
+import { OpenExtensionPageHandler } from './handlers/open-extension-page-handler';
+import { SaveScriptHandler } from './handlers/save-script-handler';
 import { GetSettingsHandler, SaveSettingsHandler } from './handlers/settings-handlers';
 import { SuggestPlotsHandler } from './handlers/suggest-plots-handler';
+import { TestConnectionHandler } from './handlers/test-connection-handler';
 import { VbeeCreateProjectHandler } from './handlers/vbee-create-project-handler';
 import { VbeeGetProjectStatusHandler } from './handlers/vbee-get-project-status-handler';
+import { AutomationService } from './services/automation-service';
 import { ChromeSettingsService } from './services/chrome-settings-service';
 import { GeminiAIService } from './services/gemini-ai-service';
 import { PageOpenerService } from './services/page-opener-service';
+import { ScriptService } from './services/script-service';
 import { VbeeTTSService } from './services/vbee-tts-service';
 import { initializeVbeeTokenListener } from './vbee-token-handler';
 
@@ -45,8 +52,17 @@ const initializeServices = (): void => {
   container.registerSingleton('settingsService', () => new ChromeSettingsService());
   container.registerSingleton('ttsService', () => new VbeeTTSService());
   container.registerSingleton('pageOpenerService', () => new PageOpenerService());
+  container.registerSingleton('automationService', () => new AutomationService());
+  container.registerSingleton('scriptService', () => new ScriptService());
 
-  console.log('[Background] Services registered:', ['aiService', 'settingsService', 'ttsService', 'pageOpenerService']);
+  console.log('[Background] Services registered:', [
+    'aiService',
+    'settingsService',
+    'ttsService',
+    'pageOpenerService',
+    'automationService',
+    'scriptService',
+  ]);
 };
 
 /**
@@ -62,6 +78,9 @@ const initializeHandlers = (): void => {
   const aiService = container.resolve<GeminiAIService>('aiService');
   const settingsService = container.resolve<ChromeSettingsService>('settingsService');
   const ttsService = container.resolve<VbeeTTSService>('ttsService');
+  const pageOpenerService = container.resolve<PageOpenerService>('pageOpenerService');
+  const automationService = container.resolve<AutomationService>('automationService');
+  const scriptService = container.resolve<ScriptService>('scriptService');
 
   // Create handlers with DI
   const generateScriptHandler = new GenerateScriptHandler(aiService, settingsService);
@@ -76,6 +95,12 @@ const initializeHandlers = (): void => {
   const getSettingsHandler = new GetSettingsHandler(settingsService);
   const saveSettingsHandler = new SaveSettingsHandler(settingsService);
 
+  const autoFillPromptHandler = new AutoFillPromptHandler(automationService, settingsService);
+  const saveScriptHandler = new SaveScriptHandler(scriptService);
+  const openExtensionPageHandler = new OpenExtensionPageHandler(pageOpenerService);
+  const closeTabHandler = new CloseTabHandler(pageOpenerService);
+  const testConnectionHandler = new TestConnectionHandler(aiService);
+
   // Register with router
   router.register('GENERATE_SCRIPT', generateScriptHandler);
   router.register('GENERATE_SCENE_IMAGE', generateImageHandler);
@@ -89,6 +114,12 @@ const initializeHandlers = (): void => {
   router.register('GET_SETTINGS', getSettingsHandler);
   router.register('SAVE_SETTINGS', saveSettingsHandler);
 
+  router.register('AUTO_FILL_GEMINI_PROMPT', autoFillPromptHandler);
+  router.register('SAVE_GENERATED_SCRIPT', saveScriptHandler);
+  router.register('OPEN_EXTENSION_PAGE', openExtensionPageHandler);
+  router.register('CLOSE_CURRENT_TAB', closeTabHandler);
+  router.register('TEST_GEMINI_CONNECTION', testConnectionHandler);
+
   console.log('[Background] Handlers registered:', [
     'GENERATE_SCRIPT',
     'GENERATE_SCENE_IMAGE',
@@ -99,6 +130,11 @@ const initializeHandlers = (): void => {
     'GET_VBEE_PROJECT_STATUS',
     'GET_SETTINGS',
     'SAVE_SETTINGS',
+    'AUTO_FILL_GEMINI_PROMPT',
+    'SAVE_GENERATED_SCRIPT',
+    'OPEN_EXTENSION_PAGE',
+    'CLOSE_CURRENT_TAB',
+    'TEST_GEMINI_CONNECTION',
   ]);
 };
 
