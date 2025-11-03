@@ -3,7 +3,7 @@
  * Used by both AI Studio and Gemini Web content scripts
  */
 
-import type { DebugLogger } from './content-debug-logger';
+import type { ContentDebugLogger } from './content-debug-logger';
 
 /**
  * Clean up JSON string (remove invalid characters, fix common AI mistakes)
@@ -38,7 +38,7 @@ export const cleanupJSON = (jsonString: string): string => {
  * 3. Extract balanced JSON object (proper { } nesting)
  * 4. Fallback to regex match
  */
-export const extractJSON = (responseElement: HTMLElement, debugLogger: DebugLogger): string => {
+export const extractJSON = (responseElement: HTMLElement, debugLogger: ContentDebugLogger): string => {
   console.log('[Script Extraction] Extracting JSON from response...');
   debugLogger.debug('Starting JSON extraction');
 
@@ -118,7 +118,7 @@ export const extractJSON = (responseElement: HTMLElement, debugLogger: DebugLogg
  * Validate JSON structure for script
  * Enhanced with detailed error logging and debug info
  */
-export const validateScriptJSON = (jsonString: string, debugLogger: DebugLogger): boolean => {
+export const validateScriptJSON = (jsonString: string, debugLogger: ContentDebugLogger): boolean => {
   try {
     console.log('[Script Extraction] Validating JSON structure...');
     debugLogger.debug('Starting JSON validation', {
@@ -202,7 +202,7 @@ export const extractErrorPosition = (errorMessage: string): number | null => {
 /**
  * Save generated script via background service worker
  */
-export const saveScriptToDatabase = async (scriptJSON: string, debugLogger: DebugLogger): Promise<void> => {
+export const saveScriptToDatabase = async (scriptJSON: string, debugLogger: ContentDebugLogger): Promise<void> => {
   console.log('[Script Extraction] Saving script to database...');
   debugLogger.info('Saving script to database');
 
