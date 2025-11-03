@@ -68,23 +68,35 @@ export const useScriptGeneration = () => {
       // Build full prompt with system instruction + user prompt + JSON schema guide
       const fullPrompt = formatPromptForAutomation(formData.prompt, formData.systemInstruction, formData.language);
 
-      // NEW: Direct automation without side-panel
-      // Send message to background to trigger automation
-      const GEMINI_STUDIO_URL = 'https://aistudio.google.com/';
+      // Determine platform and URLs
+      const platform = formData.platform || 'aistudio'; // Default to AI Studio
+      const PLATFORM_CONFIG = {
+        aistudio: {
+          url: 'https://aistudio.google.com/',
+          script: 'content-runtime/aistudio.iife.js',
+          name: 'AI Studio',
+        },
+        'gemini-web': {
+          url: 'https://gemini.google.com/app',
+          script: 'content-runtime/gemini.iife.js',
+          name: 'Gemini Web',
+        },
+      };
 
-      // Find or create AI Studio tab
-      const tabs = await chrome.tabs.query({ url: `${GEMINI_STUDIO_URL}*` });
+      const config = PLATFORM_CONFIG[platform];
+      console.log(`[Script Generation] Using platform: ${config.name}`);
+
+      // Find or create tab for selected platform
+      const tabs = await chrome.tabs.query({ url: `${config.url}*` });
       let targetTab: chrome.tabs.Tab;
 
       if (tabs.length > 0 && tabs[0]) {
-        // Use existing tab
         targetTab = tabs[0];
         if (targetTab.id) {
           await chrome.tabs.update(targetTab.id, { active: true });
         }
       } else {
-        // Create new tab
-        targetTab = await chrome.tabs.create({ url: GEMINI_STUDIO_URL, active: true });
+        targetTab = await chrome.tabs.create({ url: config.url, active: true });
       }
 
       if (!targetTab.id) {
@@ -101,20 +113,18 @@ export const useScriptGeneration = () => {
         };
         chrome.tabs.onUpdated.addListener(listener);
 
-        // Timeout after 10 seconds
         setTimeout(() => {
           chrome.tabs.onUpdated.removeListener(listener);
           resolve();
         }, 10000);
       });
 
-      // Inject content script and run full automation
+      // Inject platform-specific content script
       await chrome.scripting.executeScript({
         target: { tabId: targetTab.id },
-        files: ['content-runtime/geminiAutoFill.iife.js'],
+        files: [config.script],
       });
 
-      // Wait for content script to initialize
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Send AUTOMATE_FULL_FLOW message to content script

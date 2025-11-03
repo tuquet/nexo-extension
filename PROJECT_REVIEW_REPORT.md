@@ -209,10 +209,10 @@ Phát hiện: 30+ console.log statements còn lại
 **Phân loại:**
 - ✅ OK: Logging hệ thống (seed prompts, service init) - 5 cases
 - ⚠️ Nên xóa: Debug logs trong production - 20+ cases
-- ❌ BAD: Verbose logs trong automation - 15+ cases (geminiAutoFill)
+- ❌ BAD: Verbose logs trong automation - 15+ cases (gemini-autofill)
 
 **Files có nhiều console.log:**
-1. `pages/content-runtime/src/matches/geminiAutoFill/index.ts` (25+ logs)
+1. `pages/content-runtime/src/matches/gemini-autofill/index.ts` (25+ logs)
 2. `pages/new-tab/src/stores/use-scripts-store.ts` (3 logs)
 
 **Giải pháp:**

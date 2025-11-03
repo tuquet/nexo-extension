@@ -12,42 +12,41 @@ import type { GenerationFormData } from '@src/types/script-generation';
  * Simplified version for user guidance (not the actual API schema)
  */
 const READABLE_SCRIPT_SCHEMA_GUIDE = `
-JSON Output Structure:
 {
-  "title": "Tiêu đề phim hấp dẫn",
-  "alias": "tieu-de-alias-webfriendly",
-  "logline": "Tóm tắt câu chuyện trong một câu",
-  "genre": ["Thể loại 1", "Thể loại 2"],
-  "tone": "Tông điệu tổng thể (vd: tối tăm, hài hước)",
-  "themes": ["Chủ đề 1", "Chủ đề 2"],
-  "notes": "Ghi chú sản xuất hoặc tầm nhìn đạo diễn",
+  "title": "YOUTUBE VIDEO TITLE (Must contain main keyword + be compelling) - [Max 60 characters for best display]",
+  "alias": "url-webfriendly-alias-with-keywords", // Slug URL/File Name: KEYWORD ONLY, no spaces, hyphenated (e.g., 'best-horror-film-explained')
+  "logline": "STORY SUMMARY (Use target keywords, answer 'Why watch this?') - This will serve as the short video description.",
+  "genre": ["Genre 1", "Genre 2"],
+  "tone": "Overall tone (e.g., dark, comedic, epic)",
+  "themes": ["Theme 1", "Theme 2"],
+  "notes": "Production notes or directorial vision",
   "setting": {
-    "time": "Khoảng thời gian (vd: Hiện đại, 2075)",
-    "location": "Địa điểm chính (vd: Tokyo, Mars)"
+    "time": "Time period (e.g., Modern day, 2075, WWII)",
+    "location": "Main location (e.g., Tokyo, Mars, Remote Cabin)"
   },
   "characters": [
     {
-      "name": "Tên nhân vật",
-      "roleId": "protagonist/mentor/narrator (camelCase, không dấu)",
-      "description": "Mô tả tính cách, ngoại hình, động lực"
+      "name": "Character Name",
+      "roleId": "unique-role-id (camelCase, no accents)", // Revised for flexibility (e.g., theDetective, mentorBob)
+      "description": "Description of personality, appearance, motivation"
     }
   ],
   "acts": [
     {
       "act_number": 1,
-      "summary": "Tóm tắt các sự kiện trong hồi này",
+      "summary": "Summary of events in this act",
       "scenes": [
         {
           "scene_number": 1,
-          "location": "Địa điểm cụ thể",
+          "location": "Specific location (INT. OFFICE / EXT. STREET)",
           "time": "Day/Night",
-          "action": "Mô tả hành động và sự kiện",
-          "visual_style": "Phong cách thị giác (vd: High-contrast lighting)",
-          "audio_style": "Phong cách âm thanh (vd: Orchestral score)",
+          "action": "Description of actions and events",
+          "visual_style": "Visual style (e.g., High-contrast lighting, handheld camera)",
+          "audio_style": "Audio style (e.g., Orchestral score, ambient street noise)",
           "dialogues": [
             {
-              "roleId": "protagonist (PHẢI khớp với characters)",
-              "line": "Lời thoại (CHỈ lời nói, không hành động)"
+              "roleId": "unique-role-id (MUST match characters)", // Must match the unique roleId defined above
+              "line": "Dialogue (ONLY spoken words, no actions or parentheticals)"
             }
           ]
         }
@@ -56,12 +55,14 @@ JSON Output Structure:
   ]
 }
 
-⚠️ LƯU Ý QUAN TRỌNG:
-1. PHẢI có nhân vật với roleId "narrator" để dẫn truyện/thuyết minh
-2. Với cảnh không có lời thoại, tạo entry narrator với nội dung = action field
-3. roleId trong dialogues PHẢI khớp với roleId trong mảng characters
-4. Trường "line" CHỈ chứa lời nói, không có hành động hay chú thích
-5. Cấu trúc 3 hồi: Hồi 1 (25%), Hồi 2 (50%), Hồi 3 (25%)
+⚠️ IMPORTANT NOTES FOR YOUTUBE SEO:
+1. TITLE: Must be highly engaging (mildly clickbait) and contain the main target keyword near the beginning.
+2. ALIAS: Must be the URL-friendly version of the Title (e.g., 'best-horror-film-explained').
+3. LOGLINE: Should be the opening lines of the video Description, using target keywords (e.g., 'sci-fi film,' 'emotional story') to signal content relevance to YouTube.
+4. NARRATOR ROLE ID: A character with the roleId **"narrator"** is still a MUST for system-driven narration/voiceover.
+5. roleId in dialogues MUST match roleId in the characters array.
+6. The "line" field ONLY contains spoken words, no actions or parentheticals.
+7. 3-Act structure: Act 1 (approx. 25%), Act 2 (approx. 50%), Act 3 (approx. 25%).
 `;
 
 /**
@@ -184,14 +185,7 @@ export const formatFullPromptForClipboard = (
     finalSystemInstruction = replaceVariables(finalSystemInstruction, variableValues);
   }
 
-  return `--- SYSTEM PROMPT ---
-${finalSystemInstruction}
-
---- USER PROMPT ---
-${prompt}
-
---- REQUIRED JSON OUTPUT SCHEMA ---
-${READABLE_SCRIPT_SCHEMA_GUIDE}`;
+  return `# 🟦 SYSTEM PROMPT\n\n\`\`\`\n${finalSystemInstruction}\n\`\`\`\n\n# 🟩 USER PROMPT\n\n\`\`\`\n${prompt}\n\`\`\`\n\n# 🟨 REQUIRED JSON OUTPUT SCHEMA\n\n\`\`\`json\n${READABLE_SCRIPT_SCHEMA_GUIDE.trim()}\n\`\`\``;
 };
 
 /**
@@ -205,18 +199,5 @@ export const formatPromptForAutomation = (
 ): string => {
   const finalSystemInstruction = systemInstruction || getDefaultSystemInstruction(language);
 
-  return `${finalSystemInstruction}
-
-========================
-USER REQUEST:
-========================
-${prompt}
-
-========================
-REQUIRED OUTPUT FORMAT:
-========================
-Trả về JSON theo cấu trúc sau:
-${READABLE_SCRIPT_SCHEMA_GUIDE}
-
-Hãy điền ĐẦY ĐỦ tất cả các trường với nội dung sáng tạo, chi tiết và phù hợp với yêu cầu!`;
+  return `# 🟦 SYSTEM PROMPT\n\n\`\`\`\n${finalSystemInstruction}\n\`\`\`\n\n# 🟩 USER PROMPT\n\n\`\`\`\n${prompt}\n\`\`\`\n\n# 🟨 REQUIRED JSON OUTPUT SCHEMA\n\n\`\`\`json\n${READABLE_SCRIPT_SCHEMA_GUIDE.trim()}\n\`\`\`\n\n> Hãy điền ĐẦY ĐỦ tất cả các trường với nội dung sáng tạo, chi tiết và phù hợp với yêu cầu!`;
 };

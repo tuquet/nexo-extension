@@ -8,7 +8,7 @@ export const DEFAULT_MODELS = {
   scriptGeneration: 'gemini-2.5-flash',
   plotSuggestion: 'gemini-2.5-flash',
   textEnhancement: 'gemini-2.5-flash',
-  imageGeneration: 'imagen-4.0-generate-001',
+  imageGeneration: 'gemini-2.5-flash-image',
   videoGeneration: 'veo-3.1-fast-generate-preview',
 };
 
@@ -19,7 +19,10 @@ export const AVAILABLE_TEXT_MODELS = [
 ];
 
 // Danh sách các model có thể lựa chọn cho việc tạo ảnh
-export const AVAILABLE_IMAGE_MODELS = [{ value: 'imagen-4.0-generate-001', label: 'Imagen 4.0 (Chất lượng cao)' }];
+export const AVAILABLE_IMAGE_MODELS = [
+  { value: 'imagen-4.0-generate-001', label: 'Imagen 4.0 (Chất lượng cao)' },
+  { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image (Nhanh & Tiết kiệm)' },
+];
 // Danh sách các model có thể lựa chọn cho việc tạo video
 export const AVAILABLE_VIDEO_MODELS: { value: string; label: string }[] = [
   { value: 'veo-3.1-fast-generate-preview', label: ' Veo 3.1 Fast Generate (Xem trước)' },

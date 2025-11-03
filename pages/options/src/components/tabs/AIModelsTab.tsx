@@ -22,7 +22,10 @@ const AVAILABLE_TEXT_MODELS = [
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Fast & Efficient)' },
 ];
 
-const AVAILABLE_IMAGE_MODELS = [{ value: 'imagen-4.0-generate-001', label: 'Imagen 4.0 (High Quality)' }];
+const AVAILABLE_IMAGE_MODELS = [
+  { value: 'imagen-4.0-generate-001', label: 'Imagen 4.0 (High Quality)' },
+  { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash (Fast & Efficient)' },
+];
 
 const AVAILABLE_VIDEO_MODELS = [
   { value: 'veo-3.1-fast-generate-preview', label: 'Veo 3.1 Fast (Preview)' },
@@ -32,7 +35,7 @@ const AVAILABLE_VIDEO_MODELS = [
 
 const AIModelsTab = () => {
   const [textModel, setTextModel] = useState('gemini-2.5-flash');
-  const [imageModel, setImageModel] = useState('imagen-4.0-generate-001');
+  const [imageModel, setImageModel] = useState('gemini-2.5-flash-image');
   const [videoModel, setVideoModel] = useState('veo-3.1-fast-generate-preview');
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(0.95);
@@ -73,7 +76,7 @@ const AIModelsTab = () => {
 
   const handleReset = () => {
     setTextModel('gemini-2.5-flash');
-    setImageModel('imagen-4.0-generate-001');
+    setImageModel('gemini-2.5-flash-image');
     setVideoModel('veo-3.1-fast-generate-preview');
     setTemperature(0.7);
     setTopP(0.95);

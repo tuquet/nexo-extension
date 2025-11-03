@@ -3,6 +3,8 @@
  * Centralized to avoid duplication across components
  */
 
+export type AIPlatform = 'aistudio' | 'gemini-web';
+
 export interface GenerationFormData {
   prompt: string;
   language: 'en-US' | 'vi-VN';
@@ -12,6 +14,7 @@ export interface GenerationFormData {
   topK: number;
   maxOutputTokens: number;
   systemInstruction?: string;
+  platform?: AIPlatform; // For automate mode: which platform to use
 }
 
 export interface ScriptImportData {

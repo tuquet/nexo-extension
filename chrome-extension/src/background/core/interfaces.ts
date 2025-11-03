@@ -161,11 +161,21 @@ export interface IPageOpenerService {
  * Automation Service interface - browser automation
  */
 export interface IAutomationService {
-  autoFillGeminiPrompt(params: {
+  autoFillAIStudioPrompt(params: {
     prompt: string;
     autoSend?: boolean;
     typingDelay?: number;
   }): Promise<{ success: boolean }>;
+  autoFillGeminiWebPrompt(params: {
+    prompt: string;
+    autoSend?: boolean;
+    typingDelay?: number;
+  }): Promise<{ success: boolean }>;
+  autoFillGeminiPrompt(params: {
+    prompt: string;
+    autoSend?: boolean;
+    typingDelay?: number;
+  }): Promise<{ success: boolean }>; // @deprecated - use autoFillAIStudioPrompt
   findOrCreateTab(url: string): Promise<chrome.tabs.Tab>;
   injectContentScript(tabId: number, scriptPath: string): Promise<void>;
 }

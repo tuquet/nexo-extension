@@ -11,6 +11,7 @@ export const FORM_STORAGE_KEYS = {
   GENRES: 'creationFormData_genres',
   SUGGESTION_MODEL: 'creationFormData_suggestionModel',
   RAW_PROMPT: 'creationFormData_rawPrompt',
+  PLATFORM: 'creationFormData_platform',
 } as const;
 
 export const ERROR_MESSAGES = {

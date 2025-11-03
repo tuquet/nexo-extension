@@ -7,8 +7,13 @@ import type { IAutomationService } from '../core/interfaces';
  * Encapsulates chrome.tabs and chrome.scripting APIs.
  */
 
-const GEMINI_STUDIO_URL = 'https://aistudio.google.com/';
-const CONTENT_SCRIPT_PATH = 'content-runtime/geminiAutoFill.iife.js';
+// AI Studio URLs and script paths
+const AI_STUDIO_URL = 'https://aistudio.google.com/prompts/new_chat';
+const AI_STUDIO_SCRIPT = 'content-runtime/aistudio.iife.js';
+
+// Gemini Web URLs and script paths
+const GEMINI_WEB_URL = 'https://gemini.google.com/app';
+const GEMINI_WEB_SCRIPT = 'content-runtime/gemini.iife.js';
 
 /**
  * Wait for tab to finish loading
@@ -33,36 +38,29 @@ const waitForTabLoad = (tabId: number, timeoutMs = 10000): Promise<void> =>
 
 export class AutomationService implements IAutomationService {
   /**
-   * Auto-fill Gemini AI Studio prompt
+   * Auto-fill AI Studio prompt (aistudio.google.com)
    *
    * Finds or creates AI Studio tab, injects content script, sends prompt.
    */
-  async autoFillGeminiPrompt(params: {
+  async autoFillAIStudioPrompt(params: {
     prompt: string;
     autoSend?: boolean;
     typingDelay?: number;
   }): Promise<{ success: boolean }> {
     const { prompt, autoSend = false, typingDelay = 50 } = params;
 
-    console.log('[AutomationService] Auto-filling prompt, length:', prompt.length);
+    console.log('[AutomationService] Auto-filling AI Studio prompt, length:', prompt.length);
 
-    // Find or create AI Studio tab
-    const tab = await this.findOrCreateTab(GEMINI_STUDIO_URL);
+    const tab = await this.findOrCreateTab(AI_STUDIO_URL);
 
     if (!tab.id) {
       throw new Error('Failed to get tab ID');
     }
 
-    // Wait for tab to load
     await waitForTabLoad(tab.id);
-
-    // Inject content script
-    await this.injectContentScript(tab.id, CONTENT_SCRIPT_PATH);
-
-    // Wait a bit for content script to initialize
+    await this.injectContentScript(tab.id, AI_STUDIO_SCRIPT);
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Send prompt to content script
     await chrome.tabs.sendMessage(tab.id, {
       action: 'AUTO_FILL_PROMPT',
       prompt,
@@ -70,9 +68,57 @@ export class AutomationService implements IAutomationService {
       typingDelay,
     });
 
-    console.log('[AutomationService] Prompt sent to content script');
+    console.log('[AutomationService] AI Studio prompt sent');
 
     return { success: true };
+  }
+
+  /**
+   * Auto-fill Gemini Web prompt (gemini.google.com/app)
+   *
+   * Finds or creates Gemini Web tab, injects content script, sends prompt.
+   */
+  async autoFillGeminiWebPrompt(params: {
+    prompt: string;
+    autoSend?: boolean;
+    typingDelay?: number;
+  }): Promise<{ success: boolean }> {
+    const { prompt, autoSend = false, typingDelay = 50 } = params;
+
+    console.log('[AutomationService] Auto-filling Gemini Web prompt, length:', prompt.length);
+
+    const tab = await this.findOrCreateTab(GEMINI_WEB_URL);
+
+    if (!tab.id) {
+      throw new Error('Failed to get tab ID');
+    }
+
+    await waitForTabLoad(tab.id);
+    await this.injectContentScript(tab.id, GEMINI_WEB_SCRIPT);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    await chrome.tabs.sendMessage(tab.id, {
+      action: 'AUTO_FILL_PROMPT',
+      prompt,
+      autoSend,
+      typingDelay,
+    });
+
+    console.log('[AutomationService] Gemini Web prompt sent');
+
+    return { success: true };
+  }
+
+  /**
+   * Legacy method - redirects to AI Studio
+   * @deprecated Use autoFillAIStudioPrompt or autoFillGeminiWebPrompt instead
+   */
+  async autoFillGeminiPrompt(params: {
+    prompt: string;
+    autoSend?: boolean;
+    typingDelay?: number;
+  }): Promise<{ success: boolean }> {
+    return this.autoFillAIStudioPrompt(params);
   }
 
   /**

@@ -1,4 +1,15 @@
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, toast } from '@extension/ui';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Label,
+  RadioGroup,
+  RadioGroupItem,
+  toast,
+} from '@extension/ui';
 import { VariableInputs } from '@src/components/script/generation/variable-inputs';
 import { FORM_STORAGE_KEYS } from '@src/constants/script-generation';
 import usePersistentState from '@src/hooks/use-persistent-state';
@@ -12,7 +23,7 @@ import {
 import { AlertCircle, Copy, Sparkles } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import type { PromptRecord } from '@extension/database';
-import type { GenerationFormData } from '@src/types/script-generation';
+import type { AIPlatform, GenerationFormData } from '@src/types/script-generation';
 
 interface AIGenerationTabProps {
   isLoading: boolean;
@@ -29,6 +40,7 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
 }) => {
   const { isApiKeySet } = useApiKey();
   const [language] = usePersistentState<'en-US' | 'vi-VN'>(FORM_STORAGE_KEYS.LANGUAGE, 'vi-VN');
+  const [platform, setPlatform] = usePersistentState<AIPlatform>(FORM_STORAGE_KEYS.PLATFORM, 'aistudio');
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [rawPrompt] = usePersistentState<string>(FORM_STORAGE_KEYS.RAW_PROMPT, '');
 
@@ -103,10 +115,11 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
       const formData: GenerationFormData = {
         ...buildGenerationFormData(selectedTemplate, variableValues, language),
         prompt: finalPrompt,
+        platform, // Add platform selection for automate mode
       };
       onSubmitWithAutomate(formData);
     },
-    [selectedTemplate, variableValues, language, finalPrompt, onSubmitWithAutomate],
+    [selectedTemplate, variableValues, language, finalPrompt, platform, onSubmitWithAutomate],
   );
 
   // Note: VariableInputs component is keyed by template ID, so it will re-mount
@@ -159,6 +172,30 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
         </Button>
       </div>
 
+      {/* Platform Selector for Automate Mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Chọn nền tảng (Chế độ Automate)</CardTitle>
+          <CardDescription>Chọn nền tảng AI mà bạn muốn mở để tạo kịch bản tự động</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={platform} onValueChange={(value: AIPlatform) => setPlatform(value)}>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="aistudio" id="aistudio" />
+              <Label htmlFor="aistudio" className="cursor-pointer font-normal">
+                <strong>AI Studio</strong> (aistudio.google.com) - Chính thức, tính năng đầy đủ
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="gemini-web" id="gemini-web" />
+              <Label htmlFor="gemini-web" className="cursor-pointer font-normal">
+                <strong>Gemini Web</strong> (gemini.google.com/app) - Giao diện chat đơn giản
+              </Label>
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
       {/* Dual submit buttons */}
       <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
         <Button
@@ -185,7 +222,7 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
       <p className="text-muted-foreground text-center text-xs">
         <strong>API:</strong> Gọi trực tiếp Google AI Studio API để tạo kịch bản
         <br />
-        <strong>Automate:</strong> Mở side panel và tự động điền prompt, bạn có thể chỉnh sửa trước khi gửi
+        <strong>Automate:</strong> Mở nền tảng đã chọn và tự động điền prompt, bạn có thể chỉnh sửa trước khi gửi
       </p>
     </div>
   );
