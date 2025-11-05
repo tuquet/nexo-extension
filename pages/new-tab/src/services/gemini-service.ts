@@ -1,5 +1,5 @@
 import { ApiAuthError, ApiContentError } from './api-errors';
-import { DEFAULT_MODELS } from '../constants';
+import { DEFAULT_MODELS } from '@extension/shared';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { ScriptStory, AspectRatio } from '../types';
 

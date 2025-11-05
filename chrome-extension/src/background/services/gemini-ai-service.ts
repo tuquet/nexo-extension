@@ -1,6 +1,5 @@
 import { ApiAuthError } from '../../../../pages/new-tab/src/services/api-errors';
-import { PLOT_POINTS_SCHEMA, SCRIPT_GENERATION_SCHEMA } from '../schemas/script-schema';
-import { getSystemInstruction } from '@extension/shared';
+import { SYSTEM_INSTRUCTION_SCRIPT_EN, PLOT_POINTS_SCHEMA, SCRIPT_GENERATION_SCHEMA } from '@extension/shared';
 import { GoogleGenAI, HarmBlockThreshold, HarmCategory } from '@google/genai';
 import type {
   EnhanceTextParams,
@@ -50,12 +49,8 @@ export class GeminiAIService implements IAIService {
    */
   async generateScript(params: GenerateScriptParams): Promise<ScriptStory> {
     const client = this.getClient(params.apiKey);
-
-    // Determine system instruction based on language
-    const systemInstruction = params.systemInstruction || getSystemInstruction(params.language as 'en-US' | 'vi-VN');
-
-    // Use custom schema if provided, otherwise default
-    const responseSchema = params.customSchema || SCRIPT_GENERATION_SCHEMA;
+    const systemInstruction = SYSTEM_INSTRUCTION_SCRIPT_EN;
+    const responseSchema = SCRIPT_GENERATION_SCHEMA;
 
     const result = await client.models.generateContent({
       model: params.modelName,

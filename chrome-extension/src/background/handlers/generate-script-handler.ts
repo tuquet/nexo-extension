@@ -53,7 +53,6 @@ export class GenerateScriptHandler extends BaseHandler<GeminiGenerateScriptMessa
       topK,
       maxOutputTokens,
       systemInstruction: payload.systemInstruction,
-      customSchema: payload.customSchema,
     });
   }
 }

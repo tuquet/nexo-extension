@@ -142,7 +142,7 @@ export interface ScriptAssetMapping {
 export interface PromptRecord {
   id?: number; // Auto-increment primary key
   title: string;
-  category: 'script-generation' | 'image-generation' | 'video-generation' | 'character-dev' | 'general';
+  category: string;
   prompt: string;
   description?: string;
   tags?: string[];
@@ -167,13 +167,7 @@ export interface PromptRecord {
    * - 'text': Plain text response
    * - 'markdown': Markdown formatted text
    */
-  outputFormat?: 'json-structured' | 'json-free' | 'text' | 'markdown';
-
-  /**
-   * Custom JSON schema for structured output (when outputFormat = 'json-structured')
-   * Should be a valid Type schema object from @google/genai
-   */
-  customSchema?: string; // JSON stringified schema
+  outputFormat?: string;
 
   /**
    * Model preferences for this prompt
@@ -202,7 +196,6 @@ export interface PromptRecord {
    */
   postprocessing?: {
     steps?: Array<'trim' | 'remove-quotes' | 'parse-json' | 'extract-field'>;
-    extractField?: string; // JSON path like 'data.script.title'
   };
 
   /**

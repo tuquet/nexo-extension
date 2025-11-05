@@ -22,7 +22,6 @@ export interface GenerateScriptParams {
   topP?: number;
   topK?: number;
   maxOutputTokens?: number;
-  customSchema?: unknown;
 }
 
 export interface GenerateImageParams {

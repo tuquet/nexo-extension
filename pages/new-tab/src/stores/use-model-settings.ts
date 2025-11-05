@@ -1,4 +1,4 @@
-import { AVAILABLE_IMAGE_MODELS, AVAILABLE_TEXT_MODELS, AVAILABLE_VIDEO_MODELS } from '@src/constants';
+import { AVAILABLE_IMAGE_MODELS, AVAILABLE_TEXT_MODELS, AVAILABLE_VIDEO_MODELS } from '@extension/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 

@@ -56,12 +56,11 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
     const fullPromptText = formatFullPromptForClipboard(
       finalPrompt,
       selectedTemplate.systemInstruction,
-      language,
       variableValues, // Pass variables to replace in system instruction too
     );
     void navigator.clipboard.writeText(fullPromptText);
     toast.success('Đã copy full prompt (system + user) vào clipboard');
-  }, [selectedTemplate, finalPrompt, language, variableValues]);
+  }, [selectedTemplate, finalPrompt, variableValues]);
 
   const handleSubmitWithAPI = useCallback(
     (e: React.FormEvent) => {

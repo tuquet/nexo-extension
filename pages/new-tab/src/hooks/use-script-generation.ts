@@ -66,7 +66,7 @@ export const useScriptGeneration = () => {
   const generateWithAutomate = useCallback(async (formData: GenerationFormData) => {
     try {
       // Build full prompt with system instruction + user prompt + JSON schema guide
-      const fullPrompt = formatPromptForAutomation(formData.prompt, formData.systemInstruction, formData.language);
+      const fullPrompt = formatPromptForAutomation(formData.prompt, formData.systemInstruction);
 
       // Determine platform and URLs
       const platform = formData.platform || 'aistudio'; // Default to AI Studio

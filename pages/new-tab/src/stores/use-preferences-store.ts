@@ -1,5 +1,5 @@
 // ...existing code...
-import { DEFAULT_ASPECT_RATIO } from '@src/constants';
+import { DEFAULT_ASPECT_RATIO } from '@extension/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AspectRatio } from '@src/types';

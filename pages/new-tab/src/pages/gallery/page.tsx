@@ -154,7 +154,18 @@ const AssetGalleryPage: React.FC = () => {
       <div className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-slate-400">
         <Image className="h-20 w-20" strokeWidth={1.5} />
         <h3 className="mt-4 text-xl font-semibold text-slate-800 dark:text-slate-200">Thư viện tài sản trống</h3>
-        <p className="mt-1 text-sm">Tạo một số hình ảnh hoặc video trong trình biên tập để chúng xuất hiện ở đây.</p>
+        <p className="mt-1 text-sm">Tạo hình ảnh/video từ trình biên tập hoặc import files từ máy tính.</p>
+        <Button variant="default" size="lg" onClick={() => setIsImportModalOpen(true)} className="mt-6">
+          <Upload className="mr-2 h-4 w-4" />
+          Import Files
+        </Button>
+
+        {/* Import Modal */}
+        <ImportAssetModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImportComplete={handleImportComplete}
+        />
       </div>
     );
   }

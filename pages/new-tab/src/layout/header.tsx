@@ -40,16 +40,16 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
 
           {/* Navigation Tabs - Reordered: Prompts → Scripts → Assets */}
           <nav className="hidden items-center gap-1 md:flex">
-            <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
-              <Link to="/prompts">
-                <Sparkles className="size-4" />
-                <span>Prompts</span>
-              </Link>
-            </Button>
             <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
               <Link to="/script">
                 <FileText className="size-4" />
                 <span>Kịch Bản</span>
+              </Link>
+            </Button>
+            <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
+              <Link to="/prompts">
+                <Sparkles className="size-4" />
+                <span>Prompts</span>
               </Link>
             </Button>
             <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>

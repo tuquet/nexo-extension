@@ -1,4 +1,5 @@
 import { AssetPickerModal } from '../modals/asset-picker-modal';
+import { VIDEO_LOADING_MESSAGES, DEFAULT_ASPECT_RATIO } from '@extension/shared';
 import {
   Button,
   Card,
@@ -10,7 +11,6 @@ import {
   SelectContent,
   SelectItem,
 } from '@extension/ui';
-import { VIDEO_LOADING_MESSAGES, DEFAULT_ASPECT_RATIO } from '@src/constants';
 import { db } from '@src/db';
 import { useSceneAssets } from '@src/hooks/use-scene-assets';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
@@ -65,7 +65,7 @@ const SceneAsset: React.FC<{
     legacyVideoId: scene.generatedVideoId,
   });
 
-  const [currentVideoMessage, setCurrentVideoMessage] = useState(VIDEO_LOADING_MESSAGES[0]);
+  const [currentVideoMessage, setCurrentVideoMessage] = useState<string>(VIDEO_LOADING_MESSAGES[0]);
 
   useEffect(() => {
     let interval: number;
@@ -73,8 +73,9 @@ const SceneAsset: React.FC<{
       setCurrentVideoMessage(VIDEO_LOADING_MESSAGES[0]);
       interval = window.setInterval(() => {
         setCurrentVideoMessage(prev => {
-          const currentIndex = VIDEO_LOADING_MESSAGES.indexOf(prev);
-          return VIDEO_LOADING_MESSAGES[(currentIndex + 1) % VIDEO_LOADING_MESSAGES.length];
+          const messages = VIDEO_LOADING_MESSAGES as readonly string[];
+          const currentIndex = messages.indexOf(prev);
+          return messages[(currentIndex + 1) % messages.length] || messages[0];
         });
       }, 4000);
     }

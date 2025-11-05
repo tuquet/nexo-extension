@@ -149,7 +149,6 @@ export interface GeminiGenerateScriptMessage extends BaseMessage {
     topK?: number;
     maxOutputTokens?: number;
     systemInstruction?: string;
-    customSchema?: unknown;
   };
 }
 

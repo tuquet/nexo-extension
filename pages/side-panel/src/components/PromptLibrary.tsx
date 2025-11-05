@@ -1,9 +1,8 @@
-import { GEMINI_PROMPTS } from '../data/gemini-prompts';
 import { db } from '../db';
 import { Badge, Button, Card, CardContent, Input, toast } from '@extension/ui';
 import { Copy, Search, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { PromptTemplate } from '../data/gemini-prompts';
+import type { PromptRecord } from '@extension/database';
 
 interface AutomatePromptData {
   prompt: string;
@@ -16,11 +15,11 @@ interface PromptLibraryProps {
   automatePromptData?: AutomatePromptData | null;
 }
 
-export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => {
+const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [prompts, setPrompts] = useState<PromptTemplate[]>([]);
+  const [prompts, setPrompts] = useState<PromptRecord[]>([]);
 
   // Load prompts from DB on mount
   useEffect(() => {
@@ -30,27 +29,10 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData
   const loadPrompts = async () => {
     try {
       const dbPrompts = await db.prompts.toArray();
-
-      // If no prompts in DB, use default static prompts
-      if (dbPrompts.length === 0) {
-        setPrompts(GEMINI_PROMPTS);
-      } else {
-        // Convert DB prompts to PromptTemplate format (use id as string)
-        const convertedPrompts: PromptTemplate[] = dbPrompts.map(p => ({
-          id: String(p.id),
-          title: p.title,
-          category: p.category,
-          prompt: p.prompt,
-          description: p.description,
-          tags: p.tags,
-          icon: p.icon,
-        }));
-        setPrompts(convertedPrompts);
-      }
+      setPrompts(dbPrompts);
     } catch (error) {
       console.error('Failed to load prompts:', error);
-      // Fallback to static prompts on error
-      setPrompts(GEMINI_PROMPTS);
+      setPrompts([]);
     }
   };
 
@@ -60,7 +42,7 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData
       search === '' ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.description?.toLowerCase().includes(search.toLowerCase()) ||
-      p.tags?.some(tag => tag.toLowerCase().includes(search.toLowerCase()));
+      p.tags?.some((tag: string) => tag.toLowerCase().includes(search.toLowerCase()));
 
     const matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
 
@@ -68,7 +50,7 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData
   });
 
   // Handle use prompt - send to background for automation
-  const handleUsePrompt = async (prompt: PromptTemplate | 'automate') => {
+  const handleUsePrompt = async (prompt: PromptRecord | 'automate') => {
     setIsProcessing(true);
 
     try {
@@ -115,7 +97,7 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData
   };
 
   // Copy prompt to clipboard
-  const handleCopyPrompt = async (prompt: PromptTemplate) => {
+  const handleCopyPrompt = async (prompt: PromptRecord) => {
     try {
       await navigator.clipboard.writeText(prompt.prompt);
       toast.success('Đã sao chép prompt', {
@@ -264,9 +246,11 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData
       {/* Footer stats */}
       <div className="border-t p-3 text-center">
         <p className="text-muted-foreground text-xs">
-          Hiển thị {filteredPrompts.length} / {GEMINI_PROMPTS.length} prompts
+          Hiển thị {filteredPrompts.length} / {prompts.length} prompts
         </p>
       </div>
     </div>
   );
 };
+
+export { PromptLibrary };

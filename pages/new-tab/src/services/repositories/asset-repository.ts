@@ -24,14 +24,76 @@ abstract class BaseAssetRepository implements IAssetRepository {
 
   /**
    * Add asset and return ID
+   * DB v7: Assets are independent, scriptId is stored in scriptAssetMappings
    */
-  async add(data: Blob, scriptId: number): Promise<number> {
+  async add(data: Blob, scriptId: number, sceneId?: string, role?: string): Promise<number> {
     try {
-      const id = await db[this.table].add({ data, scriptId });
-      return id as number;
+      // Step 1: Add asset without scriptId
+      const assetId = await db[this.table].add({
+        data,
+        uploadSource: 'ai-generated' as const,
+        uploadedAt: new Date(),
+        mimeType: this.getMimeType(),
+      });
+
+      // Step 2: Create mapping
+      await db.scriptAssetMappings.add({
+        scriptId,
+        assetType: this.getAssetType(),
+        assetId: assetId as number,
+        linkedAt: new Date(),
+        role: (role || this.getDefaultRole()) as
+          | 'scene-image'
+          | 'scene-video'
+          | 'dialogue-audio'
+          | 'full-script-audio'
+          | 'background',
+        sceneId,
+      });
+
+      return assetId as number;
     } catch (error) {
       console.error(`[AssetRepository] Failed to add ${this.table}:`, error);
       throw new Error(`Không thể lưu ${this.table}`);
+    }
+  }
+
+  private getMimeType(): string {
+    switch (this.table) {
+      case 'images':
+        return 'image/png';
+      case 'videos':
+        return 'video/mp4';
+      case 'audios':
+        return 'audio/mpeg';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  private getAssetType(): 'image' | 'video' | 'audio' {
+    switch (this.table) {
+      case 'images':
+        return 'image';
+      case 'videos':
+        return 'video';
+      case 'audios':
+        return 'audio';
+      default:
+        return 'image';
+    }
+  }
+
+  private getDefaultRole(): string {
+    switch (this.table) {
+      case 'images':
+        return 'scene-image';
+      case 'videos':
+        return 'scene-video';
+      case 'audios':
+        return 'dialogue-audio';
+      default:
+        return 'background';
     }
   }
 
@@ -74,11 +136,21 @@ abstract class BaseAssetRepository implements IAssetRepository {
   }
 
   /**
-   * Get all assets for a script
+   * Get all assets for a script (DB v7: use scriptAssetMappings)
    */
   async getByScriptId(scriptId: number): Promise<AssetData[]> {
     try {
-      return await db[this.table].where({ scriptId }).toArray();
+      // Get asset IDs from mappings
+      const mappings = await db.scriptAssetMappings
+        .where({ scriptId })
+        .and(m => m.assetType === this.getAssetType())
+        .toArray();
+
+      // Get actual assets
+      const assetIds = mappings.map(m => m.assetId);
+      const assets = await db[this.table].where('id').anyOf(assetIds).toArray();
+
+      return assets as AssetData[];
     } catch (error) {
       console.error(`[AssetRepository] Failed to get ${this.table} for script ${scriptId}:`, error);
       return [];

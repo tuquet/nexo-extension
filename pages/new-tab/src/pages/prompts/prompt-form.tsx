@@ -48,7 +48,7 @@ interface PromptFormData {
   tags?: string[];
   icon?: string;
   systemInstruction?: string;
-  outputFormat?: 'json-structured' | 'json-free' | 'text' | 'markdown';
+  outputFormat?: string;
   modelSettings?: {
     preferredModel?: string;
     temperature?: number;
@@ -63,7 +63,6 @@ interface PromptFormData {
   };
   postprocessing?: {
     steps?: Array<'trim' | 'remove-quotes' | 'parse-json' | 'extract-field'>;
-    extractField?: string;
   };
 }
 
@@ -121,7 +120,6 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
     },
     postprocessing: {
       steps: ['trim', 'parse-json'],
-      extractField: '',
     },
   });
 
@@ -152,7 +150,6 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
         },
         postprocessing: initialData.postprocessing || {
           steps: ['trim', 'parse-json'],
-          extractField: '',
         },
       });
     }
@@ -564,27 +561,6 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
                     ))}
                   </div>
                 </div>
-
-                {formData.postprocessing?.steps?.includes('extract-field') && (
-                  <div className="border-muted grid gap-2 border-l-2 pl-4">
-                    <Label htmlFor="extractField">Extract Field Path</Label>
-                    <Input
-                      id="extractField"
-                      placeholder="e.g., data.script.title"
-                      value={formData.postprocessing?.extractField}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          postprocessing: {
-                            ...formData.postprocessing,
-                            extractField: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                    <p className="text-muted-foreground text-xs">JSON path to extract from response</p>
-                  </div>
-                )}
               </div>
             </div>
           </TabsContent>

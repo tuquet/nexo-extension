@@ -33,12 +33,14 @@ export interface IScriptRepository extends IRepository<ScriptStory> {
 }
 
 /**
- * Asset data stored in IndexedDB
+ * Asset data stored in IndexedDB (DB v7: no scriptId)
  */
 export interface AssetData {
   id?: number;
   data: Blob;
-  scriptId: number;
+  uploadSource: 'ai-generated' | 'manual-upload' | 'imported';
+  uploadedAt: Date;
+  mimeType?: string;
 }
 
 /**
@@ -46,8 +48,8 @@ export interface AssetData {
  * Handles images, videos, and audio files
  */
 export interface IAssetRepository {
-  // Add asset and return ID
-  add(data: Blob, scriptId: number): Promise<number>;
+  // Add asset and return ID (with optional mapping)
+  add(data: Blob, scriptId: number, sceneId?: string, role?: string): Promise<number>;
 
   // Get asset by ID
   get(id: number): Promise<AssetData | undefined>;

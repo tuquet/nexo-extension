@@ -1,3 +1,4 @@
+import { VBEE_PROJECT_URL } from '@extension/shared';
 import {
   Card,
   CardContent,
@@ -17,7 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@extension/ui'; // Assuming DownloadCloud is exported from here
-import { VBEE_PROJECT_URL } from '@src/constants';
 import { db } from '@src/db';
 import { getVbeeProjectStatus } from '@src/services/background-api';
 import { formatSrtTime, getAudioDuration, useScriptsStore, selectAllDialogues } from '@src/stores/use-scripts-store'; // Assuming DownloadCloud is exported from here
@@ -156,8 +156,25 @@ const TtsAsset: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script }) 
           for (const dialogue of scene.dialogues ?? []) {
             if (dialogue.projectBlockItemId && audioBlobs.has(dialogue.projectBlockItemId)) {
               const audioBlob = audioBlobs.get(dialogue.projectBlockItemId)!;
-              // Lưu blob vào DB và lấy ID
-              const audioId = await db.audios.add({ scriptId: updatedScript.id!, data: audioBlob });
+              // Lưu blob vào DB và lấy ID (DB v7: không có scriptId trực tiếp)
+              const audioId = await db.audios.add({
+                data: audioBlob,
+                uploadSource: 'ai-generated',
+                uploadedAt: new Date(),
+                mimeType: 'audio/mpeg',
+              });
+
+              // Tạo mapping giữa script và audio
+              const sceneId = `act-${scene.actIndex}-scene-${scene.sceneIndex}`;
+              await db.scriptAssetMappings.add({
+                scriptId: updatedScript.id!,
+                assetType: 'audio',
+                assetId: audioId,
+                linkedAt: new Date(),
+                role: 'dialogue-audio',
+                sceneId,
+              });
+
               // Cập nhật generatedAudioId cho câu thoại
               dialogue.generatedAudioId = audioId;
             }
@@ -221,11 +238,22 @@ const TtsAsset: React.FC<ScriptTtsAssetCardProps> = ({ onGenerateTts, script }) 
       const audioBuffer = await fileResponse.arrayBuffer();
       const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
 
-      // Step 3: Save the blob to IndexedDB
+      // Step 3: Save the blob to IndexedDB (DB v7: không có scriptId trực tiếp)
       const audioId = await db.audios.add({
-        scriptId: script.id,
         data: audioBlob,
+        uploadSource: 'ai-generated',
+        uploadedAt: new Date(),
+        mimeType: 'audio/mpeg',
         isFullScript: true, // Đánh dấu đây là file âm thanh gộp
+      });
+
+      // Tạo mapping giữa script và full audio
+      await db.scriptAssetMappings.add({
+        scriptId: script.id!,
+        assetType: 'audio',
+        assetId: audioId,
+        linkedAt: new Date(),
+        role: 'full-script-audio',
       });
 
       // Step 3.5: Update the script's buildMeta with the new audio ID

@@ -39,7 +39,7 @@ const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     <div className="flex items-center gap-2">
       <Button variant="default" size="sm" onClick={onUploadSelected} disabled={selectedCount === 0 || isUploading}>
         <Upload className="mr-2 h-4 w-4" />
-        {isUploading ? 'Dang tai len...' : `Tai len CapCut (${selectedCount})`}
+        {isUploading ? 'Đang tải lên...' : `Tải lên Capcut (${selectedCount})`}
       </Button>
       <Button variant="destructive" size="sm" onClick={onDeleteSelected} disabled={selectedCount === 0 || isUploading}>
         <Trash2 className="mr-2 h-4 w-4" />
