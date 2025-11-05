@@ -1,5 +1,18 @@
-import { Button, Tabs, TabsContent, TabsList, TabsTrigger, toast } from '@extension/ui';
-import { TemplateSelector } from '@src/components/script/forms/template-selector';
+import { db } from '@extension/database';
+import {
+  Button,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  toast,
+} from '@extension/ui';
 import { AIGenerationTab } from '@src/components/script/generation/ai-generation-tab';
 import { JsonImportTab } from '@src/components/script/generation/json-import-tab';
 import { SCRIPT_GENERATION_LOADING_MESSAGES } from '@src/constants';
@@ -33,6 +46,7 @@ interface GenerationFormProps {
   onImportJson: (jsonString: string) => void;
   onImportFile: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isLoading: boolean;
+  preSelectedTemplate?: PromptRecord;
 }
 
 export const GenerationForm: React.FC<GenerationFormProps> = ({
@@ -41,14 +55,20 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
   onImportJson,
   onImportFile,
   isLoading,
+  preSelectedTemplate,
 }) => {
   const { isApiKeySet } = useApiKey();
   const setSettingsModalOpen = useUIStateStore(s => s.setSettingsModalOpen);
-  const [activeTab, setActiveTab] = useState('template');
-  const [selectedTemplate, setSelectedTemplate] = useState<PromptRecord | null>(null);
+  const [activeTab, setActiveTab] = useState(preSelectedTemplate ? 'template' : 'template');
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptRecord | null>(preSelectedTemplate || null);
+  const [templates, setTemplates] = useState<PromptRecord[]>([]);
   const [loadingMessage, setLoadingMessage] = useState<(typeof SCRIPT_GENERATION_LOADING_MESSAGES)[number]>(
     SCRIPT_GENERATION_LOADING_MESSAGES[0],
   );
+
+  useEffect(() => {
+    void loadTemplates();
+  }, []);
 
   useEffect(() => {
     let interval: number;
@@ -64,16 +84,40 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  const handleSelectTemplate = (prompt: PromptRecord) => {
-    setSelectedTemplate(prompt);
-    setActiveTab('ai');
-    toast.success(`Đã tải template "${prompt.title}"`);
+  useEffect(() => {
+    if (preSelectedTemplate) {
+      setSelectedTemplate(preSelectedTemplate);
+      setActiveTab('template');
+      toast.success(`Đã tải template "${preSelectedTemplate.title}"`);
+    }
+  }, [preSelectedTemplate]);
+
+  const loadTemplates = async () => {
+    try {
+      const allTemplates = await db.prompts.reverse().toArray();
+      setTemplates(allTemplates);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+      toast.error('Không thể tải danh sách template');
+    }
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    if (templateId === 'none') {
+      setSelectedTemplate(null);
+      return;
+    }
+    const template = templates.find(t => t.id?.toString() === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      toast.success(`Đã chọn template "${template.title}"`);
+    }
   };
 
   return (
     <div className="relative rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700/50 dark:bg-slate-800/50">
       <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Tạo kịch bản mới</h2>
-      <p className="mb-8 text-slate-500 dark:text-slate-400">Bắt đầu bằng cách điền vào các chi tiết bên dưới.</p>
+      <p className="mb-8 text-slate-500 dark:text-slate-400">Chọn template hoặc nhập JSON</p>
 
       {!isApiKeySet && (
         <div className="mb-6 flex items-start gap-3 rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
@@ -91,23 +135,40 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6 w-full">
-        <TabsList className="grid w-full grid-cols-3 rounded-md bg-slate-100 p-1 dark:bg-slate-800">
-          <TabsTrigger value="template">Từ Template</TabsTrigger>
-          <TabsTrigger value="ai">Tạo bằng AI</TabsTrigger>
-          <TabsTrigger value="json">Nhập từ JSON</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="template">Chọn Template</TabsTrigger>
+          <TabsTrigger value="json">Nhập JSON</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="template" className="mt-6">
-          <TemplateSelector onSelectTemplate={handleSelectTemplate} isLoading={isLoading} />
-        </TabsContent>
+        <TabsContent value="template" className="mt-6 space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="template-select">Template</Label>
+            <Select
+              value={selectedTemplate?.id?.toString() || 'none'}
+              onValueChange={handleTemplateChange}
+              disabled={isLoading}>
+              <SelectTrigger id="template-select">
+                <SelectValue placeholder="Chọn template..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">-- Chọn template --</SelectItem>
+                {templates.map(template => (
+                  <SelectItem key={template.id} value={template.id?.toString() || ''}>
+                    {template.icon} {template.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <TabsContent value="ai" className="mt-6">
-          <AIGenerationTab
-            isLoading={isLoading}
-            selectedTemplate={selectedTemplate}
-            onSubmit={onGenerate}
-            onSubmitWithAutomate={onGenerateWithAutomate}
-          />
+          {selectedTemplate && (
+            <AIGenerationTab
+              isLoading={isLoading}
+              selectedTemplate={selectedTemplate}
+              onSubmit={onGenerate}
+              onSubmitWithAutomate={onGenerateWithAutomate}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="json" className="mt-6">

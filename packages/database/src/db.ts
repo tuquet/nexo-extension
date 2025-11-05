@@ -346,6 +346,74 @@ export class CineGenieDB extends Dexie {
 
         console.log('[DB Migration v7] Migration completed successfully');
       });
+
+    // Validation hooks for prompts table: ensure incoming records match expected shape
+    // This prevents malformed seed imports or accidental bad updates from corrupting the DB.
+    const validatePromptRecord = (record: Partial<PromptRecord>) => {
+      if (!record) throw new Error('PromptRecord is required');
+
+      if (!record.title || typeof record.title !== 'string') {
+        throw new Error('PromptRecord.title must be a non-empty string');
+      }
+
+      if (!record.category || typeof record.category !== 'string') {
+        throw new Error('PromptRecord.category must be a string');
+      }
+
+      if (record.preprocessing) {
+        const pd = record.preprocessing as Partial<PromptRecord['preprocessing']> | undefined;
+        // variableDefinitions must be a string (stringified JSON) or undefined
+        if (pd && pd.variableDefinitions !== undefined && typeof pd.variableDefinitions !== 'string') {
+          throw new Error('PromptRecord.preprocessing.variableDefinitions must be a JSON string');
+        }
+      }
+
+      if (record.createdAt && !(record.createdAt instanceof Date)) {
+        throw new Error('PromptRecord.createdAt must be a Date');
+      }
+
+      if (record.updatedAt && !(record.updatedAt instanceof Date)) {
+        throw new Error('PromptRecord.updatedAt must be a Date');
+      }
+
+      return true;
+    };
+
+    // Attach Dexie hooks
+    try {
+      // 'creating' runs before a new object is added; throw to abort
+      // Use unknown for hook parameter types and narrow inside callback to satisfy lint rules
+      const promptsTableWithHook = this.prompts as unknown as {
+        hook: (hookName: string, fn: (...args: unknown[]) => void) => void;
+      };
+
+      promptsTableWithHook.hook('creating', function (...args: unknown[]) {
+        const obj = args[1] as Partial<PromptRecord> | undefined;
+        try {
+          if (obj) validatePromptRecord(obj);
+        } catch (err) {
+          console.error('[DB Validation] Invalid PromptRecord on create:', err instanceof Error ? err.message : err);
+          throw err;
+        }
+      });
+
+      // 'updating' runs before an update; validate the patched object merged with existing fields
+      promptsTableWithHook.hook('updating', function (...args: unknown[]) {
+        const mods = args[0] as Record<string, unknown> | undefined;
+        const obj = args[2] as PromptRecord | undefined;
+        const merged = { ...(obj || {}), ...(mods || {}) } as Partial<PromptRecord>;
+        try {
+          validatePromptRecord(merged);
+        } catch (err) {
+          console.error('[DB Validation] Invalid PromptRecord on update:', err instanceof Error ? err.message : err);
+          throw err;
+        }
+      });
+    } catch (hookErr) {
+      // In some environments hooks may be unavailable during certain migrations; log and continue
+      // This keeps older DB upgrades functioning while still providing validation where supported.
+      console.warn('[DB] Could not attach prompt validation hooks:', hookErr);
+    }
   }
 
   /**

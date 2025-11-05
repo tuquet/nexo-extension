@@ -106,7 +106,7 @@ ${systemInstruction}
 # 🟩 USER PROMPT
 ${prompt}
 
-# 🟨 REQUIRED JSON OUTPUT SCHEMA
+# 🟨 REQUIRED JSON OUTPUT SCHEMA ( Code Block )
 ${schema}`;
 
 /**

@@ -149,9 +149,15 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Schema Information */}
-
-      {/* Raw Prompt Input - Priority over template variables */}
+      {/* Template Info Card */}
+      <Card className="bg-slate-50 dark:bg-slate-900/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">
+            {selectedTemplate.icon} {selectedTemplate.title}
+          </CardTitle>
+          <CardDescription className="mt-1">{selectedTemplate.description}</CardDescription>
+        </CardHeader>
+      </Card>
 
       {/* Variable Inputs (if template has variables) */}
       {selectedTemplate.preprocessing?.enableVariables && selectedTemplate.preprocessing.variableDefinitions && (

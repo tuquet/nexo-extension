@@ -5,7 +5,8 @@ import { useScriptGeneration } from '@src/hooks/use-script-generation';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useUIStateStore } from '@src/stores/use-ui-state-store';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import type { PromptRecord } from '@extension/database';
 
 const CreateForm = () => {
   const importDataFromString = useScriptsStore(s => s.importDataFromString);
@@ -14,9 +15,13 @@ const CreateForm = () => {
   const isSettingsModalOpen = useUIStateStore(s => s.settingsModalOpen);
   const setSettingsModalOpen = useUIStateStore(s => s.setSettingsModalOpen);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Use custom hook for script generation logic
   const { generateFromAPI, generateWithAutomate, isLoading, error } = useScriptGeneration();
+
+  // Extract preSelectedTemplate from navigation state
+  const preSelectedTemplate = (location.state as { selectedTemplate?: PromptRecord })?.selectedTemplate;
 
   useEffect(() => {
     newScript();
@@ -65,6 +70,7 @@ const CreateForm = () => {
             onImportJson={handleImportJson}
             onImportFile={handleImportFile}
             isLoading={isLoading}
+            preSelectedTemplate={preSelectedTemplate}
           />
           {error && <div className="error mt-4 text-red-500">{error}</div>}
         </div>

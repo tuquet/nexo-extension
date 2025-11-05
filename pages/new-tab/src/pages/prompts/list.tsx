@@ -25,8 +25,9 @@ import {
   toast,
 } from '@extension/ui';
 import { db } from '@src/db';
-import { Edit, Plus, Search, Trash2, Copy, Download, Upload, FileJson } from 'lucide-react';
+import { Edit, Plus, Search, Trash2, Copy, Download, Upload, FileJson, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { PromptFormData } from './prompt-form';
 import type { PromptRecord } from '@src/db';
 
@@ -40,6 +41,7 @@ const CATEGORIES = [
 ] as const;
 
 const PromptsListPage = () => {
+  const navigate = useNavigate();
   const [prompts, setPrompts] = useState<PromptRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -284,6 +286,12 @@ const PromptsListPage = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleUseForScript = (prompt: PromptRecord) => {
+    // Navigate to script creation page with selected template
+    navigate('/script/create', { state: { selectedTemplate: prompt } });
+    toast.success(`Using template: ${prompt.title}`);
+  };
+
   return (
     <div className="space-y-6 py-6">
       <Card>
@@ -373,6 +381,14 @@ const PromptsListPage = () => {
                         )}
                       </div>
                       <div className="flex gap-1">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleUseForScript(prompt)}
+                          title="Use this template to create a script">
+                          <Sparkles className="mr-2 size-4" />
+                          Use for Script
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleCopyJSON(prompt)} title="Copy as JSON">
                           <FileJson className="size-4" />
                         </Button>
