@@ -142,46 +142,55 @@ export const useAssets = (setError: (error: string | null) => void) => {
     }
   };
 
-  const deleteAssetFromGallery = async (type: 'image' | 'video' | 'audio', assetId: number, scriptId: number) => {
+  const deleteAssetFromGallery = async (type: 'image' | 'video' | 'audio', assetId: number, scriptId?: number) => {
     try {
+      // Delete asset from database
       await (type === 'image'
         ? imageRepository.delete(assetId)
         : type === 'video'
           ? videoRepository.delete(assetId)
           : db.audios.delete(assetId));
-      const script = await db.scripts.get(scriptId);
-      if (!script) return;
 
-      let changed = false;
-      for (const act of script.acts) {
-        for (const scene of act.scenes) {
-          if (type === 'image' && scene.generatedImageId === assetId) {
-            delete scene.generatedImageId;
-            changed = true;
-          }
-          if (type === 'video' && scene.generatedVideoId === assetId) {
-            delete scene.generatedVideoId;
-            changed = true;
-          }
-          if (type === 'audio') {
-            // Xóa audio của từng câu thoại
-            for (const dialogue of scene.dialogues) {
-              if (dialogue.generatedAudioId === assetId) {
-                delete dialogue.generatedAudioId;
-                changed = true;
+      // After schema v7: Delete mappings from ScriptAssetMapping table
+      await db.scriptAssetMappings.where({ assetType: type, assetId }).delete();
+
+      // Legacy cleanup: If scriptId provided, clean up old schema references
+      if (scriptId) {
+        const script = await db.scripts.get(scriptId);
+        if (!script) return;
+
+        let changed = false;
+        for (const act of script.acts) {
+          for (const scene of act.scenes) {
+            if (type === 'image' && scene.generatedImageId === assetId) {
+              delete scene.generatedImageId;
+              changed = true;
+            }
+            if (type === 'video' && scene.generatedVideoId === assetId) {
+              delete scene.generatedVideoId;
+              changed = true;
+            }
+            if (type === 'audio') {
+              // Xóa audio của từng câu thoại
+              for (const dialogue of scene.dialogues) {
+                if (dialogue.generatedAudioId === assetId) {
+                  delete dialogue.generatedAudioId;
+                  changed = true;
+                }
               }
             }
           }
         }
+
+        // Xóa audio gộp của toàn bộ kịch bản
+        if (type === 'audio' && script.buildMeta?.fullScriptAudioId === assetId) {
+          delete script.buildMeta.fullScriptAudioId;
+          changed = true;
+        }
+
+        if (changed) await useScriptsStore.getState().saveActiveScript(script);
       }
 
-      // Xóa audio gộp của toàn bộ kịch bản
-      if (type === 'audio' && script.buildMeta?.fullScriptAudioId === assetId) {
-        delete script.buildMeta.fullScriptAudioId;
-        changed = true;
-      }
-
-      if (changed) await useScriptsStore.getState().saveActiveScript(script);
       window.dispatchEvent(new CustomEvent(ASSET_EVENTS.CHANGED));
     } catch (e) {
       console.error(`Lỗi xóa ${type}:`, e);

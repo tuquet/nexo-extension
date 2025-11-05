@@ -14,7 +14,7 @@ import {
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { useUIStateStore } from '@src/stores/use-ui-state-store';
-import { Settings } from 'lucide-react';
+import { Settings, Film } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
@@ -22,7 +22,11 @@ import type React from 'react';
 
 type ScriptViewMode = 'formatted' | 'json';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenCapCutExport?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onOpenCapCutExport }) => {
   const navigate = useNavigate();
   const { id: idFromUrl } = useParams<{ id: string }>();
   const scripts = useScriptsStore((s: ScriptsState) => s.savedScripts);
@@ -94,6 +98,11 @@ const Header: React.FC = () => {
           <Button variant="outline" onClick={() => setModelSettingsModalOpen(true)} disabled={!activeScript}>
             <Settings className="mr-2 h-4 w-4" /> Tùy chỉnh Model
           </Button>
+          {onOpenCapCutExport && (
+            <Button variant="outline" onClick={onOpenCapCutExport} disabled={!activeScript}>
+              <Film className="mr-2 h-4 w-4" /> Export to CapCut
+            </Button>
+          )}
           <ActionButton />
         </div>
       </div>

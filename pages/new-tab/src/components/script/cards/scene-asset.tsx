@@ -1,3 +1,4 @@
+import { AssetPickerModal } from '../modals/asset-picker-modal';
 import {
   Button,
   Card,
@@ -11,8 +12,9 @@ import {
 } from '@extension/ui';
 import { VIDEO_LOADING_MESSAGES, DEFAULT_ASPECT_RATIO } from '@src/constants';
 import { db } from '@src/db';
+import { useSceneAssets } from '@src/hooks/use-scene-assets';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { ImagePlus, UploadCloud, Video as VideoIcon } from 'lucide-react';
+import { ImagePlus, UploadCloud, Video as VideoIcon, FolderOpen } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import type { Scene, AspectRatio } from '@src/types';
 import type React from 'react';
@@ -43,63 +45,25 @@ const SceneAsset: React.FC<{
   isApiKeySet,
 }) => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(defaultAspectRatio || DEFAULT_ASPECT_RATIO);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const uploadImageInputRef = useRef<HTMLInputElement>(null);
   const uploadVideoInputRef = useRef<HTMLInputElement>(null);
   const updateSceneGeneratedAssetId = useScriptsStore(s => s.updateSceneGeneratedAssetId);
 
-  useEffect(() => {
-    let objectUrl: string | null = null;
-    const loadImage = async () => {
-      if (scene.generatedImageId) {
-        try {
-          const imageRecord = await db.images.get(scene.generatedImageId);
-          if (imageRecord?.data) {
-            objectUrl = URL.createObjectURL(imageRecord.data);
-            setImageUrl(objectUrl);
-          } else {
-            setImageUrl(null);
-          }
-        } catch (error) {
-          console.error('Lỗi tải ảnh từ DB:', error);
-          setImageUrl(null);
-        }
-      } else {
-        setImageUrl(null);
-      }
-    };
-    void loadImage();
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [scene.generatedImageId]);
+  // State for asset picker modals
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+  const [isVideoPickerOpen, setIsVideoPickerOpen] = useState(false);
 
-  useEffect(() => {
-    let objectUrl: string | null = null;
-    const loadVideo = async () => {
-      if (scene.generatedVideoId) {
-        try {
-          const videoRecord = await db.videos.get(scene.generatedVideoId);
-          if (videoRecord?.data) {
-            objectUrl = URL.createObjectURL(videoRecord.data);
-            setVideoUrl(objectUrl);
-          } else {
-            setVideoUrl(null);
-          }
-        } catch (error) {
-          console.error('Lỗi tải video từ DB:', error);
-          setVideoUrl(null);
-        }
-      } else {
-        setVideoUrl(null);
-      }
-    };
-    void loadVideo();
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [scene.generatedVideoId]);
+  // Generate unique scene ID for ScriptAssetMapping
+  const sceneId = `act${actIndex}-scene${sceneIndex}`;
+
+  // Use new hook to fetch assets via ScriptAssetMapping (schema v7)
+  const { imageUrl, videoUrl, imageId, videoId, linkAsset, replaceAsset } = useSceneAssets({
+    scriptId: scriptId!,
+    sceneId,
+    // Legacy fallback for old schema
+    legacyImageId: scene.generatedImageId,
+    legacyVideoId: scene.generatedVideoId,
+  });
 
   const [currentVideoMessage, setCurrentVideoMessage] = useState(VIDEO_LOADING_MESSAGES[0]);
 
@@ -128,10 +92,20 @@ const SceneAsset: React.FC<{
     if (!file || !scriptId) return;
 
     try {
-      // Lưu blob vào DB và lấy ID
-      const imageId = await db.images.add({ data: file, scriptId: scriptId });
-      // Cập nhật lại scene với imageId mới
-      await updateSceneGeneratedAssetId(actIndex, sceneIndex, 'image', imageId);
+      // Schema v7: Save asset without scriptId, then create mapping
+      const newImageId = await db.images.add({
+        data: file,
+        uploadSource: 'manual-upload',
+        originalFilename: file.name,
+        uploadedAt: new Date(),
+        mimeType: file.type,
+      });
+
+      // Link asset to scene via mapping
+      await linkAsset('image', newImageId);
+
+      // Legacy: Also update scene.generatedImageId for backward compatibility
+      await updateSceneGeneratedAssetId(actIndex, sceneIndex, 'image', newImageId);
     } catch (error) {
       console.error('Lỗi tải ảnh lên:', error);
     }
@@ -142,12 +116,42 @@ const SceneAsset: React.FC<{
     if (!file || !scriptId) return;
 
     try {
-      // Lưu blob vào DB và lấy ID
-      const videoId = await db.videos.add({ data: file, scriptId: scriptId });
-      // Cập nhật lại scene với videoId mới
-      await updateSceneGeneratedAssetId(actIndex, sceneIndex, 'video', videoId);
+      // Schema v7: Save asset without scriptId, then create mapping
+      const newVideoId = await db.videos.add({
+        data: file,
+        uploadSource: 'manual-upload',
+        originalFilename: file.name,
+        uploadedAt: new Date(),
+        mimeType: file.type,
+      });
+
+      // Link asset to scene via mapping
+      await linkAsset('video', newVideoId);
+
+      // Legacy: Also update scene.generatedVideoId for backward compatibility
+      await updateSceneGeneratedAssetId(actIndex, sceneIndex, 'video', newVideoId);
     } catch (error) {
       console.error('Lỗi tải video lên:', error);
+    }
+  };
+
+  // Handler for selecting asset from gallery
+  const handleSelectFromGallery = async (assetType: 'image' | 'video', selectedAssetId: number) => {
+    try {
+      const currentId = assetType === 'image' ? imageId : videoId;
+
+      if (currentId) {
+        // Replace existing asset
+        await replaceAsset(assetType, currentId, selectedAssetId);
+      } else {
+        // Link new asset
+        await linkAsset(assetType, selectedAssetId);
+      }
+
+      // Legacy: Also update scene for backward compatibility
+      await updateSceneGeneratedAssetId(actIndex, sceneIndex, assetType, selectedAssetId);
+    } catch (error) {
+      console.error(`Lỗi chọn ${assetType} từ gallery:`, error);
     }
   };
   return (
@@ -217,28 +221,38 @@ const SceneAsset: React.FC<{
               )
             )}
           </div>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 space-y-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => uploadImageInputRef.current?.click()}
+                disabled={isActionDisabled}>
+                <UploadCloud className="mr-2 h-4 w-4" />
+                Tải lên
+              </Button>
+              <input
+                type="file"
+                ref={uploadImageInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+              <Button
+                className="flex-1"
+                onClick={() => onOpenImageModal(actIndex, sceneIndex, aspectRatio)}
+                title={apiKeyTitle}>
+                <ImagePlus className="mr-2 h-4 w-4" />
+                Tạo AI
+              </Button>
+            </div>
             <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => uploadImageInputRef.current?.click()}
+              variant="secondary"
+              className="w-full"
+              onClick={() => setIsImagePickerOpen(true)}
               disabled={isActionDisabled}>
-              <UploadCloud className="mr-2 h-4 w-4" />
-              Tải ảnh lên
-            </Button>
-            <input
-              type="file"
-              ref={uploadImageInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={handleImageUpload}
-            />
-            <Button
-              className="flex-1"
-              onClick={() => onOpenImageModal(actIndex, sceneIndex, aspectRatio)}
-              title={apiKeyTitle}>
-              <ImagePlus className="mr-2 h-4 w-4" />
-              Tạo ảnh AI
+              <FolderOpen className="mr-2 h-4 w-4" />
+              Chọn từ thư viện
             </Button>
           </div>
         </div>
@@ -286,32 +300,58 @@ const SceneAsset: React.FC<{
               <span className="text-sm text-slate-400 dark:text-slate-500">Chưa có video</span>
             )}
           </div>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 space-y-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => uploadVideoInputRef.current?.click()}
+                disabled={isActionDisabled}>
+                <UploadCloud className="mr-2 h-4 w-4" />
+                Tải lên
+              </Button>
+              <input
+                type="file"
+                ref={uploadVideoInputRef}
+                className="hidden"
+                accept="video/*"
+                onChange={handleVideoUpload}
+              />
+              <Button
+                className="flex-1"
+                onClick={() => onGenerateVideo(actIndex, sceneIndex, aspectRatio)}
+                title={apiKeyTitle}>
+                <VideoIcon className="mr-2 h-4 w-4" />
+                Tạo AI
+              </Button>
+            </div>
             <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => uploadVideoInputRef.current?.click()}
+              variant="secondary"
+              className="w-full"
+              onClick={() => setIsVideoPickerOpen(true)}
               disabled={isActionDisabled}>
-              <UploadCloud className="mr-2 h-4 w-4" />
-              Tải video lên
-            </Button>
-            <input
-              type="file"
-              ref={uploadVideoInputRef}
-              className="hidden"
-              accept="video/*"
-              onChange={handleVideoUpload}
-            />
-            <Button
-              className="flex-1"
-              onClick={() => onGenerateVideo(actIndex, sceneIndex, aspectRatio)}
-              title={apiKeyTitle}>
-              <VideoIcon className="mr-2 h-4 w-4" />
-              Tạo video AI
+              <FolderOpen className="mr-2 h-4 w-4" />
+              Chọn từ thư viện
             </Button>
           </div>
         </div>
       </CardContent>
+
+      {/* Asset Picker Modals */}
+      <AssetPickerModal
+        isOpen={isImagePickerOpen}
+        onClose={() => setIsImagePickerOpen(false)}
+        onSelect={assetId => handleSelectFromGallery('image', assetId)}
+        assetType="image"
+        currentAssetId={imageId}
+      />
+      <AssetPickerModal
+        isOpen={isVideoPickerOpen}
+        onClose={() => setIsVideoPickerOpen(false)}
+        onSelect={assetId => handleSelectFromGallery('video', assetId)}
+        assetType="video"
+        currentAssetId={videoId}
+      />
     </Card>
   );
 };

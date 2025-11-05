@@ -1,3 +1,4 @@
+import { getSystemInstruction } from '@extension/shared';
 import { DEFAULT_MODEL_SETTINGS } from '@src/constants/script-generation';
 import type { PromptRecord } from '@extension/database';
 import type { GenerationFormData } from '@src/types/script-generation';
@@ -128,15 +129,9 @@ export const buildPromptFromTemplate = (
 
 /**
  * Get default system instruction for script generation
+ * @deprecated Use getSystemInstruction from @extension/shared instead
  */
-export const getDefaultSystemInstruction = (
-  language: 'en-US' | 'vi-VN',
-): string => `You are a professional screenwriter. Based on the user's prompt, generate a complete and detailed movie script in ${language}.
-The script must follow the three-act structure.
-Ensure every field in the provided JSON schema is filled with creative, relevant, and well-written content.
-The 'roleId' in dialogue must correspond to one of the character roleIds defined in the 'characters' array (e.g., 'Protagonist', 'Mentor'). Do not invent new roleIds for dialogue.
-For each dialogue 'line', provide only the spoken words. Do not include parenthetical remarks, actions, or context like '(internal monologue)' or '(shouting)'.
-IMPORTANT RULE: Always include a character with the roleId 'narrator' in the 'characters' list. For any scene that has no character dialogue, you MUST create a single entry in the 'dialogues' array. This entry will have the 'roleId' set to 'narrator' and the 'line' will be the exact content of the 'action' field for that scene. This ensures every scene has content for voice-over.`;
+export const getDefaultSystemInstruction = getSystemInstruction;
 
 /**
  * Build generation form data from template and user inputs
@@ -199,5 +194,11 @@ export const formatPromptForAutomation = (
 ): string => {
   const finalSystemInstruction = systemInstruction || getDefaultSystemInstruction(language);
 
-  return `# 🟦 SYSTEM PROMPT\n\n\`\`\`\n${finalSystemInstruction}\n\`\`\`\n\n# 🟩 USER PROMPT\n\n\`\`\`\n${prompt}\n\`\`\`\n\n# 🟨 REQUIRED JSON OUTPUT SCHEMA\n\n\`\`\`json\n${READABLE_SCRIPT_SCHEMA_GUIDE.trim()}\n\`\`\`\n\n> Hãy điền ĐẦY ĐỦ tất cả các trường với nội dung sáng tạo, chi tiết và phù hợp với yêu cầu!`;
+  return `${finalSystemInstruction}
+
+USER REQUEST:
+${prompt}
+
+OUTPUT FORMAT - Return ONLY this JSON structure (no markdown, no explanations):
+${READABLE_SCRIPT_SCHEMA_GUIDE.trim()}`;
 };

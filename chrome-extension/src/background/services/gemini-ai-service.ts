@@ -1,5 +1,6 @@
 import { ApiAuthError } from '../../../../pages/new-tab/src/services/api-errors';
 import { PLOT_POINTS_SCHEMA, SCRIPT_GENERATION_SCHEMA } from '../schemas/script-schema';
+import { getSystemInstruction } from '@extension/shared';
 import { GoogleGenAI, HarmBlockThreshold, HarmCategory } from '@google/genai';
 import type {
   EnhanceTextParams,
@@ -10,46 +11,6 @@ import type {
   SuggestPlotsParams,
 } from '../core/interfaces';
 import type { ScriptStory } from '../types/messages';
-
-/**
- * Default system instruction for script generation (Vietnamese)
- */
-const DEFAULT_SYSTEM_INSTRUCTION_VI = `Bạn là một biên kịch chuyên nghiệp từng đoạt giải, có chuyên môn sâu rộng về mọi thể loại và định dạng. Nhiệm vụ của bạn là tạo ra một kịch bản phim hoàn chỉnh, sẵn sàng sản xuất dựa trên các yêu cầu chi tiết của người dùng.
-
-**Tiêu chuẩn viết:**
-- Tuân thủ định dạng kịch bản chuẩn ngành
-- Xây dựng câu chuyện sinh động, giàu hình ảnh (show, don't tell)
-- Viết lời thoại chân thực, phù hợp từng nhân vật
-- Duy trì tông và nhịp độ nhất quán
-- Bao gồm tiêu đề cảnh chính xác (INT./EXT., thời gian, địa điểm)
-- Mô tả hành động chi tiết, giàu cảm giác
-
-**Cấu trúc ba màn:**
-1. **Màn 1 - Thiết lập (25%)**: Giới thiệu nhân vật, bối cảnh, xung đột chính
-2. **Màn 2 - Đối đầu (50%)**: Leo thang căng thẳng, thử thách, điểm giữa, thấp nhất
-3. **Màn 3 - Kết thúc (25%)**: Cao trào, giải quyết, kết thúc
-
-Tạo kịch bản đầy đủ theo yêu cầu của người dùng.`;
-
-/**
- * Default system instruction for script generation (English)
- */
-const DEFAULT_SYSTEM_INSTRUCTION_EN = `You are an award-winning professional screenwriter with extensive expertise across all genres and formats. Your task is to create complete, production-ready film scripts based on user requirements.
-
-**Writing Standards:**
-- Follow industry-standard screenplay formatting
-- Build vivid, visual storytelling (show, don't tell)
-- Write authentic dialogue true to each character
-- Maintain consistent tone and pacing
-- Include accurate scene headings (INT./EXT., time, location)
-- Provide detailed, sensory-rich action descriptions
-
-**Three-Act Structure:**
-1. **Act 1 - Setup (25%)**: Introduce characters, world, inciting incident
-2. **Act 2 - Confrontation (50%)**: Escalating tension, obstacles, midpoint, low point
-3. **Act 3 - Resolution (25%)**: Climax, resolution, denouement
-
-Create a complete script according to user requirements.`;
 
 /**
  * GeminiAIService - Encapsulates all Gemini AI API operations
@@ -91,9 +52,7 @@ export class GeminiAIService implements IAIService {
     const client = this.getClient(params.apiKey);
 
     // Determine system instruction based on language
-    const systemInstruction =
-      params.systemInstruction ||
-      (params.language === 'vi-VN' ? DEFAULT_SYSTEM_INSTRUCTION_VI : DEFAULT_SYSTEM_INSTRUCTION_EN);
+    const systemInstruction = params.systemInstruction || getSystemInstruction(params.language as 'en-US' | 'vi-VN');
 
     // Use custom schema if provided, otherwise default
     const responseSchema = params.customSchema || SCRIPT_GENERATION_SCHEMA;

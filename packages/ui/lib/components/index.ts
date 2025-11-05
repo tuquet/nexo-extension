@@ -35,3 +35,5 @@ export * from './ui/label';
 export * from './ui/slider';
 export * from './ui/sonner';
 export * from './ui/pagination';
+export * from './ui/progress';
+export * from './ui/scroll-area';

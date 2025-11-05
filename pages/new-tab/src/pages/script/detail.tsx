@@ -4,6 +4,7 @@ import AssetDisplay from '@src/components/script/display/asset-display';
 import ScriptContent from '@src/components/script/display/content';
 import Header from '@src/components/script/display/header';
 import ResponsiveDetailLayout from '@src/components/script/display/responsive-detail-layout';
+import { CapCutExportModal } from '@src/components/script/modals/capcut-export-modal';
 import ModelSettings from '@src/components/script/modals/model-settings';
 import { TtsExport } from '@src/components/script/modals/tts-export';
 import AudioPlayer from '@src/components/script/ui/audio-player';
@@ -31,6 +32,7 @@ const ScriptDetailPage = () => {
   const { error, setError } = useErrorHandler({ showToast: false });
 
   const [isTtsModalOpen, setIsTtsModalOpen] = useState(false);
+  const [isCapCutModalOpen, setIsCapCutModalOpen] = useState(false);
   // initialize asset helpers
   void useAssets(setError);
 
@@ -96,8 +98,15 @@ const ScriptDetailPage = () => {
         />
       )}
       {activeScript && <TtsExport isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} />}
+      {activeScript && (
+        <CapCutExportModal
+          isOpen={isCapCutModalOpen}
+          onClose={() => setIsCapCutModalOpen(false)}
+          script={activeScript}
+        />
+      )}
 
-      <Header />
+      <Header onOpenCapCutExport={() => setIsCapCutModalOpen(true)} />
       {error && <div className="error">{error}</div>}
       {isImporting && (
         <div

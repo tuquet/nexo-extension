@@ -12,6 +12,8 @@ export type {
   VideoRecord,
   AudioRecord,
   PromptRecord,
+  AssetUploadSource,
+  ScriptAssetMapping,
 } from './src/db.js';
 
 // Seed utilities

@@ -6,26 +6,60 @@
 import type { ContentDebugLogger } from './content-debug-logger';
 
 /**
- * Clean up JSON string (remove invalid characters, fix common AI mistakes)
+ * Clean up JSON string (minimal processing to avoid breaking valid JSON)
  */
 export const cleanupJSON = (jsonString: string): string => {
-  let cleaned = jsonString;
+  let cleaned = jsonString.trim();
 
-  // Remove zero-width spaces and other invisible characters
+  // --- Robust Markdown code block removal (from doc) ---
+  const markdownStart = '```';
+  const markdownEnd = '```';
+  if (cleaned.startsWith(markdownStart) && cleaned.endsWith(markdownEnd)) {
+    cleaned = cleaned.substring(3, cleaned.length - 3).trim();
+    // Remove language keyword if present
+    const possibleLangKeyword = cleaned.split(/\s/, 1)[0].toLowerCase();
+    if (
+      possibleLangKeyword.length > 1 &&
+      possibleLangKeyword.length < 15 &&
+      ['json', 'javascript', 'js'].includes(possibleLangKeyword)
+    ) {
+      cleaned = cleaned.substring(possibleLangKeyword.length).trim();
+    }
+  }
+
+  // Remove trailing single quote at end of string values (before comma, brace, bracket, newline, or end of string)
+  cleaned = cleaned.replace(/("[^"]+"\s*:\s*")([^"\n]*?)'(,|}|\]|\n|$)/g, '$1$2$3');
+
+  // Remove all // ... style comments (single-line)
+  // Remove // comments at line start or after whitespace, but not in URLs (e.g., http://)
+  cleaned = cleaned.replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  // Remove zero-width spaces
   cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, '');
 
-  // Fix single quotes to double quotes (common AI mistake)
-  // But be careful with apostrophes in content
-  // This is a simplified approach - may need refinement
-  cleaned = cleaned.replace(/(\w+):\s*'([^']*)'/g, '$1: "$2"');
+  // Escape control characters in string values (newlines, tabs, etc)
+  // This must be done BEFORE fixing nested quotes
+  cleaned = cleaned.replace(/"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g, (match, key, value) => {
+    const escapedValue = value.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+    return `"${key}": "${escapedValue}"`;
+  });
+
+  // 2. Fix unescaped nested quotes in string values
+  cleaned = cleaned.replace(/"([^"]+)"\s*:\s*"([^"]*"[^"]*(?:"[^"]*)*?)"/g, (match, key, value) => {
+    const fixedValue = value.replace(/"/g, "'");
+    return `"${key}": "${fixedValue}"`;
+  });
+
+  // 3. Fix single-quote string endings to double-quote (critical for AI output)
+  // "key": "value',  => "key": "value",
+  cleaned = cleaned.replace(/("[^"]+"\s*:\s*")([^"]*?)(')([,}\]])/g, '$1$2"$4');
+  // "key": 'value'  => "key": "value"
+  cleaned = cleaned.replace(/("[^"]+"\s*:)\s*'([^']*)'/g, '$1 "$2"');
 
   // Remove trailing commas before closing braces/brackets
-  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
 
-  // Ensure proper spacing around colons
-  cleaned = cleaned.replace(/(\w+):\s*/g, '$1: ');
-
-  return cleaned;
+  return cleaned.trim();
 };
 
 /**
@@ -96,6 +130,7 @@ export const extractJSON = (responseElement: HTMLElement, debugLogger: ContentDe
     });
 
     // Clean up before returning
+    debugLogger.info('[Script Extraction]', extracted);
     const cleaned = cleanupJSON(extracted);
     debugLogger.debug('JSON cleaned', { originalLength: extracted.length, cleanedLength: cleaned.length });
     return cleaned;
@@ -121,6 +156,7 @@ export const extractJSON = (responseElement: HTMLElement, debugLogger: ContentDe
 export const validateScriptJSON = (jsonString: string, debugLogger: ContentDebugLogger): boolean => {
   try {
     console.log('[Script Extraction] Validating JSON structure...');
+    console.log('jsonString:', jsonString);
     debugLogger.debug('Starting JSON validation', {
       length: jsonString.length,
       preview: jsonString.substring(0, 100),

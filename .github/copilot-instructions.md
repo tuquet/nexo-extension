@@ -15,6 +15,8 @@ Keep changes scoped and verified with the project's lint/typecheck tooling. If y
 - **State management**: Zustand with persist middleware + IndexedDB via Dexie wrapper
 - **AI Integration**: Google GenAI SDK (`@google/genai`) for Gemini, Imagen, Veo APIs
 - **Styling**: Tailwind CSS with shared config in `packages/tailwindcss-config`
+- **External integration**: CapCut API server (Python Flask) for video export workflow
+- **Background refactoring**: New DI Container pattern with BaseHandler (see `chrome-extension/src/background/REFACTORING_COMPLETE.md`)
 
 ---
 
@@ -43,9 +45,17 @@ Architecture & data flow highlights
 **Background Service Worker Pattern (Critical)**:
 - UI pages CANNOT directly call external APIs due to Chrome extension security model
 - ALL API calls (Gemini, Vbee TTS) are proxied through `chrome-extension/src/background/`
-- Message protocol: `pages/new-tab` → `chrome.runtime.sendMessage()` → `background/router.ts` → handler
+- Message protocol: `pages/new-tab` → `chrome.runtime.sendMessage()` → `core/router.ts` → handler
 - Type-safe messaging: see `chrome-extension/src/background/types/messages.ts` for all message types
 - Frontend wrapper: `pages/new-tab/src/services/background-api.ts` provides typed methods
+
+**NEW: Dependency Injection Architecture** (Refactored):
+- `core/di-container.ts` - Singleton service registry
+- `core/base-handler.ts` - Abstract handler with automatic error handling
+- `core/router.ts` - Type-safe MessageRouter using handler registry (Open/Closed Principle)
+- Services: `GeminiAIService`, `ChromeSettingsService`, `VbeeTTSService`, `PageOpenerService`, `AutomationService`, `ScriptService`
+- All handlers extend `BaseHandler<TMessage, TResponse>` for consistent error handling
+- To add new API: 1) Create handler extending BaseHandler, 2) Register in `background/index.ts`, 3) Add message type to `types/messages.ts`
 
 **State & Data Flow**:
 - **IndexedDB** (via Dexie): `db.scripts`, `db.images`, `db.videos`, `db.audios` for persistent storage
@@ -60,21 +70,47 @@ Architecture & data flow highlights
 - Narrator character with roleId 'narrator' MUST exist for scenes without dialogue (TTS requirement)
 - Assets stored as Blobs in IndexedDB (previously base64, migrated for performance)
 
+**CapCut Integration** (External Workflow):
+- Python Flask server (`capcut-api/`) on `localhost:9001` handles video export
+- Workflow: Create draft → Upload assets (multipart/form-data) → Add media tracks → Render → Download
+- Extension sends Blobs via `pages/new-tab/src/services/capcut-api.ts` (NOT background proxy - direct HTTP)
+- State managed by `use-capcut-store.ts` with export progress tracking
+- Server must be running before export: `cd capcut-api && python capcut_server.py`
+- See `CAPCUT_INTEGRATION_SUMMARY.md` and `GALLERY_UPLOAD_TESTING_GUIDE.md` for details
+
 ---
 
 Developer workflows & useful commands
 
-- Install & workspace commands: pnpm is the package manager. Use pnpm from repo root.
-- Lint/check for a package (e.g. `new-tab`):
-
+- **Install & workspace commands**: pnpm is the package manager. Use pnpm from repo root.
+- **Lint/check** for a package (e.g. `new-tab`):
+  ```powershell
   pnpm -w -C pages/new-tab lint
   pnpm -w -C pages/new-tab type-check
+  ```
 
-- Run the entire monorepo dev (if configured):
+- **Run development mode**:
+  ```powershell
+  # Chrome (run as administrator on Windows to avoid symlink issues)
+  pnpm dev
+  
+  # Firefox
+  pnpm dev:firefox
+  ```
 
-  pnpm -w dev
+- **Build for production**:
+  ```powershell
+  pnpm build              # Chrome
+  pnpm build:firefox      # Firefox
+  ```
 
-- When changing stores or DB usage, run the package lint & type-check immediately to catch parse errors quickly.
+- **CapCut server** (required for video export):
+  ```powershell
+  cd capcut-api
+  python capcut_server.py
+  ```
+
+- **After editing stores/DB**: Run package lint & type-check immediately to catch parse errors.
 
 ---
 
@@ -508,12 +544,32 @@ pages/new-tab/src/
 
 **Chrome Extension Background (Critical for API calls)**:
 - chrome-extension/src/background/
-  - router.ts — Message router mapping types to handlers
-  - gemini-api-handler.ts — Gemini/Imagen/Veo API handlers (uses @google/genai SDK)
-  - vbee-api-handler.ts — Vbee TTS API handler
-  - settings-handler.ts — API key and model settings management
-  - types/messages.ts — Type-safe message protocol (BackgroundMessage/BackgroundResponse unions)
-  - schemas/script-schema.ts — JSON schemas using Type enum for structured generation
+  - **Core Architecture** (NEW - DI Pattern):
+    - index.ts — Service registration and handler initialization
+    - core/di-container.ts — Singleton service registry
+    - core/base-handler.ts — Abstract handler base class
+    - core/router.ts — Type-safe MessageRouter (Open/Closed Principle)
+  - **Services** (business logic):
+    - services/gemini-ai-service.ts — Gemini/Imagen/Veo API calls
+    - services/chrome-settings-service.ts — Settings persistence
+    - services/vbee-tts-service.ts — Vbee TTS API
+    - services/page-opener-service.ts — Tab/window management
+    - services/automation-service.ts — UI automation
+    - services/script-service.ts — Script operations
+  - **Handlers** (message processing):
+    - handlers/generate-script-handler.ts — Script generation
+    - handlers/generate-image-handler.ts — Image generation
+    - handlers/generate-video-handler.ts — Video generation
+    - handlers/vbee-create-project-handler.ts — TTS project creation
+    - handlers/settings-handlers.ts — Get/save settings
+    - [12 other handlers] - See `handlers/` directory
+  - **Types & Schemas**:
+    - types/messages.ts — Type-safe message protocol (BackgroundMessage/BackgroundResponse unions)
+    - schemas/script-schema.ts — JSON schemas using Type enum for structured generation
+  - **Old files** (deprecated, see REFACTORING_COMPLETE.md):
+    - ~~gemini-api-handler.ts~~ → Refactored to services/
+    - ~~vbee-api-handler.ts~~ → Refactored to services/
+    - ~~settings-handler.ts~~ → Refactored to services/
 
 **Frontend (New Tab Page)**:
 - pages/new-tab/src/
@@ -557,6 +613,7 @@ pages/new-tab/src/
 
 - **API calls in UI pages will fail silently**: NEVER call external APIs directly from UI pages. Always use `pages/new-tab/src/services/background-api.ts` methods which proxy through background service worker.
 - **Message protocol types**: When adding new API calls, update `chrome-extension/src/background/types/messages.ts` with new message/response types, add handler in appropriate file, register in `router.ts`.
+- **DO NOT import deprecated handlers**: After refactoring, old files like `gemini-api-handler.ts`, `vbee-api-handler.ts`, `settings-handler.ts` are deprecated. Use new DI pattern: Create handler extending `BaseHandler`, register in `background/index.ts`. See `REFACTORING_COMPLETE.md`.
 - Malformed or duplicate files (esp. store files) cause TypeScript parse errors that cascade into many lint errors. If you see "Parsing error: ';' expected" inspect the file for duplicated content or stray backticks.
 - After editing a store, re-run `pnpm -w -C pages/new-tab lint` — many consumers import the store and will fail to parse if the store doesn't compile.
 - Remember to dispatch `assets-changed` after deleting assets or clearing DB so galleries update.

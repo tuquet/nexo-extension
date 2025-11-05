@@ -85,26 +85,54 @@ export interface BuildMeta {
 }
 
 // ============================================================================
-// Asset Record Interfaces
+// Asset Record Interfaces (Refactored: Assets are independent, reusable)
 // ============================================================================
+
+export type AssetUploadSource = 'ai-generated' | 'manual-upload' | 'imported';
 
 export interface ImageRecord {
   id?: number;
-  scriptId: number; // Foreign key to the script
   data: Blob;
+  // Metadata for independent asset management
+  uploadSource: AssetUploadSource;
+  originalFilename?: string;
+  uploadedAt: Date;
+  mimeType?: string; // e.g., 'image/png', 'image/jpeg'
 }
 
 export interface VideoRecord {
   id?: number;
-  scriptId: number; // Foreign key to the script
   data: Blob;
+  uploadSource: AssetUploadSource;
+  originalFilename?: string;
+  uploadedAt: Date;
+  mimeType?: string; // e.g., 'video/mp4', 'video/webm'
+  duration?: number; // Duration in seconds
 }
 
 export interface AudioRecord {
-  id?: number; // Primary key
-  scriptId: number; // Foreign key to the script
+  id?: number;
   data: Blob;
-  isFullScript?: boolean;
+  uploadSource: AssetUploadSource;
+  originalFilename?: string;
+  uploadedAt: Date;
+  mimeType?: string; // e.g., 'audio/mpeg', 'audio/wav'
+  duration?: number; // Duration in seconds
+  isFullScript?: boolean; // Legacy: marks full script audio from Vbee
+}
+
+// ============================================================================
+// Script-Asset Mapping (Many-to-Many Relationship)
+// ============================================================================
+
+export interface ScriptAssetMapping {
+  id?: number; // Auto-increment primary key
+  scriptId: number; // Foreign key to script
+  sceneId?: string; // Optional: specific scene (format: "act-X-scene-Y")
+  assetType: 'image' | 'video' | 'audio'; // Type of asset
+  assetId: number; // Foreign key to images/videos/audios table
+  linkedAt: Date; // When the asset was linked to this script
+  role?: 'scene-image' | 'scene-video' | 'dialogue-audio' | 'full-script-audio' | 'background'; // Asset role
 }
 
 // ============================================================================
@@ -204,6 +232,7 @@ export class CineGenieDB extends Dexie {
   videos!: Table<VideoRecord, number>;
   audios!: Table<AudioRecord, number>;
   prompts!: Table<PromptRecord, number>;
+  scriptAssetMappings!: Table<ScriptAssetMapping, number>;
 
   constructor() {
     super('cineGenieDatabase'); // Database name
@@ -238,6 +267,92 @@ export class CineGenieDB extends Dexie {
       audios: '++id, scriptId',
       prompts: '++id, category, createdAt', // Add prompts table with indexed fields
     });
+
+    // Version 7: BREAKING CHANGE - Assets become independent, reusable
+    // Remove scriptId from assets, add metadata, create mapping table
+    this.version(7)
+      .stores({
+        scripts: '++id, title',
+        images: '++id, uploadedAt, uploadSource', // Remove scriptId, add metadata indexes
+        videos: '++id, uploadedAt, uploadSource',
+        audios: '++id, uploadedAt, uploadSource',
+        prompts: '++id, category, createdAt',
+        scriptAssetMappings: '++id, scriptId, assetType, assetId, [scriptId+assetType], [assetType+assetId]', // Many-to-many mapping
+      })
+      .upgrade(async tx => {
+        // Migration: Convert old schema to new schema
+        console.log('[DB Migration v7] Starting asset independence migration...');
+
+        const oldImages = await tx.table<ImageRecord & { scriptId?: number }>('images').toArray();
+        const oldVideos = await tx.table<VideoRecord & { scriptId?: number }>('videos').toArray();
+        const oldAudios = await tx.table<AudioRecord & { scriptId?: number }>('audios').toArray();
+
+        const mappings: Omit<ScriptAssetMapping, 'id'>[] = [];
+        const now = new Date();
+
+        // Migrate images
+        for (const img of oldImages) {
+          if (img.id && img.scriptId) {
+            mappings.push({
+              scriptId: img.scriptId,
+              assetType: 'image',
+              assetId: img.id,
+              linkedAt: now,
+              role: 'scene-image',
+            });
+          }
+          // Update image record with new metadata
+          await tx.table('images').update(img.id!, {
+            uploadSource: 'ai-generated' as AssetUploadSource,
+            uploadedAt: now,
+            mimeType: img.data.type || 'image/png',
+          });
+        }
+
+        // Migrate videos
+        for (const vid of oldVideos) {
+          if (vid.id && vid.scriptId) {
+            mappings.push({
+              scriptId: vid.scriptId,
+              assetType: 'video',
+              assetId: vid.id,
+              linkedAt: now,
+              role: 'scene-video',
+            });
+          }
+          await tx.table('videos').update(vid.id!, {
+            uploadSource: 'ai-generated' as AssetUploadSource,
+            uploadedAt: now,
+            mimeType: vid.data.type || 'video/mp4',
+          });
+        }
+
+        // Migrate audios
+        for (const aud of oldAudios) {
+          if (aud.id && aud.scriptId) {
+            mappings.push({
+              scriptId: aud.scriptId,
+              assetType: 'audio',
+              assetId: aud.id,
+              linkedAt: now,
+              role: aud.isFullScript ? 'full-script-audio' : 'dialogue-audio',
+            });
+          }
+          await tx.table('audios').update(aud.id!, {
+            uploadSource: 'ai-generated' as AssetUploadSource,
+            uploadedAt: now,
+            mimeType: aud.data.type || 'audio/mpeg',
+          });
+        }
+
+        // Create mappings
+        if (mappings.length > 0) {
+          await tx.table('scriptAssetMappings').bulkAdd(mappings);
+          console.log(`[DB Migration v7] Created ${mappings.length} asset mappings`);
+        }
+
+        console.log('[DB Migration v7] Migration completed successfully');
+      });
   }
 
   /**
@@ -246,13 +361,18 @@ export class CineGenieDB extends Dexie {
    */
   async clearAllData(): Promise<void> {
     // Use a transaction to ensure all tables are cleared atomically.
-    await this.transaction('rw', [this.scripts, this.images, this.videos, this.audios, this.prompts], async () => {
-      await this.scripts.clear();
-      await this.images.clear();
-      await this.videos.clear();
-      await this.audios.clear();
-      await this.prompts.clear();
-    });
+    await this.transaction(
+      'rw',
+      [this.scripts, this.images, this.videos, this.audios, this.prompts, this.scriptAssetMappings],
+      async () => {
+        await this.scripts.clear();
+        await this.images.clear();
+        await this.videos.clear();
+        await this.audios.clear();
+        await this.prompts.clear();
+        await this.scriptAssetMappings.clear();
+      },
+    );
   }
 }
 

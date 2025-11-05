@@ -24,9 +24,11 @@
     "@extension/ui": "workspace:*"
   },
   "devDependencies": {
+    "@extension/hmr": "workspace:*",
+    "@extension/shared": "workspace:*",
     "@extension/tsconfig": "workspace:*",
     "@extension/vite-config": "workspace:*",
-    "@extension/hmr": "workspace:*",
-    "@extension/shared": "workspace:*"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

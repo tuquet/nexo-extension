@@ -1,0 +1,251 @@
+/**
+ * Asset Picker Modal
+ * Allows selecting assets from gallery to link to a scene
+ * Features: Filter by type, search, pagination, preview
+ */
+
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@extension/ui';
+import { db } from '@src/db';
+import { Check, Search } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import type React from 'react';
+
+interface AssetPickerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (assetId: number) => void;
+  assetType: 'image' | 'video' | 'audio';
+  currentAssetId?: number | null;
+}
+
+interface AssetItem {
+  id: number;
+  url: string;
+  uploadSource?: 'ai-generated' | 'manual-upload' | 'imported';
+  originalFilename?: string;
+  uploadedAt?: Date;
+  mimeType?: string;
+}
+
+const AssetPickerModal: React.FC<AssetPickerModalProps> = ({
+  isOpen,
+  onClose,
+  onSelect,
+  assetType,
+  currentAssetId,
+}) => {
+  const [assets, setAssets] = useState<AssetItem[]>([]);
+  const [filteredAssets, setFilteredAssets] = useState<AssetItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [uploadSourceFilter, setUploadSourceFilter] = useState<'all' | 'ai-generated' | 'manual-upload' | 'imported'>(
+    'all',
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedAssetId, setSelectedAssetId] = useState<number | null>(currentAssetId || null);
+
+  const loadAssets = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const table = assetType === 'image' ? db.images : assetType === 'video' ? db.videos : db.audios;
+      const records = await table.toArray();
+
+      const assetItems: AssetItem[] = records.map(record => ({
+        id: record.id!,
+        url: URL.createObjectURL(record.data),
+        uploadSource: record.uploadSource,
+        originalFilename: record.originalFilename,
+        uploadedAt: record.uploadedAt,
+        mimeType: record.mimeType,
+      }));
+
+      setAssets(assetItems);
+      setFilteredAssets(assetItems);
+    } catch (error) {
+      console.error('[AssetPickerModal] Failed to load assets:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [assetType]);
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadAssets();
+    }
+    return () => {
+      // Cleanup object URLs
+      assets.forEach(asset => URL.revokeObjectURL(asset.url));
+    };
+  }, [isOpen, loadAssets, assets]);
+
+  useEffect(() => {
+    let filtered = assets;
+
+    // Filter by upload source
+    if (uploadSourceFilter !== 'all') {
+      filtered = filtered.filter(asset => asset.uploadSource === uploadSourceFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(asset => asset.originalFilename?.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+
+    setFilteredAssets(filtered);
+  }, [assets, uploadSourceFilter, searchTerm]);
+
+  const handleSelect = () => {
+    if (selectedAssetId !== null) {
+      onSelect(selectedAssetId);
+      onClose();
+    }
+  };
+
+  const handleAssetClick = (assetId: number) => {
+    setSelectedAssetId(assetId);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="flex max-h-[80vh] max-w-4xl flex-col overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Select {assetType}</DialogTitle>
+          <DialogDescription>Choose an asset from your gallery to link to this scene</DialogDescription>
+        </DialogHeader>
+
+        {/* Filters */}
+        <div className="flex gap-3 border-b pb-4">
+          <div className="relative flex-1">
+            <Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+            <Input
+              placeholder="Search by filename..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={uploadSourceFilter} onValueChange={v => setUploadSourceFilter(v as typeof uploadSourceFilter)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              <SelectItem value="ai-generated">AI Generated</SelectItem>
+              <SelectItem value="manual-upload">Manual Upload</SelectItem>
+              <SelectItem value="imported">Imported</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Asset Grid */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="border-primary size-8 animate-spin rounded-full border-4 border-t-transparent" />
+            </div>
+          ) : filteredAssets.length === 0 ? (
+            <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-lg font-medium">No assets found</p>
+              <p className="mt-1 text-sm">Try adjusting your filters or create new assets</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 p-4">
+              {filteredAssets.map(asset => (
+                <div
+                  key={asset.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleAssetClick(asset.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAssetClick(asset.id);
+                    }
+                  }}
+                  className={`relative cursor-pointer overflow-hidden rounded-lg border-2 transition-all hover:shadow-lg ${
+                    selectedAssetId === asset.id
+                      ? 'border-primary ring-primary/20 ring-2'
+                      : 'border-border hover:border-primary/50'
+                  }`}>
+                  {/* Asset Preview */}
+                  <div
+                    className="bg-muted aspect-video"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleAssetClick(asset.id);
+                      }
+                    }}>
+                    {assetType === 'image' ? (
+                      <img src={asset.url} alt={asset.originalFilename} className="size-full object-cover" />
+                    ) : assetType === 'video' ? (
+                      <video src={asset.url} className="size-full object-cover" muted>
+                        <track kind="captions" />
+                      </video>
+                    ) : (
+                      <div className="flex size-full items-center justify-center">
+                        <div className="text-center">
+                          <div className="mb-2 text-4xl">🎵</div>
+                          <p className="text-muted-foreground text-xs">Audio</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selection Indicator */}
+                  {selectedAssetId === asset.id && (
+                    <div className="bg-primary absolute right-2 top-2 flex size-6 items-center justify-center rounded-full">
+                      <Check className="text-primary-foreground size-4" />
+                    </div>
+                  )}
+
+                  {/* Current Asset Badge */}
+                  {currentAssetId === asset.id && (
+                    <div className="bg-primary/90 text-primary-foreground absolute left-2 top-2 rounded px-2 py-1 text-xs font-medium">
+                      Current
+                    </div>
+                  )}
+
+                  {/* Asset Info */}
+                  <div className="bg-card p-2">
+                    <p className="truncate text-xs font-medium">{asset.originalFilename || `Asset #${asset.id}`}</p>
+                    {asset.uploadSource && (
+                      <p className="text-muted-foreground text-xs capitalize">{asset.uploadSource.replace('-', ' ')}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSelect} disabled={selectedAssetId === null}>
+            Select Asset
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export { AssetPickerModal };
+export type { AssetPickerModalProps };
