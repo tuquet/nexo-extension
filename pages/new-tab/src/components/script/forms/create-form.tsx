@@ -58,7 +58,7 @@ const CreateForm = () => {
   return (
     <>
       <main className="flex-1 p-6">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto">
           <GenerationForm
             onGenerate={generateFromAPI}
             onGenerateWithAutomate={generateWithAutomate}

@@ -46,7 +46,9 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
   const setSettingsModalOpen = useUIStateStore(s => s.setSettingsModalOpen);
   const [activeTab, setActiveTab] = useState('template');
   const [selectedTemplate, setSelectedTemplate] = useState<PromptRecord | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState(SCRIPT_GENERATION_LOADING_MESSAGES[0]);
+  const [loadingMessage, setLoadingMessage] = useState<(typeof SCRIPT_GENERATION_LOADING_MESSAGES)[number]>(
+    SCRIPT_GENERATION_LOADING_MESSAGES[0],
+  );
 
   useEffect(() => {
     let interval: number;

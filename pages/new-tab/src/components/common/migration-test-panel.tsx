@@ -79,7 +79,7 @@ const MigrationTestPanel: React.FC = () => {
   };
 
   return (
-    <Card className="mx-auto max-w-4xl">
+    <Card className="mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wrench className="size-5" />

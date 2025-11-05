@@ -10,7 +10,7 @@ import type React from 'react';
 interface EditableFieldProps {
   initialValue: string;
   onSave: (newValue: string) => void;
-  context: string; // e.g., "Movie Logline", "Scene Action", "Dialogue line for narrator"
+  context: string;
   language: 'en-US' | 'vi-VN';
   as?: 'textarea' | 'input';
   className?: string;

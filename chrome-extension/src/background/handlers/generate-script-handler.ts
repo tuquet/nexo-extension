@@ -46,7 +46,6 @@ export class GenerateScriptHandler extends BaseHandler<GeminiGenerateScriptMessa
     return this.aiService.generateScript({
       apiKey,
       prompt: payload.prompt,
-      language: payload.language,
       modelName,
       temperature,
       topP,

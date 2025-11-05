@@ -67,7 +67,6 @@ Architecture & data flow highlights
 **Key architectural decisions**:
 - Scripts use three-act structure with nested acts/scenes/dialogues (see `types.ts`)
 - Each scene can have generated image/video/audio linked by ID (not embedded)
-- Narrator character with roleId 'narrator' MUST exist for scenes without dialogue (TTS requirement)
 - Assets stored as Blobs in IndexedDB (previously base64, migrated for performance)
 
 **CapCut Integration** (External Workflow):

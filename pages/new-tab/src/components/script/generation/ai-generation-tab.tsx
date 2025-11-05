@@ -1,3 +1,4 @@
+import { FORM_STORAGE_KEYS } from '@extension/shared/lib/constants/ui-options';
 import {
   Button,
   Card,
@@ -11,7 +12,6 @@ import {
   toast,
 } from '@extension/ui';
 import { VariableInputs } from '@src/components/script/generation/variable-inputs';
-import { FORM_STORAGE_KEYS } from '@src/constants/script-generation';
 import usePersistentState from '@src/hooks/use-persistent-state';
 import { useApiKey } from '@src/stores/use-api-key';
 import {

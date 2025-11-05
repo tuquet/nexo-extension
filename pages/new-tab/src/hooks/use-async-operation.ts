@@ -1,4 +1,4 @@
-import { ERROR_MESSAGES } from '@src/constants/script-generation';
+import { ERROR_MESSAGES } from '@extension/shared/lib/constants/ui-options';
 import { useState, useCallback } from 'react';
 import type { AsyncOperationState } from '@src/types/script-generation';
 

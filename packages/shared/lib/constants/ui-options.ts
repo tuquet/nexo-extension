@@ -46,3 +46,42 @@ export const SCRIPT_GENERATION_LOADING_MESSAGES = [
   'Thêm thắt các tình tiết bất ngờ...',
   'Kiểm tra lại mạch truyện...',
 ] as const;
+
+// Form storage keys for script generation
+export const FORM_STORAGE_KEYS = {
+  SCRIPT_CREATION: 'creationFormData',
+  LANGUAGE: 'creationFormData_language',
+  SCRIPT_LENGTH: 'creationFormData_scriptLength',
+  LOGLINE: 'creationFormData_logline',
+  GENRES: 'creationFormData_genres',
+  SUGGESTION_MODEL: 'creationFormData_suggestionModel',
+  RAW_PROMPT: 'creationFormData_rawPrompt',
+  PLATFORM: 'creationFormData_platform',
+} as const;
+
+// Error messages for user-facing errors
+export const ERROR_MESSAGES = {
+  API_KEY_MISSING: 'API key is not set. Please configure it in settings.',
+  WINDOW_NOT_FOUND: 'Cannot open side panel - current window not found',
+  SIDE_PANEL_FAILED: 'Failed to open side panel',
+  GENERATION_FAILED: 'Failed to generate script',
+  IMPORT_FAILED: 'Failed to import script',
+  INVALID_JSON: 'Invalid JSON content. Please check and try again.',
+  EMPTY_PROMPT: 'Please enter a summary or main idea to create script',
+  TEMPLATE_REQUIRED: 'Please select a template from the library above',
+  GENERIC: 'An unexpected error occurred',
+} as const;
+
+// Success messages for user-facing confirmations
+export const SUCCESS_MESSAGES = {
+  SCRIPT_CREATED: 'Script created successfully!',
+  SCRIPT_IMPORTED: 'Script imported successfully!',
+  FILE_IMPORTED: 'File imported successfully!',
+  PROMPT_COPIED: 'Prompt copied to clipboard!',
+  SIDE_PANEL_OPENED: 'Side panel opened',
+  SIDE_PANEL_DESCRIPTION: 'Prompt has been pre-filled, you can edit and submit',
+} as const;
+
+// Automation storage constants
+export const AUTOMATE_STORAGE_KEY = 'automatePromptData' as const;
+export const AUTOMATE_DATA_TTL = 10000; // 10 seconds

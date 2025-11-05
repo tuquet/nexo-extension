@@ -58,7 +58,7 @@ const NewTab = () => (
             <Route path="/prompts" element={<PromptsListPage />} />
             <Route path="/script/create" element={<CreateScriptForm />} />
             <Route path="/asset" element={<AssetGalleryPage />} />
-            <Route path="/" element={<Navigate to="/prompts" replace />} />
+            <Route path="/" element={<Navigate to="/script" replace />} />
           </Routes>
         </LayoutContainerWrapper>
       </div>

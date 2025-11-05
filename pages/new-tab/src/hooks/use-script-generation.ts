@@ -1,6 +1,6 @@
 import { useAsyncOperation } from './use-async-operation';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '@extension/shared/lib/constants/ui-options';
 import { toast } from '@extension/ui';
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '@src/constants/script-generation';
 import { generateScript } from '@src/services/background-api';
 import { useApiKey } from '@src/stores/use-api-key';
 import { useScriptsStore } from '@src/stores/use-scripts-store';

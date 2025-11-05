@@ -1,34 +1,15 @@
-/**
- * Seed Prompt Template for CineGenie Database
- *
- * This file contains a single, comprehensive prompt template that demonstrates
- * ALL available options for the handleGenerateScript API. It serves as:
- * - A complete reference implementation
- * - A testing template for automation features
- * - Documentation of the full API surface
- *
- * Usage:
- * import { SEED_PROMPT } from './seed-prompts';
- * await db.prompts.add(SEED_PROMPT);
- */
-
-import PromptDataDefault from './seed-data/prompt.json';
+import ShortScript from './seed-data/short-script.json';
+import VeoScript from './seed-data/veo3-script.json';
 import type { PromptRecord } from './db';
 
 /**
- * Single comprehensive seed prompt with ALL handleGenerateScript options
+ * Array of default prompts for bulk import
+ * Supports both single object and array imports
+ *
+ * To add more prompts, simply add to this array:
+ * export const defaultPrompts = [
+ *   transformPromptData(ShortScript),
+ *   transformPromptData(AnotherPromptData),
+ * ];
  */
-export const SEED_PROMPT: Omit<PromptRecord, 'id' | 'createdAt' | 'updatedAt'> = {
-  ...PromptDataDefault,
-  postprocessing: {
-    ...PromptDataDefault.postprocessing,
-    steps: (PromptDataDefault.postprocessing.steps ?? []) as Array<
-      'trim' | 'remove-quotes' | 'parse-json' | 'extract-field'
-    >,
-  },
-  metadata: {
-    ...PromptDataDefault.metadata,
-    lastUsedAt: undefined,
-    rating: undefined,
-  },
-};
+export const defaultPrompts: Array<Omit<PromptRecord, 'id' | 'createdAt' | 'updatedAt'>> = [ShortScript, VeoScript];

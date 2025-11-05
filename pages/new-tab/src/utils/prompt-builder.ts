@@ -1,5 +1,5 @@
 import { SYSTEM_INSTRUCTION_SCRIPT_EN, SCRIPT_GENERATION_SCHEMA } from '@extension/shared';
-import { DEFAULT_MODEL_SETTINGS } from '@src/constants/script-generation';
+import { DEFAULT_MODEL_SETTINGS } from '@extension/shared/lib/constants/ai-models';
 import type { PromptRecord } from '@extension/database';
 import type { GenerationFormData } from '@src/types/script-generation';
 

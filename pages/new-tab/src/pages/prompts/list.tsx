@@ -4,6 +4,7 @@
  */
 
 import { PromptForm } from './prompt-form';
+import { defaultPrompts } from '@extension/database';
 import {
   Button,
   Card,
@@ -24,13 +25,10 @@ import {
   toast,
 } from '@extension/ui';
 import { db } from '@src/db';
-import { Edit, Plus, Search, Trash2, Copy, Download, Upload } from 'lucide-react';
+import { Edit, Plus, Search, Trash2, Copy, Download, Upload, FileJson } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PromptFormData } from './prompt-form';
 import type { PromptRecord } from '@src/db';
-
-// Default prompts for initial import
-const GEMINI_PROMPTS: Omit<PromptRecord, 'id' | 'createdAt' | 'updatedAt'>[] = [];
 
 const CATEGORIES = [
   { value: 'all', label: 'All Categories' },
@@ -157,7 +155,7 @@ const PromptsListPage = () => {
   };
 
   const handleImportDefaults = async () => {
-    if (GEMINI_PROMPTS.length === 0) {
+    if (defaultPrompts.length === 0) {
       toast.error('No default prompts available', {
         description: 'Create your own prompts or import from a JSON file',
       });
@@ -165,20 +163,15 @@ const PromptsListPage = () => {
     }
 
     try {
-      const defaultPrompts: PromptRecord[] = GEMINI_PROMPTS.map(p => ({
-        title: p.title,
-        category: p.category,
-        prompt: p.prompt,
-        description: p.description,
-        tags: p.tags,
-        icon: p.icon,
+      const promptsToAdd: PromptRecord[] = defaultPrompts.map(p => ({
+        ...p,
         createdAt: new Date(),
         updatedAt: new Date(),
       }));
 
-      await db.prompts.bulkAdd(defaultPrompts);
+      await db.prompts.bulkAdd(promptsToAdd);
       await loadPrompts();
-      toast.success(`Imported ${defaultPrompts.length} default prompts`);
+      toast.success(`Imported ${promptsToAdd.length} default prompt${promptsToAdd.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Failed to import defaults:', error);
       toast.error('Failed to import default prompts');
@@ -257,6 +250,23 @@ const PromptsListPage = () => {
       }
     };
     input.click();
+  };
+
+  const handleCopyJSON = async (prompt: PromptRecord) => {
+    try {
+      // Create a shallow copy and remove id, createdAt, updatedAt
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, createdAt, updatedAt, ...copy } = prompt;
+      const json = JSON.stringify(copy, null, 2);
+
+      await navigator.clipboard.writeText(json);
+      toast.success('JSON copied to clipboard', {
+        description: `"${prompt.title}" has been copied as JSON`,
+      });
+    } catch (error) {
+      console.error('Failed to copy JSON:', error);
+      toast.error('Failed to copy JSON');
+    }
   };
 
   const openCreateDialog = () => {
@@ -363,13 +373,16 @@ const PromptsListPage = () => {
                         )}
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(prompt)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleCopyJSON(prompt)} title="Copy as JSON">
+                          <FileJson className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(prompt)} title="Duplicate">
                           <Copy className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(prompt)}>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(prompt)} title="Edit">
                           <Edit className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(prompt)}>
+                        <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(prompt)} title="Delete">
                           <Trash2 className="size-4" />
                         </Button>
                       </div>

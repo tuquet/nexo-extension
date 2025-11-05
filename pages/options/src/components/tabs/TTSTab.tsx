@@ -1,31 +1,5 @@
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Slider,
-  toast,
-} from '@extension/ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, Slider, toast } from '@extension/ui';
 import { useEffect, useState } from 'react';
-
-const AVAILABLE_TTS_MODELS = [
-  { value: 'n_hanoi_male_baotrungreviewphim_review_vc', label: 'Bảo Trung Review Phim (Nam HN)' },
-  { value: 'n_hanoi_male_baotrungdoctruyen_story_vc', label: 'Bảo Trung Đọc Truyện (Nam HN)' },
-  { value: 'n_backan_male_khanhdoctruyen_story_vc', label: 'Khánh Đọc Truyện (Nam HN)' },
-  { value: 'n_hn_male_ngankechuyen_ytstable_vc', label: 'Ngạn Kể Chuyện (Nam HN)' },
-  { value: 'n_thainguyen_male_huisheng_story_vc', label: 'Huisheng Đọc Truyện (Nam HN)' },
-  { value: 'n_hn_male_duyonyx_oaistable_vc', label: 'Duyonyx Đọc Truyện (Nam HN)' },
-  { value: 'n_hanoi_female_dieuanhn2_story_vc', label: 'Diệu Anh Đọc Truyện (Nữ HN)' },
-  { value: 'n_hanoi_female_tranngocaudio_book_vc', label: 'Trần Ngọc Sách Nói (Nữ HN)' },
-];
 
 const TTSTab = () => {
   const [narratorVoice, setNarratorVoice] = useState('n_hanoi_male_baotrungreviewphim_review_vc');
@@ -67,25 +41,6 @@ const TTSTab = () => {
           <CardDescription>Configure voice and audio parameters for text-to-speech</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="narrator-voice">Narrator Voice</Label>
-            <Select value={narratorVoice} onValueChange={setNarratorVoice}>
-              <SelectTrigger id="narrator-voice">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AVAILABLE_TTS_MODELS.map(model => (
-                  <SelectItem key={model.value} value={model.value}>
-                    {model.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-muted-foreground text-xs">
-              This voice will be used for narration and scenes without dialogue
-            </p>
-          </div>
-
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="speaking-rate">Speaking Rate: {speakingRate.toFixed(1)}x</Label>

@@ -119,20 +119,16 @@ export const ModelSettings: React.FC<ModelSettingsProps> = ({ disabled }) => {
           tooltip="Chọn model AI để chuyển văn bản thành giọng nói (Text-to-Speech).">
           Model tạo giọng nói (TTS)
         </LabelWithTooltip>
-        <Select value={ttsModel} onValueChange={setTtsModel} disabled={disabled || AVAILABLE_TTS_MODELS.length === 0}>
+        <Select value={ttsModel} onValueChange={setTtsModel} disabled={disabled}>
           <SelectTrigger id="ttsModel" className="focus:border-primary focus:ring-primary/20 w-full">
             <SelectValue placeholder="Chưa có model" />
           </SelectTrigger>
           <SelectContent>
-            {AVAILABLE_TTS_MODELS.length > 0 ? (
-              AVAILABLE_TTS_MODELS.map(model => (
-                <SelectItem key={model.value} value={model.value}>
-                  {model.label}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="none" disabled={true}></SelectItem>
-            )}
+            {AVAILABLE_TTS_MODELS.map(model => (
+              <SelectItem key={model.value} value={model.value}>
+                {model.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

@@ -15,11 +15,6 @@ import { Type } from '@google/genai';
 export const SYSTEM_INSTRUCTION_SCRIPT_EN = `Return ONLY valid JSON (JSON.stringify)`;
 
 /**
- * Get system instruction by language
- */
-export const getSystemInstruction = (): string => SYSTEM_INSTRUCTION_SCRIPT_EN;
-
-/**
  * JSON schema for script generation using Gemini API.
  * Defines the three-act structure for movie scripts.
  */
@@ -67,7 +62,7 @@ export const SCRIPT_GENERATION_SCHEMA = {
           roleId: {
             type: Type.STRING,
             description:
-              "A unique, non-accented, camelCase identifier for the character's role. This ID links dialogues to this character. E.g., 'protagonist', 'mentor', 'narrator'.",
+              "A unique, non-accented, camelCase identifier for the character's role. This ID links dialogues to this character.",
           },
           description: {
             type: Type.STRING,

@@ -15,7 +15,6 @@ import type { AspectRatio, ScriptStory } from '../types/messages';
 export interface GenerateScriptParams {
   apiKey: string;
   prompt: string;
-  language: string;
   modelName: string;
   systemInstruction?: string;
   temperature: number;
