@@ -1,0 +1,353 @@
+import { Button, Card, CardDescription, CardHeader, CardTitle, toast } from '@extension/ui';
+import { Edit, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import type { PromptRecord } from '@extension/database';
+import { PromptEditor } from '../../prompts/prompt-editor';
+
+interface TemplateCustomizerProps {
+  template: PromptRecord;
+  onOverrideChange: (updatedTemplate: Partial<PromptRecord>) => void;
+}
+
+export const TemplateCustomizer: React.FC<TemplateCustomizerProps> = ({ template, onOverrideChange }) => {
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  const hasCustomOverride = () => {
+    const stored = localStorage.getItem(`template-override-${template.id}`);
+    return !!stored;
+  };
+
+  const handleSave = (updatedData: Partial<PromptRecord>) => {
+    try {
+      // Save to localStorage
+      localStorage.setItem(`template-override-${template.id}`, JSON.stringify(updatedData));
+
+      // Notify parent
+      onOverrideChange(updatedData);
+
+      toast.success('Template customized', {
+        description: 'All changes saved locally',
+      });
+    } catch (error) {
+      toast.error('Failed to save customization', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  };
+
+  return (
+    <>
+      <Card
+        className={
+          hasCustomOverride()
+            ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20'
+            : 'bg-slate-50 dark:bg-slate-900/50'
+        }>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2 text-base">
+                {template.icon} {template.title}
+                {hasCustomOverride() && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                    <AlertCircle className="size-3" />
+                    Customized
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription className="mt-1">{template.description}</CardDescription>
+            </div>
+            <Button type="button" variant="ghost" size="sm" onClick={openEditor} className="gap-1">
+              <Edit className="size-3" />
+              Customize
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="size-5" />
+              Customize Template: {template.title}
+            </DialogTitle>
+            <DialogDescription>
+              Add, edit, or remove variable definitions. Changes are saved locally and don't affect the original
+              template.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Template metadata */}
+            <Card className="bg-slate-50 dark:bg-slate-900">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Template Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-muted-foreground font-medium">Title:</span>
+                    <p className="mt-0.5">{template.title}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground font-medium">Category:</span>
+                    <p className="mt-0.5">{template.category}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground font-medium">Description:</span>
+                    <p className="mt-0.5 text-xs">{template.description || 'No description'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground font-medium">Icon:</span>
+                    <p className="mt-0.5 text-lg">{template.icon}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground font-medium">Output Format:</span>
+                    <p className="mt-0.5">{template.outputFormat || 'Default'}</p>
+                  </div>
+                  {template.tags && template.tags.length > 0 && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground font-medium">Tags:</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {template.tags.map((tag, idx) => (
+                          <span key={idx} className="rounded bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Preprocessing settings */}
+                {template.preprocessing && (
+                  <div className="border-t pt-3">
+                    <h5 className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Preprocessing</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">Enable Variables:</span>
+                        <span className="text-xs font-medium">
+                          {template.preprocessing.enableVariables ? '✓ Yes' : '✗ No'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">Inject Context:</span>
+                        <span className="text-xs font-medium">
+                          {template.preprocessing.injectContext ? '✓ Yes' : '✗ No'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Model settings */}
+                {template.modelSettings && (
+                  <div className="border-t pt-3">
+                    <h5 className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Model Settings</h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {template.modelSettings.preferredModel && (
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground">Model:</span>{' '}
+                          <span className="font-mono">{template.modelSettings.preferredModel}</span>
+                        </div>
+                      )}
+                      {template.modelSettings.temperature !== undefined && (
+                        <div>
+                          <span className="text-muted-foreground">Temperature:</span>{' '}
+                          <span className="font-medium">{template.modelSettings.temperature}</span>
+                        </div>
+                      )}
+                      {template.modelSettings.topP !== undefined && (
+                        <div>
+                          <span className="text-muted-foreground">Top P:</span>{' '}
+                          <span className="font-medium">{template.modelSettings.topP}</span>
+                        </div>
+                      )}
+                      {template.modelSettings.topK !== undefined && (
+                        <div>
+                          <span className="text-muted-foreground">Top K:</span>{' '}
+                          <span className="font-medium">{template.modelSettings.topK}</span>
+                        </div>
+                      )}
+                      {template.modelSettings.maxOutputTokens !== undefined && (
+                        <div>
+                          <span className="text-muted-foreground">Max Tokens:</span>{' '}
+                          <span className="font-medium">{template.modelSettings.maxOutputTokens}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* System instruction preview */}
+                {template.systemInstruction && (
+                  <div className="border-t pt-3">
+                    <h5 className="text-muted-foreground mb-2 text-xs font-semibold uppercase">System Instruction</h5>
+                    <p className="max-h-20 overflow-y-auto rounded bg-slate-100 p-2 text-xs dark:bg-slate-800">
+                      {template.systemInstruction}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Existing variables list */}
+            <div>
+              <h4 className="mb-2 text-sm font-semibold">Current Variables ({editingVariables.length})</h4>
+              <div className="max-h-64 space-y-2 overflow-y-auto rounded border bg-slate-50 p-2 dark:bg-slate-900">
+                {editingVariables.map((v, idx) => (
+                  <div key={idx} className="flex items-center justify-between rounded bg-white p-2 dark:bg-slate-800">
+                    <div className="flex-1">
+                      <span className="text-sm font-medium">{v.label}</span>
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        ({v.name} - {v.type})
+                      </span>
+                      {v.required && <span className="ml-1 text-xs text-red-500">*required</span>}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button type="button" size="sm" variant="ghost" onClick={() => startEditVariable(idx)}>
+                        <Edit className="size-3" />
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => removeVariable(idx)}>
+                        <Trash2 className="size-3 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Add/Edit form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">
+                  {editingIndex !== null ? `Edit Variable #${editingIndex + 1}` : 'Add New Variable'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="var-name">Variable Name</Label>
+                    <Input
+                      id="var-name"
+                      value={newVarForm.name}
+                      onChange={e => setNewVarForm({ ...newVarForm, name: e.target.value })}
+                      placeholder="e.g., genre"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="var-type">Type</Label>
+                    <Select
+                      value={newVarForm.type}
+                      onValueChange={(value: VariableDefinition['type']) =>
+                        setNewVarForm({ ...newVarForm, type: value })
+                      }>
+                      <SelectTrigger id="var-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="textarea">Textarea</SelectItem>
+                        <SelectItem value="select">Select</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="var-label">Label</Label>
+                  <Input
+                    id="var-label"
+                    value={newVarForm.label}
+                    onChange={e => setNewVarForm({ ...newVarForm, label: e.target.value })}
+                    placeholder="Display label"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="var-placeholder">Placeholder (optional)</Label>
+                  <Input
+                    id="var-placeholder"
+                    value={newVarForm.placeholder}
+                    onChange={e => setNewVarForm({ ...newVarForm, placeholder: e.target.value })}
+                    placeholder="Hint text"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="var-default">Default Value (optional)</Label>
+                  <Input
+                    id="var-default"
+                    value={newVarForm.default}
+                    onChange={e => setNewVarForm({ ...newVarForm, default: e.target.value })}
+                    placeholder="Default value"
+                  />
+                </div>
+
+                {newVarForm.type === 'select' && (
+                  <div>
+                    <Label htmlFor="var-options">Options (one per line)</Label>
+                    <Textarea
+                      id="var-options"
+                      value={newVarForm.optionsText}
+                      onChange={e => setNewVarForm({ ...newVarForm, optionsText: e.target.value })}
+                      placeholder="Option 1&#10;Option 2&#10;Option 3"
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="var-required"
+                    checked={newVarForm.required}
+                    onCheckedChange={checked => setNewVarForm({ ...newVarForm, required: checked })}
+                  />
+                  <Label htmlFor="var-required" className="cursor-pointer">
+                    Required field
+                  </Label>
+                </div>
+
+                <div className="flex gap-2">
+                  {editingIndex !== null ? (
+                    <>
+                      <Button type="button" onClick={saveEditedVariable} className="flex-1">
+                        Save Changes
+                      </Button>
+                      <Button type="button" variant="outline" onClick={cancelEdit}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button type="button" onClick={addVariable} className="w-full gap-1">
+                      <Plus className="size-4" />
+                      Add Variable
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <div className="flex flex-1 gap-2">
+              <Button type="button" variant="outline" onClick={resetToOriginal} className="gap-1">
+                <RotateCcw className="size-4" />
+                Reset to Original
+              </Button>
+              <Button type="button" variant="outline" onClick={exportCustomTemplate} className="gap-1">
+                <Download className="size-4" />
+                Export
+              </Button>
+            </div>
+            <Button type="button" onClick={saveOverride}>
+              Apply Customization
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};

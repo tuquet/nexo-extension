@@ -1,8 +1,10 @@
+import { NavDropdown } from '../components/common/nav-dropdown';
 import { usePreferencesStore } from '../stores/use-preferences-store';
 import { Button, ModeToggle, Separator } from '@extension/ui';
 import { openOptionsPage } from '@src/services/background-api';
-import { FileText, Image, Maximize2, Settings, Sparkles } from 'lucide-react';
+import { FileText, Image, List, Maximize2, PlusCircle, Settings, Sparkles } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import type { NavDropdownItem } from '../components/common/nav-dropdown';
 import type React from 'react';
 
 interface HeaderProps {
@@ -26,6 +28,22 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
   const isAssetRouteActive = location.pathname === '/asset';
   const isPromptsRouteActive = location.pathname === '/prompts';
 
+  // Script dropdown menu items (SOLID: Open/Closed Principle)
+  const scriptMenuItems: NavDropdownItem[] = [
+    {
+      label: 'Danh sách kịch bản',
+      to: '/script',
+      icon: List,
+      description: 'Xem tất cả kịch bản',
+    },
+    {
+      label: 'Tạo kịch bản mới',
+      to: '/script/create',
+      icon: PlusCircle,
+      description: 'Tạo kịch bản từ đầu',
+    },
+  ];
+
   return (
     <header className="bg-background/70 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -38,14 +56,9 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
             <span className="hidden text-sm font-semibold sm:inline">CineGenie</span>
           </Link>
 
-          {/* Navigation Tabs - Reordered: Prompts → Scripts → Assets */}
+          {/* Navigation Tabs - Reordered: Scripts (Dropdown) → Prompts → Assets */}
           <nav className="hidden items-center gap-1 md:flex">
-            <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
-              <Link to="/script">
-                <FileText className="size-4" />
-                <span>Kịch Bản</span>
-              </Link>
-            </Button>
+            <NavDropdown label="Kịch Bản" icon={FileText} items={scriptMenuItems} isActive={isScriptRouteActive} />
             <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="gap-2" asChild>
               <Link to="/prompts">
                 <Sparkles className="size-4" />
@@ -83,19 +96,21 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
         </div>
       </div>
 
-      {/* Mobile Navigation - Reordered: Prompts → Scripts → Assets */}
+      {/* Mobile Navigation - Scripts (Dropdown) → Prompts → Assets */}
       <div className="border-t md:hidden">
         <nav className="flex items-center justify-around px-2 py-2">
+          <NavDropdown
+            label="Kịch Bản"
+            icon={FileText}
+            items={scriptMenuItems}
+            isActive={isScriptRouteActive}
+            size="sm"
+            className="flex-1 gap-1.5"
+          />
           <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
             <Link to="/prompts">
               <Sparkles className="size-4" />
               <span className="text-xs">Prompts</span>
-            </Link>
-          </Button>
-          <Button variant={isScriptRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
-            <Link to="/script">
-              <FileText className="size-4" />
-              <span className="text-xs">Kịch Bản</span>
             </Link>
           </Button>
           <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>

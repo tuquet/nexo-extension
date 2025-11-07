@@ -1,6 +1,6 @@
 /**
  * Prompt Form Component - Dual Mode Editor
- * Create/edit prompts using JSON textarea OR visual UI editor (PromptEditor)
+ * Create/edit prompts using JSON textarea OR visual UI editor
  */
 
 import {
@@ -12,14 +12,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
   Textarea,
 } from '@extension/ui';
-import { PromptEditor } from '@src/components/prompts';
 import { AlertCircle, FileJson, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PromptRecord } from '@src/db';
@@ -145,37 +150,96 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
 
   const dataToEdit = initialData || (DEFAULT_PROMPT_TEMPLATE as unknown as PromptRecord);
 
-  // UI mode: Use PromptEditor component directly
-  if (editMode === 'ui') {
-    return (
-      <PromptEditor
-        open={open}
-        onOpenChange={onOpenChange}
-        initialData={dataToEdit}
-        onSave={handleUISubmit}
-        title={mode === 'create' ? 'Create New Prompt (Visual Editor)' : 'Edit Prompt (Visual Editor)'}
-        description="Use form fields below to configure the prompt. Switch to JSON mode for advanced editing."
-      />
-    );
-  }
+  // Store form data for visual editor
+  const [formData, setFormData] = useState<Partial<PromptRecord>>(dataToEdit);
 
-  // JSON mode: Use Dialog with textarea
+  // Simple inline visual editor (for now, basic fields)
+  const renderUIEditor = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={formData.title || ''}
+            onChange={e => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Enter prompt title"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <Select
+            value={formData.category || 'general'}
+            onValueChange={value => setFormData({ ...formData, category: value })}>
+            <SelectTrigger id="category">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="script-generation">Script Generation</SelectItem>
+              <SelectItem value="image-generation">Image Generation</SelectItem>
+              <SelectItem value="video-generation">Video Generation</SelectItem>
+              <SelectItem value="character-dev">Character Development</SelectItem>
+              <SelectItem value="general">General</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description || ''}
+            onChange={e => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Enter description"
+            rows={3}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="icon">Icon</Label>
+          <Input
+            id="icon"
+            value={formData.icon || '📝'}
+            onChange={e => setFormData({ ...formData, icon: e.target.value })}
+            placeholder="Enter icon emoji"
+            maxLength={2}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="systemInstruction">System Instruction</Label>
+          <Textarea
+            id="systemInstruction"
+            value={formData.systemInstruction || ''}
+            onChange={e => setFormData({ ...formData, systemInstruction: e.target.value })}
+            placeholder="Enter system instruction"
+            rows={5}
+          />
+        </div>
+
+        <Alert>
+          <AlertDescription className="text-xs">
+            <strong>Note:</strong> For advanced configuration (variables, model settings), use JSON Editor tab or the
+            full PromptEditor for complete control.
+          </AlertDescription>
+        </Alert>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>{mode === 'create' ? 'Create New Prompt (JSON)' : 'Edit Prompt (JSON)'}</span>
-            <Button variant="ghost" size="sm" onClick={() => setEditMode('ui')} className="gap-2">
-              <Pencil className="size-4" />
-              Switch to Visual Editor
-            </Button>
+          <DialogTitle>
+            {mode === 'create' ? 'Create New Prompt' : `Edit Prompt: ${initialData?.title || ''}`}
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value="json" className="w-full">
+        <Tabs value={editMode} onValueChange={value => setEditMode(value as 'ui' | 'json')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ui" className="gap-2" onClick={() => setEditMode('ui')}>
+            <TabsTrigger value="ui" className="gap-2">
               <Pencil className="size-4" />
               Visual Editor
             </TabsTrigger>
@@ -184,6 +248,10 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
               JSON Editor
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ui" className="mt-4 space-y-4">
+            {renderUIEditor()}
+          </TabsContent>
 
           <TabsContent value="json" className="mt-4 space-y-4">
             {/* JSON Editor */}

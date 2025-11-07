@@ -2,7 +2,7 @@ import CreateScriptForm from './components/script/forms/create-form';
 import LayoutContainerWrapper from './layout/container-wrapper';
 import Header from './layout/header';
 import AssetGalleryPage from './pages/gallery/page';
-import PromptsListPage from './pages/prompts/list';
+import PromptsPage from './pages/prompts/page';
 import ScriptDetailPage from './pages/script/detail';
 import ScriptListPage from './pages/script/list';
 import { useApiKey } from './stores/use-api-key';
@@ -55,7 +55,7 @@ const NewTab = () => (
             <Route path="/script" element={<ScriptListPage />} />
             <Route path="/script/new" element={<CreateScriptForm />} />
             <Route path="/script/:id" element={<ScriptDetailPage />} />
-            <Route path="/prompts" element={<PromptsListPage />} />
+            <Route path="/prompts" element={<PromptsPage />} />
             <Route path="/script/create" element={<CreateScriptForm />} />
             <Route path="/asset" element={<AssetGalleryPage />} />
             <Route path="/" element={<Navigate to="/script" replace />} />

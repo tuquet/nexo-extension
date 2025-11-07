@@ -11,6 +11,7 @@ import {
   RadioGroupItem,
   toast,
 } from '@extension/ui';
+import { TemplateCustomizer } from '@src/components/script/generation/template-customizer';
 import { VariableInputs } from '@src/components/script/generation/variable-inputs';
 import usePersistentState from '@src/hooks/use-persistent-state';
 import { useApiKey } from '@src/stores/use-api-key';
@@ -21,7 +22,7 @@ import {
   validateRequiredVariables,
 } from '@src/utils/prompt-builder';
 import { AlertCircle, Copy, Sparkles } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PromptRecord } from '@extension/database';
 import type { AIPlatform, GenerationFormData } from '@src/types/script-generation';
 
@@ -43,6 +44,45 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
   const [platform, setPlatform] = usePersistentState<AIPlatform>(FORM_STORAGE_KEYS.PLATFORM, 'aistudio');
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [rawPrompt] = usePersistentState<string>(FORM_STORAGE_KEYS.RAW_PROMPT, '');
+  const [overriddenTemplate, setOverriddenTemplate] = useState<Partial<PromptRecord> | null>(null);
+
+  // Load any template overrides from localStorage on mount/template change
+  useEffect(() => {
+    if (!selectedTemplate?.id) return;
+    const stored = localStorage.getItem(`template-override-${selectedTemplate.id}`);
+    if (stored) {
+      try {
+        const override: Partial<PromptRecord> = JSON.parse(stored);
+        setOverriddenTemplate(override);
+      } catch {
+        setOverriddenTemplate(null);
+      }
+    } else {
+      setOverriddenTemplate(null);
+    }
+  }, [selectedTemplate?.id]);
+
+  // Merge overridden template with original template
+  const activeTemplate: PromptRecord = useMemo(() => {
+    if (!selectedTemplate) return {} as PromptRecord;
+    if (!overriddenTemplate) return selectedTemplate;
+
+    return {
+      ...selectedTemplate,
+      ...overriddenTemplate,
+      preprocessing: {
+        ...selectedTemplate.preprocessing,
+        ...overriddenTemplate.preprocessing,
+      },
+      modelSettings: {
+        ...selectedTemplate.modelSettings,
+        ...overriddenTemplate.modelSettings,
+      },
+    };
+  }, [selectedTemplate, overriddenTemplate]);
+
+  // Use active template's variable definitions
+  const activeVariableDefinitions = activeTemplate.preprocessing?.variableDefinitions;
 
   // Memoize computed prompt to avoid re-computation on every render (Fix #1 & #4)
   const finalPrompt = useMemo(() => {
@@ -67,12 +107,12 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
       e.preventDefault();
       if (!selectedTemplate) return;
 
-      // Validate required variables (Fix #3: Missing validation)
+      // Validate required variables using active definitions (may be overridden)
       if (selectedTemplate.preprocessing?.enableVariables) {
         const missingVars = validateRequiredVariables(
           selectedTemplate.prompt,
           variableValues,
-          selectedTemplate.preprocessing.variableDefinitions,
+          activeVariableDefinitions,
         );
         if (missingVars.length > 0) {
           toast.error('Missing required variables', {
@@ -88,7 +128,7 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
       };
       onSubmit(formData);
     },
-    [selectedTemplate, variableValues, language, finalPrompt, onSubmit],
+    [selectedTemplate, variableValues, language, finalPrompt, activeVariableDefinitions, onSubmit],
   );
 
   const handleSubmitWithAutomation = useCallback(
@@ -96,12 +136,12 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
       e.preventDefault();
       if (!selectedTemplate) return;
 
-      // Validate required variables (Fix #3: Missing validation)
+      // Validate required variables using active definitions (may be overridden)
       if (selectedTemplate.preprocessing?.enableVariables) {
         const missingVars = validateRequiredVariables(
           selectedTemplate.prompt,
           variableValues,
-          selectedTemplate.preprocessing.variableDefinitions,
+          activeVariableDefinitions,
         );
         if (missingVars.length > 0) {
           toast.error('Missing required variables', {
@@ -118,7 +158,15 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
       };
       onSubmitWithAutomate(formData);
     },
-    [selectedTemplate, variableValues, language, finalPrompt, platform, onSubmitWithAutomate],
+    [
+      selectedTemplate,
+      variableValues,
+      language,
+      finalPrompt,
+      activeVariableDefinitions,
+      platform,
+      onSubmitWithAutomate,
+    ],
   );
 
   // Note: VariableInputs component is keyed by template ID, so it will re-mount
@@ -149,21 +197,21 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Template Info Card */}
-      <Card className="bg-slate-50 dark:bg-slate-900/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
-            {selectedTemplate.icon} {selectedTemplate.title}
-          </CardTitle>
-          <CardDescription className="mt-1">{selectedTemplate.description}</CardDescription>
-        </CardHeader>
-      </Card>
+      {/* Template Info Card with Customization */}
+      <TemplateCustomizer
+        template={selectedTemplate}
+        onOverrideChange={updatedTemplate => {
+          setOverriddenTemplate(updatedTemplate);
+          // Reset variable values when template changes
+          setVariableValues({});
+        }}
+      />
 
       {/* Variable Inputs (if template has variables) */}
-      {selectedTemplate.preprocessing?.enableVariables && selectedTemplate.preprocessing.variableDefinitions && (
+      {activeTemplate.preprocessing?.enableVariables && activeVariableDefinitions && (
         <VariableInputs
-          key={selectedTemplate.id} // Force re-mount when template changes to reset defaults
-          variableDefinitions={selectedTemplate.preprocessing.variableDefinitions}
+          key={`${selectedTemplate.id}-${overriddenTemplate ? 'custom' : 'original'}`}
+          variableDefinitions={activeVariableDefinitions}
           promptTemplate={selectedTemplate.prompt}
           onChange={setVariableValues}
         />

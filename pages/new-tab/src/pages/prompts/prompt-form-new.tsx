@@ -1,6 +1,6 @@
 /**
  * Prompt Form Component - Dual Mode Editor
- * Create/edit prompts using JSON textarea OR visual UI editor (PromptEditor)
+ * Create/edit prompts using PromptEditor (UI) OR JSON textarea
  */
 
 import {
@@ -108,7 +108,6 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
 
   const handleUISubmit = (data: Partial<PromptRecord>) => {
     onSubmit(data as PromptFormData);
-    onOpenChange(false);
   };
 
   const handleJsonSubmit = () => {
@@ -145,91 +144,95 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
 
   const dataToEdit = initialData || (DEFAULT_PROMPT_TEMPLATE as unknown as PromptRecord);
 
-  // UI mode: Use PromptEditor component directly
-  if (editMode === 'ui') {
+  // For UI mode, use PromptEditor directly (it has its own Dialog)
+  if (editMode === 'ui' && open) {
     return (
       <PromptEditor
         open={open}
         onOpenChange={onOpenChange}
         initialData={dataToEdit}
         onSave={handleUISubmit}
-        title={mode === 'create' ? 'Create New Prompt (Visual Editor)' : 'Edit Prompt (Visual Editor)'}
-        description="Use form fields below to configure the prompt. Switch to JSON mode for advanced editing."
+        title={mode === 'create' ? 'Create New Prompt' : `Edit Prompt: ${initialData?.title || ''}`}
+        description={
+          mode === 'create'
+            ? 'Fill in all the fields to create a new prompt template'
+            : 'Modify prompt settings and variable definitions'
+        }
       />
     );
   }
 
-  // JSON mode: Use Dialog with textarea
+  // JSON mode
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+    <Dialog open={open && editMode === 'json'} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>{mode === 'create' ? 'Create New Prompt (JSON)' : 'Edit Prompt (JSON)'}</span>
-            <Button variant="ghost" size="sm" onClick={() => setEditMode('ui')} className="gap-2">
-              <Pencil className="size-4" />
-              Switch to Visual Editor
-            </Button>
+          <DialogTitle className="flex items-center gap-2">
+            <FileJson className="size-5" />
+            {mode === 'create' ? 'Create New Prompt (JSON)' : 'Edit Prompt (JSON)'}
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value="json" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ui" className="gap-2" onClick={() => setEditMode('ui')}>
-              <Pencil className="size-4" />
-              Visual Editor
-            </TabsTrigger>
-            <TabsTrigger value="json" className="gap-2">
-              <FileJson className="size-4" />
-              JSON Editor
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-4">
+          {/* Mode Switcher */}
+          <Tabs value={editMode} onValueChange={value => setEditMode(value as 'ui' | 'json')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ui" className="gap-2">
+                <Pencil className="size-4" />
+                Visual Editor
+              </TabsTrigger>
+              <TabsTrigger value="json" className="gap-2">
+                <FileJson className="size-4" />
+                JSON Editor
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="json" className="mt-4 space-y-4">
-            {/* JSON Editor */}
-            <div className="grid gap-2">
-              <Label htmlFor="jsonEditor">Prompt Configuration (JSON)</Label>
-              <Textarea
-                id="jsonEditor"
-                placeholder="Paste or edit JSON configuration..."
-                value={jsonInput}
-                onChange={e => handleJsonChange(e.target.value)}
-                rows={20}
-                className="font-mono text-sm"
-              />
-              <p className="text-muted-foreground text-xs">
-                Edit the JSON object above. Required fields: <code className="bg-muted rounded px-1">title</code>,{' '}
-                <code className="bg-muted rounded px-1">category</code>,{' '}
-                <code className="bg-muted rounded px-1">prompt</code>
-              </p>
-            </div>
+            <TabsContent value="json" className="mt-4 space-y-4">
+              {/* JSON Editor */}
+              <div className="grid gap-2">
+                <Label htmlFor="jsonEditor">Prompt Configuration (JSON)</Label>
+                <Textarea
+                  id="jsonEditor"
+                  placeholder="Paste or edit JSON configuration..."
+                  value={jsonInput}
+                  onChange={e => handleJsonChange(e.target.value)}
+                  rows={20}
+                  className="font-mono text-sm"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Edit the JSON object above. Required fields: <code className="bg-muted rounded px-1">title</code>,{' '}
+                  <code className="bg-muted rounded px-1">category</code>,{' '}
+                  <code className="bg-muted rounded px-1">prompt</code>
+                </p>
+              </div>
 
-            {/* Error Alert */}
-            {jsonError && (
-              <Alert variant="destructive">
-                <AlertCircle className="size-4" />
-                <AlertDescription>{jsonError}</AlertDescription>
+              {/* Error Alert */}
+              {jsonError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="size-4" />
+                  <AlertDescription>{jsonError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Help Text */}
+              <Alert>
+                <AlertDescription className="text-xs">
+                  <strong>Valid categories:</strong> script-generation, image-generation, video-generation,
+                  character-dev, general
+                  <br />
+                  <strong>Example:</strong> See default template when creating new prompt
+                </AlertDescription>
               </Alert>
-            )}
+            </TabsContent>
+          </Tabs>
+        </div>
 
-            {/* Help Text */}
-            <Alert>
-              <AlertDescription className="text-xs">
-                <strong>Valid categories:</strong> script-generation, image-generation, video-generation, character-dev,
-                general
-                <br />
-                <strong>Example:</strong> See default template when creating new prompt
-              </AlertDescription>
-            </Alert>
-
-            <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleJsonSubmit}>{mode === 'create' ? 'Create Prompt' : 'Save Changes'}</Button>
-            </DialogFooter>
-          </TabsContent>
-        </Tabs>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleJsonSubmit}>{mode === 'create' ? 'Create Prompt' : 'Save Changes'}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -115,10 +115,7 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
   };
 
   return (
-    <div className="relative rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700/50 dark:bg-slate-800/50">
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Tạo kịch bản mới</h2>
-      <p className="mb-8 text-slate-500 dark:text-slate-400">Chọn template hoặc nhập JSON</p>
-
+    <div>
       {!isApiKeySet && (
         <div className="mb-6 flex items-start gap-3 rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />

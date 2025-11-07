@@ -38,7 +38,6 @@ const ScriptDetailPage = () => {
 
   // UI state from dedicated UI store
   const isImporting = useUIStateStore(s => s.isImporting);
-  const scriptViewMode = useUIStateStore(s => s.scriptViewMode);
   const isModelSettingsOpen = useUIStateStore(s => s.modelSettingsModalOpen);
   const setModelSettingsModalOpen = useUIStateStore(s => s.setModelSettingsModalOpen);
 
@@ -126,7 +125,7 @@ const ScriptDetailPage = () => {
           </div>
         ) : (
           <ResponsiveDetailLayout
-            scriptContent={<ScriptContent script={activeScript} language={'vi-VN'} viewMode={scriptViewMode} />}
+            scriptContent={<ScriptContent script={activeScript} language={'vi-VN'} />}
             assetContent={<AssetDisplay onGenerateTts={() => setIsTtsModalOpen(true)} setError={setError} />}
           />
         )}

@@ -71,6 +71,10 @@ const ScriptListPage = () => {
   const handleDelete = async (script: ScriptStory) => {
     try {
       await deleteActiveScript(script.id as number);
+      // Ensure the store is in sync with the DB after deletion
+      const reloadFromDB = useScriptsStore.getState().reloadFromDB;
+      if (reloadFromDB) await reloadFromDB();
+
       toast.success('Script deleted successfully');
       setIsDeleteDialogOpen(false);
       setScriptToDelete(null);
