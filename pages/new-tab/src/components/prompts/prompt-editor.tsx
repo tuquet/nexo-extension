@@ -21,7 +21,7 @@ import {
   Textarea,
   toast,
 } from '@extension/ui';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, FileJson } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { PromptRecord } from '@extension/database';
 import type { ReactElement } from 'react';
@@ -65,6 +65,7 @@ interface PromptEditorProps {
   onSave: (data: Partial<PromptRecord>) => void;
   title: string;
   description?: string;
+  onSwitchToJSON?: () => void;
 }
 
 const PromptEditor = ({
@@ -74,6 +75,7 @@ const PromptEditor = ({
   onSave,
   title,
   description,
+  onSwitchToJSON,
 }: PromptEditorProps): ReactElement => {
   const [formData, setFormData] = useState<EditablePromptData>({
     title: '',
@@ -307,7 +309,15 @@ const PromptEditor = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            <span>{title}</span>
+            {onSwitchToJSON && (
+              <Button variant="ghost" size="sm" onClick={onSwitchToJSON} className="gap-2">
+                <FileJson className="size-4" />
+                Switch to JSON Editor
+              </Button>
+            )}
+          </DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
@@ -414,45 +424,18 @@ const PromptEditor = ({
             </CardContent>
           </Card>
 
-          {/* Preprocessing Options */}
+          {/* System Instruction */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Preprocessing Options</CardTitle>
+              <CardTitle className="text-base">System Instruction</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="enableVariables">Enable Variables</Label>
-                  <p className="text-muted-foreground">Allow {'{{variable}}'} syntax in prompts</p>
-                </div>
-                <Switch
-                  id="enableVariables"
-                  checked={formData.preprocessing.enableVariables}
-                  onCheckedChange={checked =>
-                    setFormData({
-                      ...formData,
-                      preprocessing: { ...formData.preprocessing, enableVariables: checked },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="injectContext">Inject Context</Label>
-                  <p className="text-muted-foreground">Auto-inject character/setting context</p>
-                </div>
-                <Switch
-                  id="injectContext"
-                  checked={formData.preprocessing.injectContext}
-                  onCheckedChange={checked =>
-                    setFormData({
-                      ...formData,
-                      preprocessing: { ...formData.preprocessing, injectContext: checked },
-                    })
-                  }
-                />
-              </div>
+            <CardContent>
+              <Textarea
+                value={formData.systemInstruction}
+                onChange={e => setFormData({ ...formData, systemInstruction: e.target.value })}
+                placeholder="Optional system instruction override for this prompt..."
+                rows={6}
+              />
             </CardContent>
           </Card>
 
@@ -699,18 +682,45 @@ const PromptEditor = ({
             </CardContent>
           </Card>
 
-          {/* System Instruction */}
+          {/* Preprocessing Options */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">System Instruction</CardTitle>
+              <CardTitle className="text-base">Preprocessing Options</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Textarea
-                value={formData.systemInstruction}
-                onChange={e => setFormData({ ...formData, systemInstruction: e.target.value })}
-                placeholder="Optional system instruction override for this prompt..."
-                rows={6}
-              />
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="enableVariables">Enable Variables</Label>
+                  <p className="text-muted-foreground">Allow {'{{variable}}'} syntax in prompts</p>
+                </div>
+                <Switch
+                  id="enableVariables"
+                  checked={formData.preprocessing.enableVariables}
+                  onCheckedChange={checked =>
+                    setFormData({
+                      ...formData,
+                      preprocessing: { ...formData.preprocessing, enableVariables: checked },
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="injectContext">Inject Context</Label>
+                  <p className="text-muted-foreground">Auto-inject character/setting context</p>
+                </div>
+                <Switch
+                  id="injectContext"
+                  checked={formData.preprocessing.injectContext}
+                  onCheckedChange={checked =>
+                    setFormData({
+                      ...formData,
+                      preprocessing: { ...formData.preprocessing, injectContext: checked },
+                    })
+                  }
+                />
+              </div>
             </CardContent>
           </Card>
         </div>

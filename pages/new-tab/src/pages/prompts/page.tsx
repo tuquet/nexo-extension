@@ -1,9 +1,3 @@
-/**
- * Prompts Management Page
- * CRUD interface for managing prompt templates with advanced options
- */
-
-import { PromptForm } from './prompt-form';
 import { defaultPrompts } from '@extension/database';
 import {
   Button,
@@ -25,11 +19,12 @@ import {
   toast,
   CardAction,
 } from '@extension/ui';
+import { PromptForm } from '@src/components/prompts';
 import { db } from '@src/db';
 import { Edit, Plus, Search, Trash2, Copy, Download, Upload, FileJson, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { PromptFormData } from './prompt-form';
+import type { PromptFormData } from '@src/components/prompts';
 import type { PromptRecord } from '@src/db';
 
 const CATEGORIES = [

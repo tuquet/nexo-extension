@@ -1,66 +1,42 @@
-import { Button, Label, Textarea } from '@extension/ui';
-import { useErrorHandler } from '@src/hooks';
-import { useRef, useState } from 'react';
+import { JsonEditor } from '@src/components/common/json-editor';
+import { useState } from 'react';
 
 interface JsonImportTabProps {
   isLoading: boolean;
   onImportJson: (jsonString: string) => void;
-  onImportFile: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onImportFile?: (event: React.ChangeEvent<HTMLInputElement>) => void; // Make optional, deprecated
 }
 
-const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImportJson, onImportFile }) => {
-  const importFileRef = useRef<HTMLInputElement>(null);
+const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImportJson }) => {
   const [jsonText, setJsonText] = useState('');
-  const { error, setError, clearError } = useErrorHandler({ showToast: false });
 
-  const handleImportClick = () => {
-    clearError();
-    if (!jsonText.trim()) {
-      setError('Vui lòng dán nội dung JSON vào ô bên dưới.');
-      return;
-    }
+  const handleFileUpload = async (file: File) => {
+    // Read file content and parse JSON
     try {
-      JSON.parse(jsonText);
-      onImportJson(jsonText);
-    } catch {
-      setError('Nội dung JSON không hợp lệ. Vui lòng kiểm tra lại.');
+      const text = await file.text();
+      JSON.parse(text); // Validate JSON
+      setJsonText(text);
+      onImportJson(text);
+    } catch (error) {
+      console.error('Failed to read/parse JSON file:', error);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Label htmlFor="json-input">Nội dung JSON kịch bản</Label>
-        <Textarea
-          id="json-input"
-          value={jsonText}
-          onChange={e => setJsonText(e.target.value)}
-          placeholder='[{"title": "My Movie", "acts": [...]}]'
-          rows={20}
-          disabled={isLoading}
-        />
-      </div>
-
-      {error && (
-        <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <Button onClick={handleImportClick} className="flex-1" disabled={isLoading}>
-          {isLoading ? 'Đang nhập...' : 'Nhập từ văn bản'}
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => importFileRef.current?.click()}
-          disabled={isLoading}>
-          Nhập từ File
-        </Button>
-        <input type="file" ref={importFileRef} className="hidden" accept=".json" multiple onChange={onImportFile} />
-      </div>
-    </div>
+    <JsonEditor
+      value={jsonText}
+      onChange={setJsonText}
+      onSubmit={onImportJson}
+      mode="import"
+      placeholder='[{"title": "My Movie", "acts": [...]}]'
+      rows={20}
+      disabled={isLoading}
+      label="Nội dung JSON kịch bản"
+      submitButtonText={isLoading ? 'Đang nhập...' : 'Nhập từ văn bản'}
+      fileUploadButtonText="Nhập từ File"
+      showFileUpload
+      onFileUpload={handleFileUpload}
+    />
   );
 };
 

@@ -186,6 +186,188 @@ export const MyComponent = () => (
 
 ---
 
+## DualModeEditor Pattern (Generic Entity Editor)
+
+**CRITICAL: Always use `DualModeEditor` for create/edit dialogs with JSON support.**
+
+The codebase provides a generic `DualModeEditor<T>` component for any entity that needs:
+- Visual form editor (primary UX)
+- JSON editor mode (advanced/power users)
+- Mode switching via button
+- Type-safe validation
+
+**Architecture**:
+```
+src/components/common/dual-mode-editor.tsx  ← Generic component
+src/utils/{entity}-validation.ts             ← Validation logic
+src/constants/{entity}-defaults.ts           ← Default templates
+src/components/{entity}/{entity}-form.tsx    ← Specific implementation
+src/components/{entity}/{entity}-editor.tsx  ← Visual form UI
+```
+
+**Usage Pattern** (see `components/prompts/prompt-form.tsx` as reference):
+
+```tsx
+// 1. Create validation utilities (utils/prompt-validation.ts)
+export const validatePromptJSON = (jsonString: string): ValidationResult => {
+  try {
+    const parsed = JSON.parse(jsonString);
+    // Validate required fields
+    if (!parsed.title?.trim()) return { isValid: false, error: 'Title required' };
+    if (!parsed.category) return { isValid: false, error: 'Category required' };
+    return { isValid: true, data: parsed };
+  } catch (error) {
+    return { isValid: false, error: 'Invalid JSON format' };
+  }
+};
+
+// 2. Create constants (constants/prompt-defaults.ts)
+export const DEFAULT_PROMPT_TEMPLATE = {
+  title: 'New Prompt',
+  category: 'general',
+  prompt: 'Your prompt template here...',
+  // ... all fields with defaults
+};
+
+// 3. Use DualModeEditor in form component
+import { DualModeEditor } from '@src/components/common/dual-mode-editor';
+import { PromptEditor } from '@src/components/prompts';
+import { DEFAULT_PROMPT_TEMPLATE } from '@src/constants/prompt-defaults';
+import { validatePromptJSON } from '@src/utils/prompt-validation';
+
+interface PromptFormData extends Record<string, unknown> {
+  title: string;
+  category: string;
+  prompt: string;
+  // ... other fields
+}
+
+const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }) => (
+  <DualModeEditor<PromptFormData>
+    open={open}
+    onOpenChange={onOpenChange}
+    onSubmit={onSubmit}
+    initialData={initialData as unknown as PromptFormData}
+    defaultTemplate={DEFAULT_PROMPT_TEMPLATE as PromptFormData}
+    mode={mode}
+    validateJSON={validatePromptJSON}
+    renderUIEditor={({ 
+      open, 
+      onOpenChange, 
+      data, 
+      onSave, 
+      title, 
+      description,
+      onSwitchToJSON  // CRITICAL: Pass to visual editor for switch button
+    }) => (
+      <PromptEditor
+        open={open}
+        onOpenChange={onOpenChange}
+        initialData={data as unknown as PromptRecord}
+        onSave={onSave}
+        title={title}
+        description={description}
+        onSwitchToJSON={onSwitchToJSON}  // CRITICAL: Enable switch to JSON
+      />
+    )}
+    title={{
+      create: 'Create New Prompt',
+      edit: 'Edit Prompt',
+      createJSON: 'Create New Prompt (JSON)',
+      editJSON: 'Edit Prompt (JSON)',
+    }}
+    description={{
+      ui: 'Use form fields below to configure. Switch to JSON mode for advanced editing.',
+      json: 'Edit the JSON object above.',
+    }}
+    fieldsToExclude={['id', 'createdAt', 'updatedAt']}
+    helpText={{
+      requiredFields: 'Required fields: title, category, prompt.',
+      validationRules: 'Valid categories: script-generation, image-generation, ...',
+    }}
+  />
+);
+```
+
+**Visual Editor Component Pattern** (PromptEditor, ScriptEditor, etc.):
+
+```tsx
+interface PromptEditorProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialData: PromptRecord;
+  onSave: (data: Partial<PromptRecord>) => void;
+  title: string;
+  description?: string;
+  onSwitchToJSON?: () => void;  // CRITICAL: Required for mode switch button
+}
+
+const PromptEditor = ({ 
+  open, 
+  onOpenChange, 
+  initialData, 
+  onSave, 
+  title, 
+  description,
+  onSwitchToJSON  // CRITICAL: Must accept and use
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span>{title}</span>
+            {onSwitchToJSON && (  // CRITICAL: Show switch button
+              <Button variant="ghost" size="sm" onClick={onSwitchToJSON} className="gap-2">
+                <FileJson className="size-4" />
+                Switch to JSON Editor
+              </Button>
+            )}
+          </DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        
+        {/* Form fields here */}
+        
+        <DialogFooter>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+```
+
+**Benefits**:
+- **Code reuse**: ~150-200 lines saved per entity (240 → 85 lines for PromptForm)
+- **Consistency**: Same UX across all entity editors
+- **Type safety**: TypeScript generics ensure compile-time validation
+- **Maintainability**: Bug fixes/features apply to ALL entity editors
+- **Extensibility**: Add new entity editor in ~20 lines (validation + constants + form wrapper)
+
+**When to Use**:
+- ✅ ANY create/edit dialog for structured data (Prompts, Scripts, Settings, Characters, Templates)
+- ✅ When users need both visual form AND raw JSON editing
+- ✅ When data has complex nested structure (preprocessing, modelSettings, etc.)
+
+**When NOT to Use**:
+- ❌ Simple single-field inputs (use plain Dialog + Input)
+- ❌ Pure text/markdown editors (use Textarea directly)
+- ❌ Non-structured data (images, videos, binary data)
+
+**Checklist for Adding New Entity Editor**:
+1. ☑ Create `utils/{entity}-validation.ts` with `validate{Entity}JSON()` function
+2. ☑ Create `constants/{entity}-defaults.ts` with `DEFAULT_{ENTITY}_TEMPLATE`
+3. ☑ Create/update visual editor component with `onSwitchToJSON` prop
+4. ☑ Add switch button in DialogTitle: `{onSwitchToJSON && <Button onClick={onSwitchToJSON}>Switch to JSON</Button>}`
+5. ☑ Wrap in `DualModeEditor<{Entity}FormData>` with all required props
+6. ☑ Ensure `{Entity}FormData extends Record<string, unknown>` for generic constraint
+7. ☑ Test: Visual mode → JSON mode → Visual mode (data persistence)
+8. ☑ Test: Validation errors in JSON mode
+9. ☑ Test: Create new vs Edit existing
+
+---
+
 ## Patterns & Conventions to Follow
 
 **ESLint Rules (Strictly Enforced)**:
@@ -582,6 +764,13 @@ pages/new-tab/src/
   - hooks/use-assets.ts — Asset generation hooks (image, video, audio)
   - utils/dialogue-validator.ts — Validates dialogue lines for TTS quality (no stage directions)
   - utils/prompt-builder.ts — Template processing, variable replacement, validation
+  - **Generic Components** (Reusable patterns):
+    - components/common/dual-mode-editor.tsx — **Generic dual-mode editor** (UI + JSON modes) with TypeScript generics
+    - utils/prompt-validation.ts — Validation logic for prompts (extract pattern for other entities)
+    - constants/prompt-defaults.ts — Default templates/constants (extract pattern for other entities)
+  - components/prompts/ — **Reference implementation of DualModeEditor pattern**
+    - prompt-form.tsx — Wrapper using DualModeEditor<PromptFormData> (85 lines vs 240 monolithic)
+    - prompt-editor.tsx — Visual form editor with onSwitchToJSON prop
   - components/script/* — Script editing components: EditableField, SceneCard, CreationForm
   - pages/prompts/* — Prompt template management with variable support
   - pages/script/* — Script list and CRUD operations
@@ -613,6 +802,8 @@ pages/new-tab/src/
 - **API calls in UI pages will fail silently**: NEVER call external APIs directly from UI pages. Always use `pages/new-tab/src/services/background-api.ts` methods which proxy through background service worker.
 - **Message protocol types**: When adding new API calls, update `chrome-extension/src/background/types/messages.ts` with new message/response types, add handler in appropriate file, register in `router.ts`.
 - **DO NOT import deprecated handlers**: After refactoring, old files like `gemini-api-handler.ts`, `vbee-api-handler.ts`, `settings-handler.ts` are deprecated. Use new DI pattern: Create handler extending `BaseHandler`, register in `background/index.ts`. See `REFACTORING_COMPLETE.md`.
+- **ALWAYS use DualModeEditor for entity editors**: When creating create/edit dialogs for structured data (Prompts, Scripts, Settings, etc.), use the generic `DualModeEditor<T>` component pattern. DO NOT write monolithic form components with duplicate JSON/UI logic. See `components/prompts/prompt-form.tsx` as reference implementation.
+- **Missing switch button in visual editor**: Visual editor components MUST accept and use `onSwitchToJSON?: () => void` prop. Add switch button in DialogTitle: `{onSwitchToJSON && <Button onClick={onSwitchToJSON}><FileJson /> Switch to JSON Editor</Button>}`
 - Malformed or duplicate files (esp. store files) cause TypeScript parse errors that cascade into many lint errors. If you see "Parsing error: ';' expected" inspect the file for duplicated content or stray backticks.
 - After editing a store, re-run `pnpm -w -C pages/new-tab lint` — many consumers import the store and will fail to parse if the store doesn't compile.
 - Remember to dispatch `assets-changed` after deleting assets or clearing DB so galleries update.

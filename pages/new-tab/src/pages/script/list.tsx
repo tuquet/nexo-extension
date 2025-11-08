@@ -4,6 +4,14 @@
  */
 
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -13,17 +21,8 @@ import {
   CardTitle,
   Input,
   LoadingSpinner,
-  toast,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
 } from '@extension/ui';
-import { db } from '@src/db';
+import { useScriptActions } from '@src/hooks/use-script-actions';
 import { useStoreHydration } from '@src/hooks/use-store-hydration';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
 import { Copy, Download, Edit, Film, Plus, Search, Trash2, Upload, Users } from 'lucide-react';
@@ -47,8 +46,10 @@ const GENRES = [
 const ScriptListPage = () => {
   const navigate = useNavigate();
   const savedScripts = useScriptsStore(s => s.savedScripts);
-  const deleteActiveScript = useScriptsStore(s => s.deleteActiveScript);
   const hasHydrated = useStoreHydration();
+
+  // Use script actions hook for reusable logic
+  const { handleDelete: deleteScript, handleDuplicate, handleExport, handleImport } = useScriptActions();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
@@ -68,100 +69,10 @@ const ScriptListPage = () => {
     return matchesSearch && matchesGenre;
   });
 
-  const handleDelete = async (script: ScriptStory) => {
-    try {
-      await deleteActiveScript(script.id as number);
-      // Ensure the store is in sync with the DB after deletion
-      const reloadFromDB = useScriptsStore.getState().reloadFromDB;
-      if (reloadFromDB) await reloadFromDB();
-
-      toast.success('Script deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setScriptToDelete(null);
-    } catch (error) {
-      console.error('Failed to delete script:', error);
-      toast.error('Failed to delete script');
-    }
-  };
-
-  const handleDuplicate = async (script: ScriptStory) => {
-    try {
-      const duplicated: ScriptStory = {
-        ...script,
-        title: `${script.title} (Copy)`,
-      };
-      delete duplicated.id;
-      await db.scripts.add(duplicated);
-      const reloadFromDB = useScriptsStore.getState().reloadFromDB;
-      await reloadFromDB();
-      toast.success('Script duplicated successfully');
-    } catch (error) {
-      console.error('Failed to duplicate script:', error);
-      toast.error('Failed to duplicate script');
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const scripts = await db.scripts.toArray();
-      const blob = new Blob([JSON.stringify(scripts, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `scripts-export-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success('Scripts exported successfully');
-    } catch (error) {
-      console.error('Failed to export scripts:', error);
-      toast.error('Failed to export scripts');
-    }
-  };
-
-  const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async e => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      try {
-        const text = await file.text();
-        const rawData = JSON.parse(text);
-        const dataArray = Array.isArray(rawData) ? rawData : [rawData];
-
-        // Import scripts
-        const validatedData: ScriptStory[] = dataArray.map((item: Record<string, unknown>) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { id, ...rest } = item;
-          return {
-            ...rest,
-            title: (item.title as string) || 'Untitled Script',
-            genre: (item.genre as string[]) || [],
-            alias: (item.alias as string) || '',
-            logline: (item.logline as string) || '',
-            tone: (item.tone as string) || '',
-            notes: (item.notes as string) || '',
-            setting: (item.setting as ScriptStory['setting']) || { time: '', location: '' },
-            themes: (item.themes as string[]) || [],
-            characters: (item.characters as ScriptStory['characters']) || [],
-            acts: (item.acts as ScriptStory['acts']) || [],
-          };
-        });
-
-        await db.scripts.bulkAdd(validatedData);
-        const reloadFromDB = useScriptsStore.getState().reloadFromDB;
-        await reloadFromDB();
-        toast.success(`Imported ${validatedData.length} script${validatedData.length > 1 ? 's' : ''}`);
-      } catch (error) {
-        console.error('Failed to import scripts:', error);
-        toast.error('Failed to import scripts', {
-          description: error instanceof Error ? error.message : 'Invalid JSON format',
-        });
-      }
-    };
-    input.click();
+  const handleDeleteConfirmed = async (script: ScriptStory) => {
+    await deleteScript(script);
+    setIsDeleteDialogOpen(false);
+    setScriptToDelete(null);
   };
 
   const openDeleteDialog = (script: ScriptStory) => {
@@ -356,7 +267,9 @@ const ScriptListPage = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => scriptToDelete && handleDelete(scriptToDelete)}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={() => scriptToDelete && handleDeleteConfirmed(scriptToDelete)}>
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
