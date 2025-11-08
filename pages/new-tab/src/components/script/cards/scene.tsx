@@ -206,7 +206,7 @@ ${scene.visual_style}`;
         <div className="space-y-5">
           {/* 1. Context (Bối cảnh) */}
           <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <h4 className="flex items-center gap-2 font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <MapPin className="size-4" />
               📍 Bối cảnh (Context)
             </h4>
@@ -234,7 +234,7 @@ ${scene.visual_style}`;
 
           {/* 2. Character (Nhân vật) */}
           <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <h4 className="flex items-center gap-2 font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <Users className="size-4" />
               👥 Nhân vật (Character)
             </h4>
@@ -275,7 +275,7 @@ ${scene.visual_style}`;
 
           {/* 4. Dialogue/Sound (Hội thoại/Âm thanh) */}
           <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <h4 className="flex items-center gap-2 font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <MessageSquare className="size-4" />
               💬 Hội thoại/Âm thanh (Dialogue/Sound)
             </h4>

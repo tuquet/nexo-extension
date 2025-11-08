@@ -3,13 +3,14 @@ import { Button, Card, CardDescription, CardHeader, CardTitle, toast } from '@ex
 import { Edit, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import type { PromptRecord } from '@extension/database';
+import type { ReactElement } from 'react';
 
 interface TemplateCustomizerProps {
   template: PromptRecord;
   onOverrideChange: (updatedTemplate: Partial<PromptRecord>) => void;
 }
 
-export const TemplateCustomizer: React.FC<TemplateCustomizerProps> = ({ template, onOverrideChange }) => {
+const TemplateCustomizer = ({ template, onOverrideChange }: TemplateCustomizerProps): ReactElement => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const hasCustomOverride = () => {
@@ -49,7 +50,7 @@ export const TemplateCustomizer: React.FC<TemplateCustomizerProps> = ({ template
               <CardTitle className="flex items-center gap-2 text-base">
                 {template.icon} {template.title}
                 {hasCustomOverride() && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-300">
                     <AlertCircle className="size-3" />
                     Customized
                   </span>
@@ -76,3 +77,5 @@ export const TemplateCustomizer: React.FC<TemplateCustomizerProps> = ({ template
     </>
   );
 };
+
+export { TemplateCustomizer };

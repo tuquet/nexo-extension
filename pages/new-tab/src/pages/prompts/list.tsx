@@ -218,12 +218,17 @@ const PromptsPage = () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id, ...rest } = item;
 
+          // No need to normalize variableDefinitions - database hooks handle conversion automatically
+          const normalizedPreprocessing = item.preprocessing as PromptRecord['preprocessing'];
+
           return {
             ...rest,
             // Ensure required fields
             title: (item.title as string) || 'Untitled Prompt',
             category: (item.category as PromptRecord['category']) || 'general',
             prompt: (item.prompt as string) || '',
+            // Apply preprocessing as-is
+            preprocessing: normalizedPreprocessing,
             // Convert date strings to Date objects
             createdAt: item.createdAt ? new Date(item.createdAt as string) : new Date(),
             updatedAt: item.updatedAt ? new Date(item.updatedAt as string) : new Date(),
@@ -368,8 +373,8 @@ const PromptsPage = () => {
                           <h3 className="font-semibold">{prompt.title}</h3>
                           <Badge variant="secondary">{prompt.category}</Badge>
                         </div>
-                        {prompt.description && <p className="text-muted-foreground text-sm">{prompt.description}</p>}
-                        <p className="text-muted-foreground line-clamp-2 text-xs">{prompt.prompt}</p>
+                        {/* {prompt.description && <p className="text-muted-foreground text-sm">{prompt.description}</p>} */}
+                        {/* <p className="text-muted-foreground line-clamp-2 text-xs">{prompt.prompt}</p> */}
                         {prompt.tags && prompt.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {prompt.tags.map(tag => (

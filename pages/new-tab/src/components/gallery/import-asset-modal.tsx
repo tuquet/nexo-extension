@@ -243,7 +243,7 @@ const ImportAssetModal: React.FC<ImportAssetModalProps> = ({ isOpen, onClose, on
                 }}>
                 Browse Files
               </Button>
-              <p className="text-muted-foreground mt-4 text-xs">
+              <p className="text-muted-foreground mt-4">
                 Supported: Images (PNG, JPG, GIF, WebP), Videos (MP4, WebM), Audio (MP3, WAV, OGG)
               </p>
             </div>
@@ -274,11 +274,11 @@ const ImportAssetModal: React.FC<ImportAssetModalProps> = ({ isOpen, onClose, on
                     {/* File Info */}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{file.filename}</p>
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground">
                         {file.type} • {fileUploadService.formatFileSize(file.size)}
                       </p>
                       {status?.status === 'uploading' && <Progress value={50} className="mt-2 h-1" />}
-                      {status?.error && <p className="mt-1 text-xs text-red-600">{status.error}</p>}
+                      {status?.error && <p className="mt-1 text-red-600">{status.error}</p>}
                     </div>
 
                     {/* Status Icon */}

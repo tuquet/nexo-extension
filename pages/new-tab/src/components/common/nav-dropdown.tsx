@@ -60,7 +60,7 @@ const NavDropdown: React.FC<NavDropdownProps> = ({
               {item.icon && <item.icon className="size-4" />}
               <div className="flex flex-col">
                 <span>{item.label}</span>
-                {item.description && <span className="text-muted-foreground text-xs">{item.description}</span>}
+                {item.description && <span className="text-muted-foreground">{item.description}</span>}
               </div>
             </Link>
           </DropdownMenuItem>

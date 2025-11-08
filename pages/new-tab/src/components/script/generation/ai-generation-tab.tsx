@@ -195,11 +195,14 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
     );
   }
 
+  // Type guard: selectedTemplate is PromptRecord from this point
+  const template: PromptRecord = selectedTemplate;
+
   return (
     <div className="space-y-6">
       {/* Template Info Card with Customization */}
       <TemplateCustomizer
-        template={selectedTemplate}
+        template={template}
         onOverrideChange={updatedTemplate => {
           setOverriddenTemplate(updatedTemplate);
           // Reset variable values when template changes
@@ -272,7 +275,7 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
         </Button>
       </div>
 
-      <p className="text-muted-foreground text-center text-xs">
+      <p className="text-muted-foreground text-center">
         <strong>API:</strong> Gọi trực tiếp Google AI Studio API để tạo kịch bản
         <br />
         <strong>Automate:</strong> Mở nền tảng đã chọn và tự động điền prompt, bạn có thể chỉnh sửa trước khi gửi

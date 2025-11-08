@@ -150,7 +150,7 @@ const DisplayTab = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="compact-mode">Compact Mode</Label>
-              <p className="text-muted-foreground text-xs">Reduce spacing between elements</p>
+              <p className="text-muted-foreground">Reduce spacing between elements</p>
             </div>
             <Switch id="compact-mode" checked={compactMode} onCheckedChange={setCompactMode} />
           </div>
@@ -167,7 +167,7 @@ const DisplayTab = () => {
               value={[fontScale]}
               onValueChange={values => setFontScale(values[0])}
             />
-            <p className="text-muted-foreground text-xs">Adjust text size across the application</p>
+            <p className="text-muted-foreground">Adjust text size across the application</p>
           </div>
         </CardContent>
       </Card>
@@ -190,7 +190,7 @@ const DisplayTab = () => {
               value={[typingDelay]}
               onValueChange={values => setTypingDelay(values[0])}
             />
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground">
               Adjust how fast prompts are typed (lower = faster, higher = more realistic)
             </p>
           </div>

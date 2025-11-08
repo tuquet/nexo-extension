@@ -195,7 +195,7 @@ const GeneralTab = () => {
             </div>
           </div>
 
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground">
             Get your API key from{' '}
             <a
               href="https://aistudio.google.com/app/apikey"
@@ -244,7 +244,7 @@ const GeneralTab = () => {
             Open Vbee Studio
           </Button>
 
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground">
             The token will be automatically captured when you log in to studio.vbee.vn
           </p>
         </CardContent>

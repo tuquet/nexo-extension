@@ -273,7 +273,7 @@ const CapCutExportModal: React.FC<CapCutExportModalProps> = ({ isOpen, onClose, 
                 <li>All generated images from scenes</li>
                 <li>All generated audio/voiceovers</li>
               </ul>
-              <p className="text-muted-foreground mt-3 text-xs">
+              <p className="text-muted-foreground mt-3">
                 The process may take 5-10 minutes depending on the number of assets.
               </p>
             </div>

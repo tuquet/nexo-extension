@@ -187,7 +187,27 @@ export interface PromptRecord {
    */
   preprocessing?: {
     enableVariables?: boolean; // Enable {{variable}} replacement
-    variableDefinitions?: string; // JSON stringified array of variable definitions
+    /**
+     * Variable definitions for prompt template
+     *
+     * **Storage**: Automatically stored as JSON string in IndexedDB
+     * **Frontend**: Automatically parsed to object/array when reading from DB
+     *
+     * Frontend code should ONLY work with the object form (VariableDefinition[]).
+     * The database layer handles JSON.stringify/parse automatically via Dexie hooks.
+     *
+     * **Type Safety**: Use `any` to allow frontend to pass objects/arrays without casting.
+     * Database hooks convert object→string on save, string→object on read.
+     *
+     * @example
+     * // Frontend (after reading from DB):
+     * const defs = prompt.preprocessing?.variableDefinitions; // Already an array of objects
+     *
+     * // Frontend (before saving to DB):
+     * prompt.preprocessing.variableDefinitions = [{ name: 'genre', type: 'text', ... }]; // Pass as object
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    variableDefinitions?: any; // DB stores string, frontend gets/sets object
     injectContext?: boolean;
   };
 
@@ -362,9 +382,12 @@ export class CineGenieDB extends Dexie {
 
       if (record.preprocessing) {
         const pd = record.preprocessing as Partial<PromptRecord['preprocessing']> | undefined;
-        // variableDefinitions must be a string (stringified JSON) or undefined
-        if (pd && pd.variableDefinitions !== undefined && typeof pd.variableDefinitions !== 'string') {
-          throw new Error('PromptRecord.preprocessing.variableDefinitions must be a JSON string');
+        // Auto-convert variableDefinitions from object to string if needed (SETTER)
+        if (pd && pd.variableDefinitions !== undefined) {
+          if (typeof pd.variableDefinitions !== 'string') {
+            // Convert object/array to JSON string for storage
+            pd.variableDefinitions = JSON.stringify(pd.variableDefinitions);
+          }
         }
       }
 
@@ -379,6 +402,27 @@ export class CineGenieDB extends Dexie {
       return true;
     };
 
+    // Auto-transform variableDefinitions from string to object when reading (GETTER)
+    const transformPromptRecord = (record: PromptRecord): PromptRecord => {
+      if (record.preprocessing?.variableDefinitions && typeof record.preprocessing.variableDefinitions === 'string') {
+        try {
+          // Parse JSON string to object for frontend consumption
+          const parsed = JSON.parse(record.preprocessing.variableDefinitions);
+          return {
+            ...record,
+            preprocessing: {
+              ...record.preprocessing,
+              variableDefinitions: parsed,
+            },
+          };
+        } catch (err) {
+          console.warn('[DB Transform] Failed to parse variableDefinitions, returning as-is:', err);
+          return record;
+        }
+      }
+      return record;
+    };
+
     // Attach Dexie hooks
     try {
       // 'creating' runs before a new object is added; throw to abort
@@ -387,6 +431,16 @@ export class CineGenieDB extends Dexie {
         hook: (hookName: string, fn: (...args: unknown[]) => void) => void;
       };
 
+      // Hook: 'reading' - Transform data when retrieving from DB (GETTER)
+      promptsTableWithHook.hook('reading', function (...args: unknown[]) {
+        const obj = args[0] as PromptRecord | undefined;
+        if (obj) {
+          return transformPromptRecord(obj);
+        }
+        return obj;
+      });
+
+      // Hook: 'creating' - Validate and transform before insert (SETTER)
       promptsTableWithHook.hook('creating', function (...args: unknown[]) {
         const obj = args[1] as Partial<PromptRecord> | undefined;
         try {
@@ -397,7 +451,7 @@ export class CineGenieDB extends Dexie {
         }
       });
 
-      // 'updating' runs before an update; validate the patched object merged with existing fields
+      // Hook: 'updating' - Validate and transform before update (SETTER)
       promptsTableWithHook.hook('updating', function (...args: unknown[]) {
         const mods = args[0] as Record<string, unknown> | undefined;
         const obj = args[2] as PromptRecord | undefined;

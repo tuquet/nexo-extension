@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   toast,
+  CardAction,
 } from '@extension/ui';
 import { db } from '@src/db';
 import { Edit, Plus, Search, Trash2, Copy, Download, Upload, FileJson, Sparkles } from 'lucide-react';
@@ -218,12 +219,17 @@ const PromptsPage = () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id, ...rest } = item;
 
+          // No need to normalize variableDefinitions - database hooks handle conversion automatically
+          const normalizedPreprocessing = item.preprocessing as PromptRecord['preprocessing'];
+
           return {
             ...rest,
             // Ensure required fields
             title: (item.title as string) || 'Untitled Prompt',
             category: (item.category as PromptRecord['category']) || 'general',
             prompt: (item.prompt as string) || '',
+            // Apply preprocessing as-is
+            preprocessing: normalizedPreprocessing,
             // Convert date strings to Date objects
             createdAt: item.createdAt ? new Date(item.createdAt as string) : new Date(),
             updatedAt: item.updatedAt ? new Date(item.updatedAt as string) : new Date(),
@@ -360,34 +366,22 @@ const PromptsPage = () => {
             <div className="space-y-3">
               {filteredPrompts.map(prompt => (
                 <Card key={prompt.id} className="hover:border-primary/50 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          {prompt.icon && <span className="text-xl">{prompt.icon}</span>}
-                          <h3 className="font-semibold">{prompt.title}</h3>
-                          <Badge variant="secondary">{prompt.category}</Badge>
-                        </div>
-                        {prompt.description && <p className="text-muted-foreground text-sm">{prompt.description}</p>}
-                        <p className="text-muted-foreground line-clamp-2 text-xs">{prompt.prompt}</p>
-                        {prompt.tags && prompt.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {prompt.tags.map(tag => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                  <CardHeader>
+                    <CardTitle>
+                      <div className="flex items-center gap-2">
+                        {prompt.icon && <span className="text-xl">{prompt.icon}</span>}
+                        <h3 className="font-semibold">{prompt.title}</h3>
+                        <Badge variant="secondary">{prompt.category}</Badge>
                       </div>
+                    </CardTitle>
+                    <CardAction>
                       <div className="flex gap-1">
                         <Button
-                          variant="default"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleUseForScript(prompt)}
                           title="Use this template to create a script">
                           <Sparkles className="mr-2 size-4" />
-                          Use for Script
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleCopyJSON(prompt)} title="Copy as JSON">
                           <FileJson className="size-4" />
@@ -401,6 +395,25 @@ const PromptsPage = () => {
                         <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(prompt)} title="Delete">
                           <Trash2 className="size-4" />
                         </Button>
+                      </div>
+                    </CardAction>
+                    <CardDescription>
+                      {prompt.description && <p className="text-muted-foreground text-sm">{prompt.description}</p>}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <p className="text-muted-foreground line-clamp-2">{prompt.prompt}</p>
+                        {prompt.tags && prompt.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {prompt.tags.map(tag => (
+                              <Badge key={tag} variant="outline" className="">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

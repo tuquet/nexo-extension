@@ -24,6 +24,7 @@ import {
 import { X, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { PromptRecord } from '@extension/database';
+import type { ReactElement } from 'react';
 
 interface VariableDefinition {
   name: string;
@@ -66,14 +67,14 @@ interface PromptEditorProps {
   description?: string;
 }
 
-export const PromptEditor: React.FC<PromptEditorProps> = ({
+const PromptEditor = ({
   open,
   onOpenChange,
   initialData,
   onSave,
   title,
   description,
-}) => {
+}: PromptEditorProps): ReactElement => {
   const [formData, setFormData] = useState<EditablePromptData>({
     title: '',
     category: '',
@@ -112,13 +113,22 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
   useEffect(() => {
     if (!open) return;
 
+    // variableDefinitions is already parsed by DB layer, just use it directly
     let variableDefinitions: VariableDefinition[] = [];
-    try {
-      if (initialData.preprocessing?.variableDefinitions) {
-        variableDefinitions = JSON.parse(initialData.preprocessing.variableDefinitions);
+    const rawDefs = initialData.preprocessing?.variableDefinitions;
+
+    if (rawDefs) {
+      if (Array.isArray(rawDefs)) {
+        // Already an array (from DB getter)
+        variableDefinitions = rawDefs as VariableDefinition[];
+      } else if (typeof rawDefs === 'string') {
+        // Fallback: parse if still string (shouldn't happen with DB hooks)
+        try {
+          variableDefinitions = JSON.parse(rawDefs);
+        } catch {
+          variableDefinitions = [];
+        }
       }
-    } catch {
-      variableDefinitions = [];
     }
 
     setFormData({
@@ -165,7 +175,8 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
       preprocessing: {
         enableVariables: formData.preprocessing.enableVariables,
         injectContext: formData.preprocessing.injectContext,
-        variableDefinitions: JSON.stringify(formData.preprocessing.variableDefinitions),
+        // Pass as object array - DB layer will stringify automatically
+        variableDefinitions: formData.preprocessing.variableDefinitions,
       },
       modelSettings:
         formData.modelSettings.preferredModel || formData.modelSettings.temperature !== 1.0
@@ -412,7 +423,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="enableVariables">Enable Variables</Label>
-                  <p className="text-muted-foreground text-xs">Allow {'{{variable}}'} syntax in prompts</p>
+                  <p className="text-muted-foreground">Allow {'{{variable}}'} syntax in prompts</p>
                 </div>
                 <Switch
                   id="enableVariables"
@@ -429,7 +440,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="injectContext">Inject Context</Label>
-                  <p className="text-muted-foreground text-xs">Auto-inject character/setting context</p>
+                  <p className="text-muted-foreground">Auto-inject character/setting context</p>
                 </div>
                 <Switch
                   id="injectContext"
@@ -461,10 +472,10 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
                     className="flex items-center justify-between rounded border bg-slate-50 p-2 dark:bg-slate-900">
                     <div>
                       <span className="text-sm font-medium">{v.label}</span>
-                      <span className="text-muted-foreground ml-2 text-xs">
+                      <span className="text-muted-foreground ml-2">
                         ({v.name} - {v.type})
                       </span>
-                      {v.required && <span className="ml-1 text-xs text-red-500">*required</span>}
+                      {v.required && <span className="ml-1 text-red-500">*required</span>}
                     </div>
                     <div className="flex gap-1">
                       <Button type="button" size="sm" variant="ghost" onClick={() => startEditVariable(idx)}>
@@ -716,3 +727,5 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
     </Dialog>
   );
 };
+
+export { PromptEditor };

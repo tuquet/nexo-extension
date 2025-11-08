@@ -159,7 +159,7 @@ const AdvancedTab = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="debug-mode">Debug Mode</Label>
-              <p className="text-muted-foreground text-xs">Enable console logging and debug info</p>
+              <p className="text-muted-foreground">Enable console logging and debug info</p>
             </div>
             <Switch id="debug-mode" checked={debugMode} onCheckedChange={setDebugMode} />
           </div>

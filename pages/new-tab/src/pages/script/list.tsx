@@ -290,7 +290,7 @@ const ScriptListPage = () => {
                           )}
 
                           {/* Metadata row */}
-                          <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
+                          <div className="text-muted-foreground flex flex-wrap items-center gap-3">
                             {script.tone && <Badge variant="outline">{script.tone}</Badge>}
                             {script.characters && script.characters.length > 0 && (
                               <span className="flex items-center gap-1">
@@ -310,7 +310,7 @@ const ScriptListPage = () => {
                           {script.themes && script.themes.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {script.themes.map(theme => (
-                                <Badge key={theme} variant="outline" className="text-xs">
+                                <Badge key={theme} variant="outline" className="">
                                   {theme}
                                 </Badge>
                               ))}

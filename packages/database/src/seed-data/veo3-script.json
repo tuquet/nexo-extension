@@ -1,10 +1,10 @@
 {
-  "title": "1 PHÚT MENTOR: Trình Tạo Kịch Bản Tối Ưu cho AI Video (Veo 3.1)",
+  "title": "Đối Thoại Thầy - Trò - Triết Học - Veo 3.1",
   "category": "script-generation",
-  "prompt": "Tạo một kịch bản video ngắn (khoảng {{duration}} giây) theo thể loại **{{genre}}** về chủ đề: **{{premise}}**.\n\n**Cấu trúc & Ngôn ngữ:**\n- Độ dài mục tiêu: Khoảng {{duration}} giây (chia thành các clip 8s).\n- Ngôn ngữ đầu ra: {{language}}\n\n**Bối cảnh & Dẫn dắt:**\n- Bối cảnh chính: {{location}}\n- Phong cách Dẫn dắt: {{time_period}}\n\n**Yêu cầu về Thông điệp:**\n- Tông chủ đạo: {{tone}}\n- Phong cách diễn đạt: {{style}}\n- Thông điệp cốt lõi: {{theme}}\n- Đối tượng khán giả: {{audience}}\n\n**Nhân vật & Tương tác:**\n- Số lượng giọng nói: {{character_count}}\n- Mối quan hệ: {{character_dynamics}}\n\n**Hướng dẫn Sản xuất (Veo 3.1):**\n- Phong cách Hình ảnh: {{visual_style}} (Dùng làm prompt cho Veo)\n- Âm thanh/Nhạc nền: {{audio_style}}\n\n**Chỉ dẫn Đặc biệt:**\n{{special_instructions}}",
-  "description": "Công cụ chuyên biệt tạo kịch bản video ngắn (tối ưu 48 giây, 6 clip 8s) cho các nội dung truyền cảm hứng. Thiết lập này tối ưu hóa cấu trúc ba hồi thành các phân đoạn 8 giây, đảm bảo mỗi Scene có mô tả hình ảnh chi tiết, sẵn sàng làm prompt cho AI Video (như Veo 3.1).",
-  "tags": ["mentor", "giac-ngo", "triet-ly", "video-ngan", "tao-kich-ban", "veo-ai-video"],
-  "icon": "🎬",
+  "prompt": "Tạo một kịch bản video ngắn (khoảng {{duration}} giây) theo thể loại **{{genre}}** về chủ đề: **{{premise}}**.\n\n**Cấu trúc & Ngôn ngữ:**\n- Độ dài mục tiêu: Khoảng {{duration}} giây (chia thành các clip 8s).\n- Ngôn ngữ đầu ra: {{language}}\n\n**Bối cảnh & Dẫn dắt:**\n- Bối cảnh chính: {{location}}\n- Trường phái triết học: **{{philosophy_school}}**\n\n**Yêu cầu về Thông điệp:**\n- Tông chủ đạo: {{tone}}\n- Phong cách diễn đạt: {{style}}\n- Thông điệp cốt lõi: {{theme}}\n- Đối tượng khán giả: {{audience}}\n\n**Nhân vật & Tương tác:**\n- Số lượng giọng nói: {{character_count}}\n- Mối quan hệ: {{character_dynamics}}\n\n**Hướng dẫn Sản xuất (Veo 3.1):**\n- Phong cách Hình ảnh: {{visual_style}} (Dùng làm prompt cho Veo)\n- Âm thanh/Nhạc nền: {{audio_style}}\n\n**Chỉ dẫn Đặc biệt:**\n{{special_instructions}}",
+  "description": "Công cụ chuyên biệt tạo kịch bản video ngắn (tối ưu 48 giây, 6 clip 8s) cho các nội dung truyền cảm hứng triết học. Thiết lập này tối ưu hóa cấu trúc ba hồi thành các phân đoạn 8 giây, đảm bảo mỗi Scene có mô tả hình ảnh chi tiết, sẵn sàng làm prompt cho AI Video (như Veo 3.1).",
+  "tags": ["mentor", "triet-hoc", "phuong-dong", "phuong-tay", "video-ngan", "tao-kich-ban", "veo-ai-video"],
+  "icon": "🧠",
   "systemInstruction": "Bạn là một biên kịch chuyên nghiệp và là **chuyên gia tối ưu hóa Prompt cho AI Video (Veo 3.1)**. Nhiệm vụ của bạn là tạo ra một kịch bản **tối đa {{duration}} giây**, được chia thành các **Scene (cảnh quay) không vượt quá 8 giây**, sẵn sàng cho quy trình tạo và nối video bằng Veo 3.1.\n\n**Tiêu chuẩn viết Kịch bản Tối ưu cho Veo (8s Clip):**\n- Tổng thời lượng **không vượt quá {{duration}} giây**. Các Scene và lời thoại phải được phân bổ để khớp với thời lượng 8 giây cho mỗi Scene.\n- **Mỗi Scene** phải là một đoạn video độc lập **tối đa 8 giây**.\n- Trường 'visual_style' và 'action' phải là **mô tả hình ảnh chi tiết, giàu từ khóa** (High-quality, descriptive visual prompt) để tạo video AI.\n- Duy trì lời thoại cô đọng, dứt khoát để khớp với thời lượng 8 giây của cảnh.\n\n**Yêu cầu Cấu trúc Phân đoạn Nối tiếp (Optimized for Extending):**\n- Hồi 1 (Mở đầu): Đặt vấn đề hấp dẫn trong **1 Scene (8s)**.\n- Hồi 2 (Phát triển & Giác ngộ): Đưa ra các góc nhìn/minh họa chi tiết, có thể dùng tính năng nối tiếp (Extend). Phân bổ vào **nhiều Scene 8s**.\n- Hồi 3 (Đỉnh điểm & Lời kêu gọi): Chốt lại bằng Takeaway và CTA trong **1 Scene (8s)**.\n\n**Hướng dẫn về Nhân vật & Kỹ thuật:**\n- 'roleId' trong lời thoại PHẢI khớp với roleId của nhân vật trong mảng 'characters'.\n- Đảm bảo ngôn ngữ đầu ra là **{{language}}** (Ngôn ngữ kịch bản).\n- Chỉ cung cấp lời thoại trong trường 'line' (không chèn chú thích, hành động, bối cảnh).\n- Điền ĐẦY ĐỦ các trường trong JSON schema bằng nội dung sáng tạo, phù hợp.",
   "outputFormat": "json-structured",
   "modelSettings": {
@@ -16,7 +16,159 @@
   },
   "preprocessing": {
     "enableVariables": true,
-    "variableDefinitions": "[{\"name\":\"genre\",\"type\":\"select\",\"label\":\"Thể loại Video\",\"options\":[\"Hỏi Thầy 1 Câu\",\"Đối Thoại Giác Ngộ\",\"Lời Phật Dạy/Triết lý\",\"Câu chuyện Ngụ ngôn/Kinh nghiệm\",\"Thực hành/Bài tập tinh thần\",\"Giải mã Khái niệm/Định luật\",\"Thách thức Tư duy\",\"Phân tích Xã hội & Đạo đức\"],\"default\":\"Hỏi Thầy 1 Câu\",\"required\":true},{\"name\":\"premise\",\"type\":\"text\",\"label\":\"Chủ đề/Câu hỏi Chính\",\"placeholder\":\"Ví dụ: Làm sao để vượt qua sự trì hoãn? | Ý nghĩa của sự tha thứ.\",\"default\":\"Cách đối mặt với áp lực công việc và giữ tâm an lạc\",\"required\":true},{\"name\":\"location\",\"type\":\"text\",\"label\":\"Bối cảnh/Hình tượng\",\"placeholder\":\"Địa điểm hoặc Hình tượng đại diện (vd: 'góc thiền tĩnh lặng', 'trên đỉnh núi', 'hình ảnh tượng Phật')\",\"default\":\"Góc quay tĩnh tại, Ánh sáng ấm áp (indoor studio)\",\"required\":false},{\"name\":\"time_period\",\"type\":\"select\",\"label\":\"Phong cách Dẫn dắt\",\"options\":[\"Hiện đại, gần gũi\",\"Cổ điển, trang nghiêm\",\"Hóm hỉnh, đời thường\",\"Nghiêm túc, học thuật\",\"Thơ ca, bay bổng\"],\"default\":\"Hiện đại, gần gũi\",\"required\":false},{\"name\":\"duration\",\"type\":\"select\",\"label\":\"Thời lượng Video (giây - Dựa trên clip 8s Veo)\",\"options\":[\"8 (1 clip Veo)\",\"16 (2 clips nối)\",\"24 (3 clips nối)\",\"32 (4 clips nối)\",\"40 (5 clips nối)\",\"48 (6 clips nối)\"],\"default\":\"48 (6 clips nối)\",\"required\":true},{\"name\":\"tone\",\"type\":\"select\",\"label\":\"Tông chủ đạo\",\"options\":[\"Truyền cảm hứng, tích cực\",\"Sâu sắc, triết lý\",\"Nhẹ nhàng, chữa lành\",\"Thẳng thắn, thực tế\",\"Hồi hộp, mở mang\",\"Cảnh tỉnh, nghiêm khắc\",\"Tập trung, rõ ràng\"],\"default\":\"Truyền cảm hứng, tích cực\",\"required\":false},{\"name\":\"style\",\"type\":\"text\",\"label\":\"Phong cách Diễn đạt\",\"placeholder\":\"Tham khảo người nổi tiếng/tác phẩm (vd: 'như Thích Nhất Hạnh', 'Phong cách của TED Talk', 'giọng điệu Thiền sư')\",\"default\":\"Giọng điệu ấm áp, chậm rãi, nhấn nhá vào từ khóa\",\"required\":false},{\"name\":\"theme\",\"type\":\"text\",\"label\":\"Thông điệp/Lời khuyên Cốt lõi\",\"placeholder\":\"Giá trị trung tâm muốn truyền tải\",\"default\":\"Sống trong hiện tại, Thiền định là cách giải thoát\",\"required\":false},{\"name\":\"audience\",\"type\":\"select\",\"label\":\"Đối tượng Khán giả\",\"options\":[\"Người trẻ (Gen Z)\",\"Dân văn phòng/Người đi làm\",\"Phụ huynh/Gia đình\",\"Người tìm kiếm sự bình yên\",\"Chung cho mọi lứa tuổi\"],\"default\":\"Dân văn phòng/Người đi làm\",\"required\":false},{\"name\":\"character_count\",\"type\":\"select\",\"label\":\"Số lượng Nhân vật/Giọng nói\",\"options\":[\"1 (Mentor/Thầy)\",\"2 (Mentor & Người hỏi)\",\"3 (Mentor & 2 Người hỏi/Khách mời)\"],\"default\":\"2 (Mentor & Người hỏi)\",\"required\":false},{\"name\":\"character_dynamics\",\"type\":\"text\",\"label\":\"Mối quan hệ Nhân vật\",\"placeholder\":\"Mối tương tác (vd: 'Thầy trò', 'Mentor - Mentee', 'Hai người bạn cùng tìm hiểu')\",\"default\":\"Mối quan hệ Thầy trò (Mentor trả lời câu hỏi của Mentee)\",\"required\":false},{\"name\":\"visual_style\",\"type\":\"text\",\"label\":\"Phong cách Hình ảnh (Lưu ý Veo)\",\"placeholder\":\"Hướng dẫn quay/dựng (vd: 'chuyển cảnh chậm', 'sử dụng B-roll thiên nhiên, cinematic look', 'minh họa text đơn giản')\",\"default\":\"Hình ảnh chất lượng cao, màu sắc dịu nhẹ, tập trung vào biểu cảm của Mentor\",\"required\":false},{\"name\":\"audio_style\",\"type\":\"text\",\"label\":\"Phong cách Âm thanh/Nhạc\",\"placeholder\":\"Hướng dẫn nhạc nền và thiết kế âm thanh\",\"default\":\"Nhạc nền Thiền định/Lo-fi nhẹ nhàng, Âm thanh rõ ràng, không tạp âm\",\"required\":false},{\"name\":\"special_instructions\",\"type\":\"text\",\"label\":\"Chỉ dẫn đặc biệt\",\"placeholder\":\"Yêu cầu hoặc ràng buộc bổ sung (vd: 'Cần chèn một câu trích dẫn đắt giá vào giây thứ 30', 'Phải có shot quay macro')\",\"default\":\"Cần chèn một câu trích dẫn đắt giá vào giữa Scene thứ 3 (khoảng giây 24)\",\"required\":false},{\"name\":\"language\",\"type\":\"select\",\"label\":\"Ngôn ngữ kịch bản\",\"options\":[\"en-US\",\"vi-VN\"],\"default\":\"vi-VN\",\"required\":true}]",
+    "variableDefinitions": [
+      {
+        "name": "genre",
+        "type": "select",
+        "label": "Thể loại Video",
+        "options": [
+          "Hỏi Thầy 1 Câu (Xung đột)",
+          "Đối Thoại Giác Ngộ (Khám phá)",
+          "Thực hành Triết lý (Ứng dụng)",
+          "Giải mã Khái niệm Cốt lõi",
+          "Thách thức Tư duy Đạo đức"
+        ],
+        "default": "Hỏi Thầy 1 Câu (Xung đột)",
+        "required": true
+      },
+      {
+        "name": "premise",
+        "type": "text",
+        "label": "Chủ đề/Câu hỏi Chính của Học trò",
+        "placeholder": "Ví dụ: Làm sao để hết cảm thấy kiệt sức vì cố gắng quá mức? | Ý nghĩa của sự 'Vô Ngã'.",
+        "default": "Làm sao để hết cảm thấy kiệt sức vì cố gắng quá mức?",
+        "required": true
+      },
+      {
+        "name": "philosophy_school",
+        "type": "select",
+        "label": "Trường phái Triết học Tập trung",
+        "options": [
+          "Đạo giáo (Vô Vi, Tự Nhiên)",
+          "Phật giáo (Vô Thường, Chánh Niệm)",
+          "Nho giáo (Nhân, Lễ, Hiếu)",
+          "Khắc Kỷ (Stoicism - Kiểm soát nội tâm)",
+          "Hiện sinh (Existentialism - Tự do, Trách nhiệm)",
+          "Tổng hợp Đông/Tây"
+        ],
+        "default": "Đạo giáo (Vô Vi, Tự Nhiên)",
+        "required": true
+      },
+      {
+        "name": "location",
+        "type": "text",
+        "label": "Bối cảnh/Hình tượng",
+        "placeholder": "Địa điểm hoặc Hình tượng đại diện (vd: 'góc thiền tĩnh lặng', 'ban công thành phố', 'khu vườn zen')",
+        "default": "Phòng trà tối giản, không gian yên tĩnh, ánh sáng tự nhiên",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "type": "select",
+        "label": "Thời lượng Video (giây - Dựa trên clip 8s Veo)",
+        "options": [
+          "8 (1 clip Veo)",
+          "16 (2 clips nối)",
+          "24 (3 clips nối)",
+          "32 (4 clips nối)",
+          "40 (5 clips nối)",
+          "48 (6 clips nối)"
+        ],
+        "default": "48 (6 clips nối)",
+        "required": true
+      },
+      {
+        "name": "tone",
+        "type": "select",
+        "label": "Tông chủ đạo",
+        "options": [
+          "Truyền cảm hứng, tích cực",
+          "Sâu sắc, tĩnh lặng (Zen-like)",
+          "Thẳng thắn, thực tế (Khắc Kỷ)",
+          "Cảnh tỉnh, nghiêm khắc",
+          "Thảo luận, cởi mở"
+        ],
+        "default": "Sâu sắc, tĩnh lặng (Zen-like)",
+        "required": false
+      },
+      {
+        "name": "style",
+        "type": "text",
+        "label": "Phong cách Diễn đạt",
+        "placeholder": "Giọng điệu (vd: 'như Lão Tử giảng giải', 'giọng ấm áp của Mentor', 'phân tích logic')",
+        "default": "Giọng điệu ấm áp, chậm rãi, nhấn nhá vào từ khóa triết học",
+        "required": false
+      },
+      {
+        "name": "theme",
+        "type": "text",
+        "label": "Thông điệp/Lời khuyên Cốt lõi",
+        "placeholder": "Giá trị trung tâm muốn truyền tải (vd: Sức mạnh nằm ở sự buông bỏ/Vô Vi)",
+        "default": "Sức mạnh nằm ở sự buông bỏ và sống thuận theo tự nhiên (Vô Vi)",
+        "required": false
+      },
+      {
+        "name": "audience",
+        "type": "select",
+        "label": "Đối tượng Khán giả",
+        "options": [
+          "Người trẻ (Gen Z) đang tìm kiếm ý nghĩa",
+          "Dân văn phòng/Người đi làm bị căng thẳng",
+          "Người đang học Triết học",
+          "Chung cho mọi lứa tuổi"
+        ],
+        "default": "Dân văn phòng/Người đi làm bị căng thẳng",
+        "required": false
+      },
+      {
+        "name": "character_count",
+        "type": "select",
+        "label": "Số lượng Nhân vật/Giọng nói",
+        "options": ["1 (Mentor/Thầy)", "2 (Mentor & Người hỏi)"],
+        "default": "2 (Mentor & Người hỏi)",
+        "required": false
+      },
+      {
+        "name": "character_dynamics",
+        "type": "text",
+        "label": "Mối quan hệ Nhân vật",
+        "placeholder": "Mối tương tác (vd: 'Thầy Lão Trang - Học trò hiện đại', 'Giáo sư Khắc Kỷ - Mentee')",
+        "default": "Thầy Lão Trang (Mentor) và Học trò hiện đại (Mentee)",
+        "required": false
+      },
+      {
+        "name": "visual_style",
+        "type": "text",
+        "label": "Phong cách Hình ảnh (Lưu ý Veo)",
+        "placeholder": "Hướng dẫn quay/dựng (vd: 'chuyển cảnh chậm', 'sử dụng B-roll thiên nhiên, cinematic look', 'minh họa text đơn giản')",
+        "default": "Hình ảnh chất lượng cao, Cinematic, màu sắc vàng nâu ấm áp. Focus vào ánh mắt Thầy và cảnh B-roll dòng nước/cây cỏ.",
+        "required": false
+      },
+      {
+        "name": "audio_style",
+        "type": "text",
+        "label": "Phong cách Âm thanh/Nhạc",
+        "placeholder": "Hướng dẫn nhạc nền và thiết kế âm thanh",
+        "default": "Nhạc nền Zen/Nhạc cụ truyền thống Á Đông (sáo, đàn tranh), âm lượng thấp. Giọng nói sạch và rõ ràng.",
+        "required": false
+      },
+      {
+        "name": "special_instructions",
+        "type": "text",
+        "label": "Chỉ dẫn đặc biệt",
+        "placeholder": "Yêu cầu hoặc ràng buộc bổ sung (vd: 'Cần chèn một câu trích dẫn đắt giá vào giây thứ 30', 'Phải có shot quay macro')",
+        "default": "Nhấn mạnh từ khóa 'Vô Vi' bằng text trên màn hình ở Scene 3.",
+        "required": false
+      },
+      {
+        "name": "language",
+        "type": "select",
+        "label": "Ngôn ngữ kịch bản",
+        "options": ["Tiếng Việt"],
+        "default": "Tiếng Việt",
+        "required": true
+      }
+    ],
     "injectContext": false
   },
   "postprocessing": {

@@ -24,7 +24,7 @@ interface VariableDefinition {
 }
 
 interface VariableInputsProps {
-  variableDefinitions?: string;
+  variableDefinitions?: unknown; // DB layer returns parsed object/array
   onChange: (values: Record<string, string>) => void;
   promptTemplate?: string; // To give AI context
 }
@@ -32,11 +32,22 @@ interface VariableInputsProps {
 export const VariableInputs: React.FC<VariableInputsProps> = ({ variableDefinitions, onChange, promptTemplate }) => {
   const [variables] = useState<VariableDefinition[]>(() => {
     if (!variableDefinitions) return [];
-    try {
-      return JSON.parse(variableDefinitions);
-    } catch {
-      return [];
+
+    // variableDefinitions is already parsed by DB layer
+    if (Array.isArray(variableDefinitions)) {
+      return variableDefinitions as VariableDefinition[];
     }
+
+    // Fallback: parse if still string (shouldn't happen with DB hooks)
+    if (typeof variableDefinitions === 'string') {
+      try {
+        return JSON.parse(variableDefinitions);
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
   });
 
   const [values, setValues] = useState<Record<string, string>>(() => {
@@ -163,7 +174,7 @@ Make suggestions creative, diverse, and contextually appropriate.`;
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">📝 Template Variables</span>
         <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={handleResetToDefaults} className="gap-1 text-xs">
+          <Button type="button" size="sm" variant="outline" onClick={handleResetToDefaults} className="gap-1">
             <RefreshCw className="size-3" />
             Reset
           </Button>
@@ -172,7 +183,7 @@ Make suggestions creative, diverse, and contextually appropriate.`;
             size="sm"
             onClick={handleAISuggest}
             disabled={isGenerating}
-            className="gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-xs text-white hover:from-purple-600 hover:to-pink-600">
+            className="gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600">
             <Sparkles className="size-3" />
             {isGenerating ? 'Generating...' : 'AI Suggest'}
           </Button>

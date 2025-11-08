@@ -199,7 +199,7 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
                   rows={20}
                   className="font-mono text-sm"
                 />
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground">
                   Edit the JSON object above. Required fields: <code className="bg-muted rounded px-1">title</code>,{' '}
                   <code className="bg-muted rounded px-1">category</code>,{' '}
                   <code className="bg-muted rounded px-1">prompt</code>
@@ -216,7 +216,7 @@ const PromptForm = ({ open, onOpenChange, onSubmit, initialData, mode }: PromptF
 
               {/* Help Text */}
               <Alert>
-                <AlertDescription className="text-xs">
+                <AlertDescription className="">
                   <strong>Valid categories:</strong> script-generation, image-generation, video-generation,
                   character-dev, general
                   <br />

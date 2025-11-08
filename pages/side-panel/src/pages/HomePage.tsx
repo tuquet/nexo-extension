@@ -75,25 +75,25 @@ const HomePage: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-3">
-            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full font-bold">
               1
             </div>
             <p className="text-sm">Chọn một template từ thư viện bên dưới hoặc sử dụng prompt đã được chuẩn bị</p>
           </div>
           <div className="flex gap-3">
-            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full font-bold">
               2
             </div>
             <p className="text-sm">Click nút "Sử dụng" để tự động mở Google AI Studio và điền prompt</p>
           </div>
           <div className="flex gap-3">
-            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full font-bold">
               3
             </div>
             <p className="text-sm">Chỉnh sửa prompt nếu cần, sau đó gửi để AI tạo kịch bản</p>
           </div>
           <div className="flex gap-3">
-            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+            <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full font-bold">
               4
             </div>
             <p className="text-sm">Sao chép kết quả và nhập vào New Tab để hoàn tất quy trình</p>

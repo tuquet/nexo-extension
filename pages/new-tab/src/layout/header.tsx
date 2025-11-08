@@ -110,13 +110,13 @@ const Header: React.FC<HeaderProps> = ({ title = 'CG' }) => {
           <Button variant={isPromptsRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
             <Link to="/prompts">
               <Sparkles className="size-4" />
-              <span className="text-xs">Prompts</span>
+              <span className="">Prompts</span>
             </Link>
           </Button>
           <Button variant={isAssetRouteActive ? 'secondary' : 'ghost'} size="sm" className="flex-1 gap-1.5" asChild>
             <Link to="/asset">
               <Image className="size-4" />
-              <span className="text-xs">Tài sản</span>
+              <span className="">Tài sản</span>
             </Link>
           </Button>
         </nav>

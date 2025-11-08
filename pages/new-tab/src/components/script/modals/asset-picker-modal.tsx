@@ -200,7 +200,7 @@ const AssetPickerModal: React.FC<AssetPickerModalProps> = ({
                       <div className="flex size-full items-center justify-center">
                         <div className="text-center">
                           <div className="mb-2 text-4xl">🎵</div>
-                          <p className="text-muted-foreground text-xs">Audio</p>
+                          <p className="text-muted-foreground">Audio</p>
                         </div>
                       </div>
                     )}
@@ -215,16 +215,16 @@ const AssetPickerModal: React.FC<AssetPickerModalProps> = ({
 
                   {/* Current Asset Badge */}
                   {currentAssetId === asset.id && (
-                    <div className="bg-primary/90 text-primary-foreground absolute left-2 top-2 rounded px-2 py-1 text-xs font-medium">
+                    <div className="bg-primary/90 text-primary-foreground absolute left-2 top-2 rounded px-2 py-1 font-medium">
                       Current
                     </div>
                   )}
 
                   {/* Asset Info */}
                   <div className="bg-card p-2">
-                    <p className="truncate text-xs font-medium">{asset.originalFilename || `Asset #${asset.id}`}</p>
+                    <p className="truncate font-medium">{asset.originalFilename || `Asset #${asset.id}`}</p>
                     {asset.uploadSource && (
-                      <p className="text-muted-foreground text-xs capitalize">{asset.uploadSource.replace('-', ' ')}</p>
+                      <p className="text-muted-foreground capitalize">{asset.uploadSource.replace('-', ' ')}</p>
                     )}
                   </div>
                 </div>

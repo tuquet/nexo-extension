@@ -188,10 +188,10 @@ const SceneAsset: React.FC<{
             {scene.isGeneratingImage && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 p-2 text-center text-white">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/50 border-t-white"></div>
-                <span className="mt-2 text-xs">Đang tạo...</span>
+                <span className="mt-2">Đang tạo...</span>
                 <button
                   onClick={() => onCancelGenerateImage(actIndex, sceneIndex)}
-                  className="mt-3 rounded-md bg-red-500/80 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600/80">
+                  className="mt-3 rounded-md bg-red-500/80 px-3 py-1 font-semibold text-white transition-colors hover:bg-red-600/80">
                   Hủy
                 </button>
               </div>
@@ -267,7 +267,7 @@ const SceneAsset: React.FC<{
             {scene.isGeneratingVideo && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 p-2 text-center text-white">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/50 border-t-white"></div>
-                <span className="mt-2 text-xs">{currentVideoMessage}</span>
+                <span className="mt-2">{currentVideoMessage}</span>
               </div>
             )}
             {videoUrl && !scene.isGeneratingVideo && (

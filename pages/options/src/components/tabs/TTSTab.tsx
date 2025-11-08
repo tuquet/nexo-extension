@@ -53,7 +53,7 @@ const TTSTab = () => {
               value={[speakingRate]}
               onValueChange={values => setSpeakingRate(values[0])}
             />
-            <p className="text-muted-foreground text-xs">Adjust speech speed (1.0 is normal)</p>
+            <p className="text-muted-foreground">Adjust speech speed (1.0 is normal)</p>
           </div>
 
           <div className="space-y-2">
@@ -68,7 +68,7 @@ const TTSTab = () => {
               value={[pitch]}
               onValueChange={values => setPitch(values[0])}
             />
-            <p className="text-muted-foreground text-xs">Adjust voice pitch (0 is default)</p>
+            <p className="text-muted-foreground">Adjust voice pitch (0 is default)</p>
           </div>
 
           <div className="space-y-2">
@@ -83,7 +83,7 @@ const TTSTab = () => {
               value={[volume]}
               onValueChange={values => setVolume(values[0])}
             />
-            <p className="text-muted-foreground text-xs">Output volume level</p>
+            <p className="text-muted-foreground">Output volume level</p>
           </div>
         </CardContent>
       </Card>

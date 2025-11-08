@@ -125,7 +125,7 @@ const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => 
       {/* Header */}
       <div className="border-b p-4">
         <h2 className="mb-2 text-lg font-semibold">Thư viện Prompt</h2>
-        <p className="text-muted-foreground text-xs">Click "Sử dụng" để tự động điền prompt vào Google AI Studio</p>
+        <p className="text-muted-foreground">Click "Sử dụng" để tự động điền prompt vào Google AI Studio</p>
       </div>
 
       {/* Automate prompt button (if available) */}
@@ -136,7 +136,7 @@ const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => 
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
                   <h3 className="font-semibold">Prompt từ Template</h3>
-                  <p className="text-muted-foreground mt-1 text-xs">Sử dụng prompt đã được chuẩn bị từ New Tab</p>
+                  <p className="text-muted-foreground mt-1">Sử dụng prompt đã được chuẩn bị từ New Tab</p>
                 </div>
                 <Button
                   size="sm"
@@ -187,7 +187,7 @@ const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => 
           {filteredPrompts.length === 0 ? (
             <div className="text-muted-foreground py-8 text-center text-sm">
               <p>Không tìm thấy prompt nào</p>
-              <p className="text-xs">Thử tìm kiếm với từ khóa khác</p>
+              <p className="">Thử tìm kiếm với từ khóa khác</p>
             </div>
           ) : (
             filteredPrompts.map(prompt => (
@@ -200,12 +200,10 @@ const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => 
                         {prompt.icon && <span className="text-lg">{prompt.icon}</span>}
                         <div className="flex-1">
                           <h3 className="font-semibold leading-tight">{prompt.title}</h3>
-                          {prompt.description && (
-                            <p className="text-muted-foreground mt-1 text-xs">{prompt.description}</p>
-                          )}
+                          {prompt.description && <p className="text-muted-foreground mt-1">{prompt.description}</p>}
                         </div>
                       </div>
-                      <Badge variant="secondary" className="shrink-0 text-xs">
+                      <Badge variant="secondary" className="shrink-0">
                         {categories.find(c => c.value === prompt.category)?.label.split(' ')[0] || '✨'}
                       </Badge>
                     </div>
@@ -214,7 +212,7 @@ const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => 
                     {prompt.tags && prompt.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {prompt.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">
+                          <Badge key={tag} variant="outline" className="">
                             {tag}
                           </Badge>
                         ))}
@@ -245,7 +243,7 @@ const PromptLibrary: React.FC<PromptLibraryProps> = ({ automatePromptData }) => 
 
       {/* Footer stats */}
       <div className="border-t p-3 text-center">
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground">
           Hiển thị {filteredPrompts.length} / {prompts.length} prompts
         </p>
       </div>

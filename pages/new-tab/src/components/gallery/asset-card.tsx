@@ -33,7 +33,7 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset, isSelected, isSelectionMod
       ) : (
         <div className="flex aspect-square flex-col items-center justify-center bg-slate-100 p-4 dark:bg-slate-800">
           <Music className="h-16 w-16 text-slate-400 dark:text-slate-500" />
-          <p className="mt-3 font-mono text-xs text-slate-500">Audio Asset</p>
+          <p className="mt-3 font-mono text-slate-500">Audio Asset</p>
         </div>
       )}
 
@@ -50,7 +50,7 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset, isSelected, isSelectionMod
 
     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-12">
       <p className="truncate text-sm font-semibold text-white">{asset.scriptTitle || 'Kich ban khong ro'}</p>
-      <p className="truncate font-mono text-xs text-slate-300">{asset.dataType}</p>
+      <p className="truncate font-mono text-slate-300">{asset.dataType}</p>
     </div>
   </Card>
 );

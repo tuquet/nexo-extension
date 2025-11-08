@@ -268,9 +268,9 @@ const GalleryUploadProgressModal: React.FC<GalleryUploadProgressModalProps> = ({
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium capitalize">{result.asset.type}</span>
-                      <span className="text-muted-foreground text-xs">#{result.asset.id}</span>
+                      <span className="text-muted-foreground">#{result.asset.id}</span>
                       {result.asset.scriptTitle && (
-                        <span className="text-muted-foreground text-xs">• {result.asset.scriptTitle}</span>
+                        <span className="text-muted-foreground">• {result.asset.scriptTitle}</span>
                       )}
                     </div>
 
@@ -286,15 +286,13 @@ const GalleryUploadProgressModal: React.FC<GalleryUploadProgressModalProps> = ({
 
                     {/* Success Message */}
                     {result.status === 'success' && result.localPath && (
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground">
                         Path: <code className="bg-muted rounded px-1">{result.localPath}</code>
                       </p>
                     )}
 
                     {/* Error Message */}
-                    {result.status === 'failed' && result.error && (
-                      <p className="text-xs text-red-600">{result.error}</p>
-                    )}
+                    {result.status === 'failed' && result.error && <p className="text-red-600">{result.error}</p>}
                   </div>
                 </div>
               ))}

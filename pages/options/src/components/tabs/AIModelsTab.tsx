@@ -105,7 +105,7 @@ const AIModelsTab = () => {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground">
               Pro model offers better quality but higher cost. Flash is recommended for most use cases.
             </p>
           </div>
@@ -124,7 +124,7 @@ const AIModelsTab = () => {
               value={[temperature]}
               onValueChange={values => setTemperature(values[0])}
             />
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground">
               Higher values make output more random, lower values more focused and deterministic
             </p>
           </div>
@@ -141,9 +141,7 @@ const AIModelsTab = () => {
               value={[topP]}
               onValueChange={values => setTopP(values[0])}
             />
-            <p className="text-muted-foreground text-xs">
-              Controls diversity via nucleus sampling. 1.0 considers all tokens
-            </p>
+            <p className="text-muted-foreground">Controls diversity via nucleus sampling. 1.0 considers all tokens</p>
           </div>
         </CardContent>
       </Card>
@@ -192,7 +190,7 @@ const AIModelsTab = () => {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-muted-foreground text-xs">Fast model is recommended for preview purposes</p>
+            <p className="text-muted-foreground">Fast model is recommended for preview purposes</p>
           </div>
         </CardContent>
       </Card>

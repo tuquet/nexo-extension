@@ -33,13 +33,20 @@ const extractVariablePlaceholders = (template: string): string[] => {
 const validateRequiredVariables = (
   template: string,
   values: Record<string, string>,
-  variableDefinitions?: string,
+  variableDefinitions?: unknown, // DB layer returns parsed object/array
 ): string[] => {
   try {
-    const definitions = variableDefinitions ? JSON.parse(variableDefinitions) : [];
-    const requiredVars = definitions
-      .filter((def: { required?: boolean }) => def.required)
-      .map((def: { name: string }) => def.name);
+    // variableDefinitions is already parsed by DB layer
+    let definitions: Array<{ required?: boolean; name: string }> = [];
+
+    if (Array.isArray(variableDefinitions)) {
+      definitions = variableDefinitions;
+    } else if (typeof variableDefinitions === 'string') {
+      // Fallback: parse if still string (shouldn't happen with DB hooks)
+      definitions = JSON.parse(variableDefinitions);
+    }
+
+    const requiredVars = definitions.filter(def => def.required).map(def => def.name);
 
     // Check which required variables are missing or empty
     return requiredVars.filter((varName: string) => !values[varName]?.trim());

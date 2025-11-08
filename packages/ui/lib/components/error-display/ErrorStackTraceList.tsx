@@ -10,7 +10,7 @@ export const ErrorStackTraceList = ({ error }: { error?: Error }) => (
           {error?.stack && (
             <details className="mt-3">
               <summary className="cursor-pointer text-sm text-red-700">Stack trace</summary>
-              <pre className="mt-2 overflow-auto p-2 text-xs text-red-800">{error?.stack}</pre>
+              <pre className="mt-2 overflow-auto p-2 text-red-800">{error?.stack}</pre>
             </details>
           )}
         </div>

@@ -160,13 +160,13 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onSelectTemp
                   {prompt.tags && prompt.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {prompt.tags.slice(0, 3).map((tag, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
+                        <Badge key={idx} variant="outline" className="">
                           <Tag className="mr-1 h-3 w-3" />
                           {tag}
                         </Badge>
                       ))}
                       {prompt.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="">
                           +{prompt.tags.length - 3} thêm
                         </Badge>
                       )}
@@ -175,7 +175,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onSelectTemp
 
                   {/* Variables preview */}
                   {variables.length > 0 && (
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                    <div className="text-slate-600 dark:text-slate-400">
                       <span className="font-medium">Biến:</span>{' '}
                       {variables
                         .slice(0, 5)
@@ -187,7 +187,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onSelectTemp
 
                   {/* Model settings info */}
                   {prompt.modelSettings && (
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                    <div className="text-slate-600 dark:text-slate-400">
                       <span className="font-medium">Model:</span> {prompt.modelSettings.preferredModel || 'Mặc định'}
                       {prompt.modelSettings.temperature !== undefined && (
                         <span className="ml-2">Temp: {prompt.modelSettings.temperature.toFixed(1)}</span>
