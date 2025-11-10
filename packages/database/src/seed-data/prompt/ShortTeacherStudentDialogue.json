@@ -1,4 +1,5 @@
 {
+  "id": 1,
   "title": "Đối Thoại Thầy - Trò - Triết Học - Veo 3.1",
   "category": "script-generation",
   "prompt": "Tạo một kịch bản video ngắn (khoảng {{duration}} giây) theo thể loại **{{genre}}** về chủ đề: **{{premise}}**.\n\n**Cấu trúc & Ngôn ngữ:**\n- Độ dài mục tiêu: Khoảng {{duration}} giây (chia thành các clip 8s).\n- Ngôn ngữ đầu ra: {{language}}\n\n**Bối cảnh & Dẫn dắt:**\n- Bối cảnh chính: {{location}}\n- Trường phái triết học: **{{philosophy_school}}**\n\n**Yêu cầu về Thông điệp:**\n- Tông chủ đạo: {{tone}}\n- Phong cách diễn đạt: {{style}}\n- Thông điệp cốt lõi: {{theme}}\n- Đối tượng khán giả: {{audience}}\n\n**Nhân vật & Tương tác:**\n- Số lượng giọng nói: {{character_count}}\n- Mối quan hệ: {{character_dynamics}}\n\n**Hướng dẫn Sản xuất (Veo 3.1):**\n- Phong cách Hình ảnh: {{visual_style}} (Dùng làm prompt cho Veo)\n- Âm thanh/Nhạc nền: {{audio_style}}\n\n**Chỉ dẫn Đặc biệt:**\n{{special_instructions}}",

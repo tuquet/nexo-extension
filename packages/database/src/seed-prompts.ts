@@ -1,8 +1,8 @@
-import VeoScriptRaw from './seed-data/veo3-script.json';
+import LongPhilosophy from './seed-data/prompt/LongPhilosophy.json';
+import ShortTeacherStudentDialogue from './seed-data/prompt/ShortTeacherStudentDialogue.json';
 import type { PromptRecord } from './db';
 
-export const defaultPrompts: Array<Omit<PromptRecord, 'id' | 'createdAt' | 'updatedAt'>> = [
-  // ShortScript,
-  VeoScriptRaw,
-  // LoiTuSu,
+export const defaultPrompts: Array<Omit<PromptRecord, 'createdAt' | 'updatedAt'>> = [
+  ShortTeacherStudentDialogue,
+  LongPhilosophy,
 ];

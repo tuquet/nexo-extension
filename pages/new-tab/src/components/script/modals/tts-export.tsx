@@ -1,32 +1,28 @@
 import {
   Button,
-  Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogContent,
-  DialogTitle,
-  toast,
   Input,
   Label,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
   Select,
+  SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectContent,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   Textarea,
-  SelectItem,
+  toast,
 } from '@extension/ui';
+import { StandardDialog } from '@src/components/common/standard-dialog';
 import { AVAILABLE_TTS_MODELS } from '@src/constants';
 import { useErrorHandler } from '@src/hooks';
 import { createVbeeProject } from '@src/services/background-api';
 import { transformScriptToVbeeProject } from '@src/services/vbee-service';
 import { useModelSettings } from '@src/stores/use-model-settings';
 import { useScriptsStore, selectActiveScriptCharacters, selectAllDialogueLines } from '@src/stores/use-scripts-store';
-import { Copy, Check } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { Check, Copy } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import type { VbeeTransformationResult } from '@src/services/vbee-service';
 import type React from 'react';
 
@@ -107,7 +103,7 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [projectJsonText, token, onClose, saveActiveScript]);
+  }, [projectJsonText, token, onClose, saveActiveScript, clearError, setError]);
 
   const handleTextSubmit = useCallback(async () => {
     if (!plainText.trim()) {
@@ -180,7 +176,7 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener);
     };
-  }, [isOpen, activeScript, ttsModel, characters, allDialogueLines]);
+  }, [isOpen, activeScript, ttsModel, characters, allDialogueLines, setError]);
 
   // Cập nhật payload JSON khi có thay đổi về ánh xạ giọng nói hoặc tab
   useEffect(() => {
@@ -191,114 +187,112 @@ const TtsExport: React.FC<TtsExportProps> = ({ isOpen, onClose }) => {
   }, [isOpen, activeScript, activeTab, characterVoiceMap, ttsModel]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogPortal>
-        <DialogOverlay />
-        <DialogContent className="sm:max-w-6xl">
-          <DialogTitle>Tạo Tài Nguyên TTS</DialogTitle>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="project">Tạo dự án studio.vbee.vn </TabsTrigger>
-              <TabsTrigger value="text">Tạo TTS từ văn bản</TabsTrigger>
-            </TabsList>
-            <TabsContent value="project" className="mt-4">
-              <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
-                Cấu hình giọng nói cho từng nhân vật. Payload JSON sẽ được tự động cập nhật.
-              </p>
-              <div className="mb-4 grid grid-cols-1 gap-4 rounded-md border border-slate-200 p-4 md:grid-cols-2 lg:grid-cols-3 dark:border-slate-700">
-                {characters.map(character => (
-                  <div key={character} className="flex items-center justify-between">
-                    <Label htmlFor={`voice-for-${character}`} className="capitalize">
-                      {character}
-                    </Label>
-                    <Select
-                      value={characterVoiceMap[character] || ttsModel}
-                      onValueChange={value => handleVoiceMappingChange(character, value)}>
-                      <SelectTrigger id={`voice-for-${character}`} className="w-[220px]">
-                        <SelectValue placeholder="Chọn giọng nói" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AVAILABLE_TTS_MODELS.map(voice => (
-                          <SelectItem key={voice.value} value={voice.value}>
-                            {voice.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+    <StandardDialog
+      open={isOpen}
+      onOpenChange={open => !open && onClose()}
+      title="Tạo Tài Nguyên TTS"
+      size="5xl"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Hủy
+          </Button>
+          <Button
+            onClick={() => void (activeTab === 'project' ? handleProjectSubmit() : handleTextSubmit())}
+            disabled={isSubmitting}>
+            {isSubmitting ? 'Đang xử lý...' : 'Tạo'}
+          </Button>
+        </>
+      }>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="project">Tạo dự án studio.vbee.vn </TabsTrigger>
+          <TabsTrigger value="text">Tạo TTS từ văn bản</TabsTrigger>
+        </TabsList>
+        <TabsContent value="project" className="mt-4">
+          <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
+            Cấu hình giọng nói cho từng nhân vật. Payload JSON sẽ được tự động cập nhật.
+          </p>
+          <div className="mb-4 grid grid-cols-1 gap-4 rounded-md border border-slate-200 p-4 md:grid-cols-2 lg:grid-cols-3 dark:border-slate-700">
+            {characters.map(character => (
+              <div key={character} className="flex items-center justify-between">
+                <Label htmlFor={`voice-for-${character}`} className="capitalize">
+                  {character}
+                </Label>
+                <Select
+                  value={characterVoiceMap[character] || ttsModel}
+                  onValueChange={value => handleVoiceMappingChange(character, value)}>
+                  <SelectTrigger id={`voice-for-${character}`} className="w-[220px]">
+                    <SelectValue placeholder="Chọn giọng nói" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_TTS_MODELS.map(voice => (
+                      <SelectItem key={voice.value} value={voice.value}>
+                        {voice.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
-              <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
-                JSON payload được tạo từ kịch bản hiện tại để tạo dự án trên Vbee Studio.
-              </p>
-              <div className="relative">
-                <Textarea value={projectJsonText} onChange={e => setProjectJsonText(e.target.value)} rows={15} />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 h-8 w-8 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-                  onClick={() => handleCopy(projectJsonText, 'project')}>
-                  {copied === 'project' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </TabsContent>
-            <TabsContent value="text" className="mt-4">
-              <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
-                Dán văn bản thuần túy vào đây để chuyển đổi thành giọng nói.
-              </p>
-              <div className="relative">
-                <Textarea
-                  value={plainText}
-                  onChange={e => setPlainText(e.target.value)}
-                  rows={15}
-                  placeholder="Nhập văn bản của bạn ở đây..."
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 h-8 w-8 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-                  onClick={() => handleCopy(plainText, 'text')}>
-                  {copied === 'text' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-            <Label htmlFor="vbee-token">Vbee Bearer Token</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="vbee-token"
-                type="password"
-                className="flex-grow"
-                placeholder="Dán token vào đây hoặc dùng nút trích xuất"
-                value={token}
-                onChange={e => setToken(e.target.value)}
-              />
-              <Button variant="outline" onClick={handleOpenVbeeTab}>
-                Trích xuất Token
-              </Button>
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Mở tab Vbee Studio, đăng nhập và token sẽ được tự động điền.
-            </p>
+            ))}
           </div>
 
-          {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
-          <div className="mt-6 flex justify-end gap-3">
-            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-              Hủy
-            </Button>
+          <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
+            JSON payload được tạo từ kịch bản hiện tại để tạo dự án trên Vbee Studio.
+          </p>
+          <div className="relative">
+            <Textarea value={projectJsonText} onChange={e => setProjectJsonText(e.target.value)} rows={15} />
             <Button
-              onClick={() => void (activeTab === 'project' ? handleProjectSubmit() : handleTextSubmit())}
-              disabled={isSubmitting}>
-              {isSubmitting ? 'Đang xử lý...' : 'Tạo'}
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 h-8 w-8 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+              onClick={() => handleCopy(projectJsonText, 'project')}>
+              {copied === 'project' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+        </TabsContent>
+        <TabsContent value="text" className="mt-4">
+          <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
+            Dán văn bản thuần túy vào đây để chuyển đổi thành giọng nói.
+          </p>
+          <div className="relative">
+            <Textarea
+              value={plainText}
+              onChange={e => setPlainText(e.target.value)}
+              rows={15}
+              placeholder="Nhập văn bản của bạn ở đây..."
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 h-8 w-8 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+              onClick={() => handleCopy(plainText, 'text')}>
+              {copied === 'text' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+        <Label htmlFor="vbee-token">Vbee Bearer Token</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="vbee-token"
+            type="password"
+            className="flex-grow"
+            placeholder="Dán token vào đây hoặc dùng nút trích xuất"
+            value={token}
+            onChange={e => setToken(e.target.value)}
+          />
+          <Button variant="outline" onClick={handleOpenVbeeTab}>
+            Trích xuất Token
+          </Button>
+        </div>
+        <p className="text-muted-foreground text-sm">Mở tab Vbee Studio, đăng nhập và token sẽ được tự động điền.</p>
+      </div>
+
+      {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+    </StandardDialog>
   );
 };
 

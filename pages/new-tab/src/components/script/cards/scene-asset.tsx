@@ -344,14 +344,14 @@ const SceneAsset: React.FC<{
         onClose={() => setIsImagePickerOpen(false)}
         onSelect={assetId => handleSelectFromGallery('image', assetId)}
         assetType="image"
-        currentAssetId={imageId}
+        currentAssetId={imageId ?? undefined}
       />
       <AssetPickerModal
         isOpen={isVideoPickerOpen}
         onClose={() => setIsVideoPickerOpen(false)}
         onSelect={assetId => handleSelectFromGallery('video', assetId)}
         assetType="video"
-        currentAssetId={videoId}
+        currentAssetId={videoId ?? undefined}
       />
     </Card>
   );

@@ -36,9 +36,6 @@ const CapCutExportModal: React.FC<CapCutExportModalProps> = ({ isOpen, onClose, 
     error,
     startExport,
     setStage,
-    setDraftId,
-    setTaskId,
-    updateTaskStatus,
     completeExport,
     failExport,
     cancelExport,
@@ -179,18 +176,7 @@ const CapCutExportModal: React.FC<CapCutExportModalProps> = ({ isOpen, onClose, 
     } finally {
       setAbortController(null);
     }
-  }, [
-    script,
-    startExport,
-    setStage,
-    setDraftId,
-    setTaskId,
-    updateTaskStatus,
-    completeExport,
-    failExport,
-    cancelExport,
-    serverUrl,
-  ]);
+  }, [script, startExport, setStage, completeExport, failExport, cancelExport, serverUrl]);
 
   const handleCancel = useCallback(() => {
     if (abortController) {

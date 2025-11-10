@@ -10,6 +10,12 @@ interface JsonImportTabProps {
 const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImportJson }) => {
   const [jsonText, setJsonText] = useState('');
 
+  const handleSubmit = (parsed: unknown) => {
+    // JsonEditor returns parsed object, but onImportJson needs string
+    // So we stringify it back
+    onImportJson(JSON.stringify(parsed));
+  };
+
   const handleFileUpload = async (file: File) => {
     // Read file content and parse JSON
     try {
@@ -26,7 +32,7 @@ const JsonImportTab: React.FC<JsonImportTabProps> = ({ isLoading, onImportJson }
     <JsonEditor
       value={jsonText}
       onChange={setJsonText}
-      onSubmit={onImportJson}
+      onSubmit={handleSubmit}
       mode="import"
       placeholder='[{"title": "My Movie", "acts": [...]}]'
       rows={20}

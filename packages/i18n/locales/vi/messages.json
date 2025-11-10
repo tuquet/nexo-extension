@@ -1,11 +1,11 @@
 {
   "extensionDescription": {
     "description": "Extension description",
-    "message": "Chrome extension boilerplate được phát triển với Vite, React và Typescript"
+    "message": "CG Toolkit - Tạo kịch bản chuyên nghiệp"
   },
   "extensionName": {
     "description": "Extension name",
-    "message": "Chrome extension boilerplate"
+    "message": "CG Toolkit - Tạo kịch bản chuyên nghiệp"
   },
   "toggleTheme": {
     "message": "Chuyển đổi giao diện"

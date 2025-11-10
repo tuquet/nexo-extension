@@ -5,7 +5,6 @@ import ScriptContent from '@src/components/script/display/content';
 import Header from '@src/components/script/display/header';
 import ResponsiveDetailLayout from '@src/components/script/display/responsive-detail-layout';
 import { CapCutExportModal } from '@src/components/script/modals/capcut-export-modal';
-import ModelSettings from '@src/components/script/modals/model-settings';
 import { TtsExport } from '@src/components/script/modals/tts-export';
 import AudioPlayer from '@src/components/script/ui/audio-player';
 import { useAssetCleanup, useErrorHandler, useScriptOperations } from '@src/hooks';
@@ -38,8 +37,6 @@ const ScriptDetailPage = () => {
 
   // UI state from dedicated UI store
   const isImporting = useUIStateStore(s => s.isImporting);
-  const isModelSettingsOpen = useUIStateStore(s => s.modelSettingsModalOpen);
-  const setModelSettingsModalOpen = useUIStateStore(s => s.setModelSettingsModalOpen);
 
   // Effect to sync script errors with the main error state
   useEffect(() => {
@@ -89,13 +86,6 @@ const ScriptDetailPage = () => {
   return (
     <div>
       <AudioPlayer />
-      {activeScript && (
-        <ModelSettings
-          isOpen={isModelSettingsOpen}
-          onClose={() => setModelSettingsModalOpen(false)}
-          onSave={() => {}}
-        />
-      )}
       {activeScript && <TtsExport isOpen={isTtsModalOpen} onClose={() => setIsTtsModalOpen(false)} />}
       {activeScript && (
         <CapCutExportModal

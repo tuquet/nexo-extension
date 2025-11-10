@@ -5,7 +5,7 @@ import { scriptRepository } from '../services/repositories';
 import { produce } from 'immer';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { ScriptStory } from '../types';
+import type { ScriptStory, Scene } from '../types';
 import type React from 'react';
 
 type ActiveSceneIdentifier = { actIndex: number; sceneIndex: number } | null;
@@ -42,6 +42,18 @@ type ScriptsState = {
     assetId: number | undefined,
   ) => Promise<void>;
   addScript: (script: ScriptStory) => Promise<ScriptStory>;
+  addAct: () => Promise<void>;
+  deleteAct: (actIndex: number) => Promise<void>;
+  addScene: (actIndex: number) => Promise<void>;
+  deleteScene: (actIndex: number, sceneIndex: number) => Promise<void>;
+  addDialogue: (actIndex: number, sceneIndex: number, roleId?: string) => Promise<void>;
+  updateDialogueRoleId: (actIndex: number, sceneIndex: number, dialogueIndex: number, roleId: string) => Promise<void>;
+  deleteDialogue: (actIndex: number, sceneIndex: number, dialogueIndex: number) => Promise<void>;
+  mergeDialoguesInScene: (actIndex: number, sceneIndex: number) => Promise<void>;
+  reorderDialogues: (actIndex: number, sceneIndex: number, oldIndex: number, newIndex: number) => Promise<void>;
+  addCharacter: (character: { name: string; description: string; roleId: string }) => Promise<void>;
+  updateCharacter: (roleId: string, updates: Partial<{ name: string; description: string }>) => Promise<void>;
+  deleteCharacter: (roleId: string) => Promise<void>;
   setActiveSceneIdentifier: (id: ActiveSceneIdentifier) => void;
   setActiveScript: (s: ScriptStory | null) => void;
   _updateActiveScript: (updater: (draft: ScriptStory) => void) => Promise<void>;
@@ -327,6 +339,170 @@ const useScriptsStore = create<ScriptsState>()(
           set({ scriptsError: errorMsg });
           throw new Error(errorMsg);
         }
+      },
+
+      addAct: async () => {
+        await get()._updateActiveScript(draft => {
+          const newActNumber = draft.acts.length + 1;
+          draft.acts.push({
+            act_number: newActNumber,
+            summary: `Act ${newActNumber}`,
+            scenes: [
+              {
+                scene_number: 1,
+                time: '',
+                location: '',
+                action: '',
+                audio_style: '',
+                visual_style: '',
+                dialogues: [],
+                actIndex: draft.acts.length,
+                sceneIndex: 0,
+              },
+            ],
+          });
+        });
+      },
+
+      deleteAct: async actIndex => {
+        await get()._updateActiveScript(draft => {
+          if (draft.acts.length > 1) {
+            draft.acts.splice(actIndex, 1);
+            // Re-number remaining acts
+            draft.acts.forEach((act, idx) => {
+              act.act_number = idx + 1;
+              act.scenes.forEach(scene => {
+                scene.actIndex = idx;
+              });
+            });
+          }
+        });
+      },
+
+      addScene: async actIndex => {
+        await get()._updateActiveScript(draft => {
+          const act = draft.acts[actIndex];
+          if (act) {
+            const newSceneNumber = act.scenes.length + 1;
+            const previousScene = act.scenes[act.scenes.length - 1];
+
+            // Clone default values from previous scene (location, time, narrator, action)
+            const newScene: Scene = {
+              scene_number: newSceneNumber,
+              time: previousScene?.time || '',
+              location: previousScene?.location || '',
+              action: previousScene?.action || '',
+              audio_style: previousScene?.audio_style || '',
+              visual_style: previousScene?.visual_style || '',
+              dialogues: [],
+              actIndex,
+              sceneIndex: act.scenes.length,
+            };
+
+            act.scenes.push(newScene);
+          }
+        });
+      },
+
+      deleteScene: async (actIndex, sceneIndex) => {
+        await get()._updateActiveScript(draft => {
+          const act = draft.acts[actIndex];
+          if (act && act.scenes.length > 1) {
+            act.scenes.splice(sceneIndex, 1);
+            // Re-number remaining scenes
+            act.scenes.forEach((scene, idx) => {
+              scene.scene_number = idx + 1;
+              scene.sceneIndex = idx;
+            });
+          }
+        });
+      },
+
+      addDialogue: async (actIndex, sceneIndex, roleId) => {
+        await get()._updateActiveScript(draft => {
+          const scene = draft.acts[actIndex]?.scenes[sceneIndex];
+          if (scene) {
+            scene.dialogues.push({
+              roleId: roleId || 'Narrator',
+              line: '',
+            });
+          }
+        });
+      },
+
+      updateDialogueRoleId: async (actIndex, sceneIndex, dialogueIndex, roleId) => {
+        await get()._updateActiveScript(draft => {
+          const dialogue = draft.acts[actIndex]?.scenes[sceneIndex]?.dialogues[dialogueIndex];
+          if (dialogue) {
+            dialogue.roleId = roleId;
+          }
+        });
+      },
+
+      deleteDialogue: async (actIndex, sceneIndex, dialogueIndex) => {
+        await get()._updateActiveScript(draft => {
+          const scene = draft.acts[actIndex]?.scenes[sceneIndex];
+          if (scene) {
+            scene.dialogues.splice(dialogueIndex, 1);
+          }
+        });
+      },
+
+      mergeDialoguesInScene: async (actIndex, sceneIndex) => {
+        await get()._updateActiveScript(draft => {
+          const scene = draft.acts[actIndex]?.scenes[sceneIndex];
+          if (scene) {
+            const mergedDialogues: Scene['dialogues'] = [];
+            scene.dialogues.forEach(dialogue => {
+              const existing = mergedDialogues.find(d => d.roleId === dialogue.roleId);
+              if (existing) {
+                existing.line += `\n${dialogue.line}`;
+              } else {
+                mergedDialogues.push({ ...dialogue });
+              }
+            });
+            scene.dialogues = mergedDialogues;
+          }
+        });
+      },
+
+      reorderDialogues: async (actIndex, sceneIndex, oldIndex, newIndex) => {
+        await get()._updateActiveScript(draft => {
+          const scene = draft.acts[actIndex]?.scenes[sceneIndex];
+          if (scene) {
+            const [movedDialogue] = scene.dialogues.splice(oldIndex, 1);
+            scene.dialogues.splice(newIndex, 0, movedDialogue);
+          }
+        });
+      },
+
+      addCharacter: async character => {
+        await get()._updateActiveScript(draft => {
+          // Check if roleId already exists
+          const exists = draft.characters.some(c => c.roleId === character.roleId);
+          if (!exists) {
+            draft.characters.push(character);
+          }
+        });
+      },
+
+      updateCharacter: async (roleId, updates) => {
+        await get()._updateActiveScript(draft => {
+          const character = draft.characters.find(c => c.roleId === roleId);
+          if (character) {
+            if (updates.name !== undefined) character.name = updates.name;
+            if (updates.description !== undefined) character.description = updates.description;
+          }
+        });
+      },
+
+      deleteCharacter: async roleId => {
+        await get()._updateActiveScript(draft => {
+          const index = draft.characters.findIndex(c => c.roleId === roleId);
+          if (index !== -1) {
+            draft.characters.splice(index, 1);
+          }
+        });
       },
 
       setActiveSceneIdentifier: id => set({ activeSceneIdentifier: id }),

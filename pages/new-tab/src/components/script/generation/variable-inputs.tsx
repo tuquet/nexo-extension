@@ -10,7 +10,7 @@ import {
   Textarea,
   toast,
 } from '@extension/ui';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { Copy, RefreshCw, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface VariableDefinition {
@@ -27,9 +27,17 @@ interface VariableInputsProps {
   variableDefinitions?: unknown; // DB layer returns parsed object/array
   onChange: (values: Record<string, string>) => void;
   promptTemplate?: string; // To give AI context
+  templateId: number; // For localStorage persistence
+  onCopyPrompt?: () => void; // Copy prompt handler
 }
 
-export const VariableInputs: React.FC<VariableInputsProps> = ({ variableDefinitions, onChange, promptTemplate }) => {
+export const VariableInputs: React.FC<VariableInputsProps> = ({
+  variableDefinitions,
+  onChange,
+  promptTemplate,
+  templateId,
+  onCopyPrompt,
+}) => {
   const [variables] = useState<VariableDefinition[]>(() => {
     if (!variableDefinitions) return [];
 
@@ -51,6 +59,25 @@ export const VariableInputs: React.FC<VariableInputsProps> = ({ variableDefiniti
   });
 
   const [values, setValues] = useState<Record<string, string>>(() => {
+    // Try to load persisted values first
+    const storageKey = `template-variables-${templateId}`;
+    const savedValues = localStorage.getItem(storageKey);
+
+    if (savedValues) {
+      try {
+        const parsed = JSON.parse(savedValues);
+        // Ensure all current variables have values
+        const defaults: Record<string, string> = {};
+        variables.forEach(v => {
+          defaults[v.name] = parsed[v.name] || v.default || '';
+        });
+        return defaults;
+      } catch {
+        // Fall through to defaults
+      }
+    }
+
+    // Use default values
     const defaults: Record<string, string> = {};
     variables.forEach(v => {
       if (v.default) defaults[v.name] = v.default;
@@ -72,6 +99,10 @@ export const VariableInputs: React.FC<VariableInputsProps> = ({ variableDefiniti
     const newValues = { ...values, [name]: value };
     setValues(newValues);
     onChange(newValues);
+
+    // Persist updated defaults to localStorage
+    const storageKey = `template-variables-${templateId}`;
+    localStorage.setItem(storageKey, JSON.stringify(newValues));
   };
 
   const handleAISuggest = async () => {
@@ -178,6 +209,12 @@ Make suggestions creative, diverse, and contextually appropriate.`;
             <RefreshCw className="size-3" />
             Reset
           </Button>
+          {onCopyPrompt && (
+            <Button type="button" size="sm" variant="outline" onClick={onCopyPrompt} className="gap-1">
+              <Copy className="size-3" />
+              Copy Prompt
+            </Button>
+          )}
           <Button
             type="button"
             size="sm"

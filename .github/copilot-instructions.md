@@ -163,7 +163,7 @@ export { MyComponent };
 
 // ❌ Bad: Custom styled divs with inline colors + inline exports
 export const MyComponent = () => (
-  <div style={{ backgroundColor: '#fff', borderRadius: '8px' }}>
+  <div style={{ backgroundColor: 'white', borderRadius: '8px' }}>
     <button className="bg-blue-500">Edit</button>
   </div>
 );

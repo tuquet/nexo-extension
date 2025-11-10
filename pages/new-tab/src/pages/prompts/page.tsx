@@ -375,19 +375,23 @@ const PromptsPage = () => {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleUseForScript(prompt)}
-                          title="Use this template to create a script">
+                          title="Tạo kịch bản từ mẫu này">
                           <Sparkles className="mr-2 size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleCopyJSON(prompt)} title="Copy as JSON">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleCopyJSON(prompt)}
+                          title="Sao chép dưới dạng JSON">
                           <FileJson className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(prompt)} title="Duplicate">
+                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(prompt)} title="Sao chép">
                           <Copy className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(prompt)} title="Edit">
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(prompt)} title="Chỉnh sửa">
                           <Edit className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(prompt)} title="Delete">
+                        <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(prompt)} title="Xóa">
                           <Trash2 className="size-4" />
                         </Button>
                       </div>

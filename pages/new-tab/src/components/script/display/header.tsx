@@ -8,19 +8,13 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-  Tabs,
-  TabsList,
-  TabsTrigger,
 } from '@extension/ui';
 import { useScriptsStore } from '@src/stores/use-scripts-store';
-import { useUIStateStore } from '@src/stores/use-ui-state-store';
-import { Settings, Film } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ScriptsState } from '@src/stores/use-scripts-store';
 import type React from 'react';
-
-type ScriptViewMode = 'formatted' | 'json';
 
 interface HeaderProps {
   onOpenCapCutExport?: () => void;
@@ -31,10 +25,6 @@ const Header: React.FC<HeaderProps> = ({ onOpenCapCutExport }) => {
   const { id: idFromUrl } = useParams<{ id: string }>();
   const scripts = useScriptsStore((s: ScriptsState) => s.savedScripts);
   const activeScript = useScriptsStore((s: ScriptsState) => s.activeScript);
-  const currentView = useUIStateStore(s => s.currentView);
-  const setModelSettingsModalOpen = useUIStateStore(s => s.setModelSettingsModalOpen);
-  const scriptViewMode = useUIStateStore(s => s.scriptViewMode);
-  const setScriptViewMode = useUIStateStore(s => s.setScriptViewMode);
   const confirmationTimeoutRef = useRef<number | null>(null);
   const [selectedValue, setSelectedValue] = useState<string | undefined>(idFromUrl);
 
@@ -58,14 +48,6 @@ const Header: React.FC<HeaderProps> = ({ onOpenCapCutExport }) => {
     <div className="bg-background sticky top-16 z-30 -mx-4 -mt-6 mb-6 border-b px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <div className="flex h-12 items-center justify-between">
         <div className="flex items-center gap-4">
-          {activeScript && currentView === 'script' && (
-            <Tabs value={scriptViewMode} onValueChange={v => setScriptViewMode(v as ScriptViewMode)}>
-              <TabsList>
-                <TabsTrigger value="formatted">Định dạng</TabsTrigger>
-                <TabsTrigger value="json">JSON</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
           <Select
             value={selectedValue}
             onValueChange={val => {
@@ -95,9 +77,6 @@ const Header: React.FC<HeaderProps> = ({ onOpenCapCutExport }) => {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setModelSettingsModalOpen(true)} disabled={!activeScript}>
-            <Settings className="mr-2 h-4 w-4" /> Tùy chỉnh Model
-          </Button>
           {onOpenCapCutExport && (
             <Button variant="outline" onClick={onOpenCapCutExport} disabled={!activeScript}>
               <Film className="mr-2 h-4 w-4" /> Export to CapCut

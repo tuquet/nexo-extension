@@ -1,0 +1,167 @@
+{
+  "id": 2,
+  "title": "Kịch Bản Podcast Triết Lý Dài (Long-Form - Act 1)",
+  "category": "podcast-long-form",
+  "prompt": "Tạo **Act {{act_to_generate}} (Chapter {{act_to_generate}})** cho một Video Podcast triết lý về chủ đề: \"{{premise}}\" (Trường phái: **{{philosophy_school}}**).\n\n**YÊU CẦU CẤU TRÚC ĐẶC BIỆT:**\n- Chỉ tạo **1 Act duy nhất** (Act {{act_to_generate}}) và **1 Scene** bên trong Act đó.\n- Nội dung lời thoại (line) phải dài, giàu thông tin (tối đa token, khoảng 5-7 phút đọc).\n\n**CẤU TRÚC ACT (Chapter) Mục Tiêu:**\n1. Hook: Đặt vấn đề lớn/kịch tính về {{premise}}.\n2. Phát triển: Phân tích chuyên sâu triết lý {{philosophy_school}} với tông {{tone}}.\n3. Kết thúc Act: Đưa ra thông điệp cốt lõi {{theme}} và Teaser cho Act tiếp theo.\n\n**HƯỚNG DẪN SẢN XUẤT:**\n- Phong cách Hình ảnh/Minh họa: {{visual_style}} (Graphic/B-roll).\n- Âm thanh/Nhạc nền: {{audio_style}}.\n- Phong cách Diễn đạt: {{style}}.",
+  "description": "Template chuyên dụng cho Video Podcast Triết học/Storytelling dài. Chỉ generate Act 1 (hoặc Act được chỉ định) trong một Scene duy nhất để tối đa hóa lượng text/thông tin do giới hạn token. Cấu trúc được chia thành các chapter lớn (Acts) để user tự nối.",
+  "tags": ["podcast", "long-form", "triet-hoc", "monologue", "phuong-dong", "phuong-tay"],
+  "icon": "🎙️",
+  "systemInstruction": "Bạn là chuyên gia tạo nội dung podcast triết lý dài (long-form content) về chủ đề **{{premise}}**.\n- Nhiệm vụ **chỉ tạo ACT {{act_to_generate}}**.\n- Act phải chứa **1 Scene duy nhất** để tối đa hóa nội dung lời thoại (line) (khoảng 800-1200 từ trở lên).\n- Act 1 (nếu được yêu cầu) phải là Act Đặt Vấn đề mạnh mẽ.\n\n**OUTPUT STRUCTURE:**\n- Trả về **CHỈ ACTS** array với Act {{act_to_generate}}.\n- Nội dung phải tuân thủ chặt chẽ tông {{tone}} và trường phái triết học {{philosophy_school}}.",
+  "outputFormat": "json-structured",
+  "modelSettings": {
+    "preferredModel": "gemini-2.5-flash",
+    "temperature": 1.1,
+    "topP": 0.95,
+    "topK": 50,
+    "maxOutputTokens": 8192
+  },
+  "preprocessing": {
+    "enableVariables": true,
+    "injectContext": false,
+    "variableDefinitions": [
+      {
+        "name": "act_to_generate",
+        "type": "select",
+        "label": "Act (Chapter) cần tạo",
+        "default": "1",
+        "required": true,
+        "options": ["1", "2", "3", "4", "5"],
+        "description": "Chọn Act cần generate. Chỉ 1 Act được tạo mỗi lần do giới hạn token."
+      },
+      {
+        "name": "genre",
+        "type": "select",
+        "label": "Thể loại Podcast",
+        "default": "Phân tích Chuyên sâu (Monologue)",
+        "required": true,
+        "options": [
+          "Kể chuyện Triết lý (Storytelling)",
+          "Phân tích Chuyên sâu (Monologue)",
+          "Bài giảng Truyền cảm hứng",
+          "Ứng dụng Triết học qua Ví dụ"
+        ]
+      },
+      {
+        "name": "premise",
+        "type": "text",
+        "label": "Chủ đề/Câu hỏi Chính của Podcast",
+        "placeholder": "Ví dụ: Ý nghĩa của sự 'Vô Ngã' là gì? | Làm sao để hết cảm thấy kiệt sức?",
+        "default": "Làm sao để hết cảm thấy kiệt sức vì cố gắng quá mức?",
+        "required": true
+      },
+      {
+        "name": "philosophy_school",
+        "type": "select",
+        "label": "Trường phái Triết học Tập trung",
+        "options": [
+          "Đạo giáo (Vô Vi, Tự Nhiên)",
+          "Phật giáo (Vô Thường, Vô Ngã)",
+          "Khắc Kỷ (Stoicism - Kiểm soát nội tâm)",
+          "Hiện sinh (Existentialism - Tự do, Trách nhiệm)",
+          "Tổng hợp Đông/Tây"
+        ],
+        "default": "Đạo giáo (Vô Vi, Tự Nhiên)",
+        "required": true
+      },
+      {
+        "name": "location",
+        "type": "text",
+        "label": "Bối cảnh Hình ảnh Chính",
+        "placeholder": "Địa điểm quay/thu (vd: 'góc thiền tĩnh lặng', 'thư viện cổ')",
+        "default": "Phòng thu Podcast với background Thư viện sách cổ và ánh sáng vàng ấm.",
+        "required": false
+      },
+      {
+        "name": "tone",
+        "type": "select",
+        "label": "Tông chủ đạo",
+        "options": [
+          "Sâu sắc, Phân tích (Học thuật)",
+          "Thiền định, Tĩnh lặng (Zen-like)",
+          "Thực tế, Thẳng thắn (Khắc Kỷ)",
+          "Hồi hộp, Khám phá"
+        ],
+        "default": "Thiền định, Tĩnh lặng (Zen-like)",
+        "required": false
+      },
+      {
+        "name": "style",
+        "type": "text",
+        "label": "Phong cách Diễn đạt (Giọng Host)",
+        "placeholder": "Giọng điệu (vd: 'như Giáo sư triết', 'giọng ấm áp của Mentor')",
+        "default": "Giọng kể chuyện (Narrator) có trọng lượng, chậm rãi, sử dụng ẩn dụ và câu hỏi tu từ.",
+        "required": false
+      },
+      {
+        "name": "theme",
+        "type": "text",
+        "label": "Thông điệp/Lời khuyên Cốt lõi",
+        "placeholder": "Giá trị trung tâm muốn truyền tải (vd: Sức mạnh nằm ở sự buông bỏ/Vô Vi)",
+        "default": "Tìm thấy sức mạnh và sự bình yên trong việc Buông bỏ (Vô Vi) và Thuận theo Tự nhiên.",
+        "required": false
+      },
+      {
+        "name": "audience",
+        "type": "select",
+        "label": "Đối tượng Khán giả",
+        "options": [
+          "Người tìm kiếm Tri thức & Ý nghĩa Sống",
+          "Giới học thuật & Sinh viên",
+          "Dân văn phòng/Người đi làm bị căng thẳng",
+          "Chung cho mọi lứa tuổi"
+        ],
+        "default": "Dân văn phòng/Người đi làm bị căng thẳng",
+        "required": false
+      },
+      {
+        "name": "character_count",
+        "type": "select",
+        "label": "Số lượng Giọng nói",
+        "options": ["1 (Monologue Host)", "2 (Host và Khách mời)"],
+        "default": "1 (Monologue Host)",
+        "required": false
+      },
+      {
+        "name": "visual_style",
+        "type": "text",
+        "label": "Mô tả Hình ảnh/Minh họa (B-roll/Graphic)",
+        "placeholder": "Hướng dẫn sử dụng B-roll/Graphic/Text để minh họa nội dung kể chuyện.",
+        "default": "Sử dụng Graphic và B-roll về thiên nhiên (nước, mây) xen kẽ với ảnh chân dung các triết gia. Màu sắc tối, chuyên nghiệp.",
+        "required": false
+      },
+      {
+        "name": "audio_style",
+        "type": "text",
+        "label": "Phong cách Âm thanh/Nhạc",
+        "placeholder": "Hướng dẫn nhạc nền và thiết kế âm thanh",
+        "default": "Nhạc nền Ambient/Zen (không lời) nhẹ nhàng. Giọng nói Host sạch và rõ ràng.",
+        "required": false
+      },
+      {
+        "name": "special_instructions",
+        "type": "text",
+        "label": "Chỉ dẫn Đặc biệt",
+        "placeholder": "Yêu cầu hoặc ràng buộc bổ sung (vd: 'Cần chèn một câu trích dẫn đắt giá vào giữa Act', 'Teaser Act 2 phải nhắc đến công việc')",
+        "default": "Nội dung Act 1 phải dài tối đa (800-1200 từ). Teaser Act 2 cần nhắc đến việc áp dụng triết lý này trong đời sống công việc.",
+        "required": false
+      },
+      {
+        "name": "language",
+        "type": "select",
+        "label": "Ngôn ngữ kịch bản",
+        "options": ["Tiếng Việt"],
+        "default": "Tiếng Việt",
+        "required": true
+      }
+    ]
+  },
+  "postprocessing": {
+    "steps": []
+  },
+  "metadata": {
+    "author": "Nhóm CineGenie",
+    "version": "4.0.0-long-form-final",
+    "usageCount": 0,
+    "isFavorite": true
+  }
+}

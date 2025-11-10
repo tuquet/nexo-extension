@@ -11,7 +11,6 @@ import {
   RadioGroupItem,
   toast,
 } from '@extension/ui';
-import { TemplateCustomizer } from '@src/components/script/generation/template-customizer';
 import { VariableInputs } from '@src/components/script/generation/variable-inputs';
 import usePersistentState from '@src/hooks/use-persistent-state';
 import { useApiKey } from '@src/stores/use-api-key';
@@ -21,7 +20,7 @@ import {
   formatFullPromptForClipboard,
   validateRequiredVariables,
 } from '@src/utils/prompt-builder';
-import { AlertCircle, Copy, Sparkles } from 'lucide-react';
+import { AlertCircle, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PromptRecord } from '@extension/database';
 import type { AIPlatform, GenerationFormData } from '@src/types/script-generation';
@@ -196,37 +195,20 @@ export const AIGenerationTab: React.FC<AIGenerationTabProps> = ({
   }
 
   // Type guard: selectedTemplate is PromptRecord from this point
-  const template: PromptRecord = selectedTemplate;
 
   return (
     <div className="space-y-6">
-      {/* Template Info Card with Customization */}
-      <TemplateCustomizer
-        template={template}
-        onOverrideChange={updatedTemplate => {
-          setOverriddenTemplate(updatedTemplate);
-          // Reset variable values when template changes
-          setVariableValues({});
-        }}
-      />
-
       {/* Variable Inputs (if template has variables) */}
-      {activeTemplate.preprocessing?.enableVariables && activeVariableDefinitions && (
+      {activeTemplate.preprocessing?.enableVariables && activeVariableDefinitions && selectedTemplate?.id && (
         <VariableInputs
           key={`${selectedTemplate.id}-${overriddenTemplate ? 'custom' : 'original'}`}
           variableDefinitions={activeVariableDefinitions}
           promptTemplate={selectedTemplate.prompt}
+          templateId={selectedTemplate.id}
           onChange={setVariableValues}
+          onCopyPrompt={handleCopyPrompt}
         />
       )}
-
-      {/* Preview Full Prompt Button */}
-      <div className="flex justify-center">
-        <Button type="button" variant="outline" onClick={handleCopyPrompt} disabled={isLoading} className="gap-2">
-          <Copy className="size-4" />
-          Preview Full Prompt
-        </Button>
-      </div>
 
       {/* Platform Selector for Automate Mode */}
       <Card>

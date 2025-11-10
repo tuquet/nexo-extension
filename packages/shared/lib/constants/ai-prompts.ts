@@ -140,3 +140,75 @@ export const PLOT_POINTS_SCHEMA = {
   },
   required: ['suggestions'],
 };
+
+/**
+ * JSON schema for CHAPTER/ACT-ONLY generation (Long-form content)
+ * Used when generating one chapter at a time due to token limits
+ *
+ * Use case: Podcast, long-form video where each chapter needs separate generation
+ * Frontend will wrap this into full ScriptStory structure
+ */
+export const ACTS_ONLY_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    acts: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          act_number: { type: Type.INTEGER, description: 'The act/chapter number (e.g., 1, 2, 3).' },
+          summary: { type: Type.STRING, description: 'A summary of the content/events in this chapter.' },
+          scenes: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                scene_number: {
+                  type: Type.INTEGER,
+                  description: 'The scene number within the act (usually 1 for long-form).',
+                },
+                location: { type: Type.STRING, description: 'The location/setting of the scene.' },
+                time: { type: Type.STRING, description: "The time of day (e.g., 'Day', 'Night', 'Evening')." },
+                action: {
+                  type: Type.STRING,
+                  description: 'Description of visual actions, setting details for this scene.',
+                },
+                visual_style: {
+                  type: Type.STRING,
+                  description: 'Visual aesthetic (e.g., "Cinematic, warm lighting", "B-roll nature footage").',
+                },
+                audio_style: {
+                  type: Type.STRING,
+                  description: 'Auditory style (e.g., "Ambient music, clear narration", "Zen background sounds").',
+                },
+                dialogues: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      roleId: {
+                        type: Type.STRING,
+                        description: 'The roleId of the speaker (e.g., "narrator", "host").',
+                      },
+                      line: {
+                        type: Type.STRING,
+                        description:
+                          'The full content/dialogue for this chapter. For long-form content, this should be 800-1200 words.',
+                      },
+                    },
+                    required: ['roleId', 'line'],
+                  },
+                },
+              },
+              required: ['scene_number', 'location', 'time', 'action', 'visual_style', 'audio_style', 'dialogues'],
+            },
+          },
+        },
+        required: ['act_number', 'summary', 'scenes'],
+      },
+      description:
+        'Array of acts/chapters. For token-limited generation, typically contains only 1 act with full content.',
+    },
+  },
+  required: ['acts'],
+};
