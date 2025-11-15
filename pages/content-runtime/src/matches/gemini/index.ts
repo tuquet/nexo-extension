@@ -7,7 +7,6 @@
 
 import { createDebugLogger } from '../../utils/content-debug-logger';
 import { clickElement, isButtonDisabled, pasteText, waitForElement } from '../../utils/dom-interactions';
-import { extractJSON, saveScriptToDatabase, validateScriptJSON } from '../../utils/script-extraction';
 
 // Initialize Gemini Web debug logger
 const debugLogger = createDebugLogger({
@@ -130,132 +129,6 @@ const clickSendButton = async (): Promise<void> => {
 };
 
 /**
- * Wait for Gemini response to complete
- * Similar strategy to AI Studio but with Gemini-specific selectors
- */
-const waitForAIResponse = async (maxWaitTime = 120000): Promise<HTMLElement> => {
-  console.log('[Gemini Web Auto-Fill] 🔄 Waiting for AI response...');
-  debugLogger.info('Starting waitForAIResponse', { maxWaitTime });
-
-  const startTime = Date.now();
-  let lastTextLength = 0;
-  let stableCount = 0;
-  const STABLE_THRESHOLD = 3;
-
-  // Gemini Web response selectors
-  const responseSelectors = [
-    '[data-test-id*="conversation-turn"]:last-child', // Latest message
-    '[data-test-id*="model-response"]',
-    'message-content',
-    'model-response-text',
-    '[class*="model-response"]',
-    '[class*="response-container"]',
-    'pre code', // Code blocks
-    'code-block',
-    '[role="article"]:last-of-type',
-  ];
-
-  // Stop button selectors for Gemini
-  const stopButtonSelectors = [
-    'button[aria-label*="Stop" i]',
-    'button[aria-label*="Dừng" i]', // Vietnamese
-    'button[aria-label*="Cancel" i]',
-    'button[aria-label*="Hủy" i]', // Vietnamese
-    'button[data-test-id*="stop"]',
-    'button[data-test-id*="cancel"]',
-    'button.stop', // Common class pattern
-    'button.submit:not([aria-disabled="true"])', // Submit button active = generating
-    '[class*="stop-button"]',
-  ];
-
-  return new Promise((resolve, reject) => {
-    const checkInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-
-      if (elapsed > maxWaitTime) {
-        clearInterval(checkInterval);
-        debugLogger.error('Response timeout', { elapsed: Math.floor(elapsed / 1000) });
-        reject(new Error(`AI response timeout after ${Math.floor(elapsed / 1000)}s`));
-        return;
-      }
-
-      // Check if still generating
-      let isGenerating = false;
-      for (const selector of stopButtonSelectors) {
-        const stopButton = document.querySelector(selector) as HTMLButtonElement;
-        if (stopButton && !stopButton.disabled && stopButton.offsetParent !== null) {
-          isGenerating = true;
-          console.log(`[Gemini Web Auto-Fill] ⏳ Generating... (${Math.floor(elapsed / 1000)}s)`);
-          debugLogger.debug('Still generating', { selector, elapsed: Math.floor(elapsed / 1000) });
-          break;
-        }
-      }
-
-      if (isGenerating) {
-        stableCount = 0;
-        lastTextLength = 0;
-        return;
-      }
-
-      console.log(
-        `[Gemini Web Auto-Fill] ✓ Generation complete, looking for response... (${Math.floor(elapsed / 1000)}s)`,
-      );
-      debugLogger.info('Generation stopped, searching for response');
-
-      // Find response container
-      for (const selector of responseSelectors) {
-        const elements = document.querySelectorAll(selector);
-
-        for (const element of Array.from(elements)) {
-          const htmlElement = element as HTMLElement;
-          const text = htmlElement.textContent?.trim() || '';
-
-          // Must contain script structure
-          if (!text.includes('"title"') || !text.includes('"acts"')) {
-            continue;
-          }
-
-          // Must be substantial
-          if (text.length < 1000) {
-            continue;
-          }
-
-          // Check stability
-          if (text.length === lastTextLength) {
-            stableCount++;
-            console.log(`[Gemini Web Auto-Fill] 📊 Response stable (${stableCount}/${STABLE_THRESHOLD})`);
-
-            if (stableCount >= STABLE_THRESHOLD) {
-              clearInterval(checkInterval);
-              console.log(
-                `[Gemini Web Auto-Fill] ✅ Response complete! (${Math.floor(elapsed / 1000)}s, ${text.length} chars)`,
-              );
-              debugLogger.info('Response ready', {
-                duration: Math.floor(elapsed / 1000),
-                length: text.length,
-                selector,
-              });
-              resolve(htmlElement);
-              return;
-            }
-          } else {
-            lastTextLength = text.length;
-            stableCount = 0;
-            console.log(`[Gemini Web Auto-Fill] 📝 Response growing: ${text.length} chars`);
-            debugLogger.debug('Response growing', { length: text.length });
-          }
-
-          return;
-        }
-      }
-
-      console.log(`[Gemini Web Auto-Fill] 🔍 No response yet... (${Math.floor(elapsed / 1000)}s)`);
-      debugLogger.debug('No response found', { elapsed: Math.floor(elapsed / 1000) });
-    }, 1000);
-  });
-};
-
-/**
  * Main message handler
  */
 chrome.runtime.onMessage.addListener((message: ContentScriptMessage, sender, sendResponse) => {
@@ -307,45 +180,14 @@ chrome.runtime.onMessage.addListener((message: ContentScriptMessage, sender, sen
         inputElement.focus();
         await new Promise(resolve => setTimeout(resolve, 100));
         pasteTextWithLog(inputElement, message.payload.prompt);
-        console.log('[Gemini Web Auto-Fill] ✓ Prompt pasted');
+        console.log('1. [Gemini Web Auto-Fill] ✓ Prompt pasted');
 
         // Step 2: Send
         await new Promise(resolve => setTimeout(resolve, 500));
         await clickSendButton();
-        console.log('[Gemini Web Auto-Fill] ✓ Send button clicked');
-
-        // Step 3: Wait for response
-        const maxWaitTime = message.payload.maxWaitTime || 120000;
-        const responseElement = await waitForAIResponse(maxWaitTime);
-        console.log('[Gemini Web Auto-Fill] ✓ AI response received');
-
-        // Step 4: Extract JSON
-        const jsonString = extractJSON(responseElement, debugLogger);
-        console.log('[Gemini Web Auto-Fill] ✓ JSON extracted, length:', jsonString.length);
-
-        // Step 5: Validate
-        if (!validateScriptJSON(jsonString, debugLogger)) {
-          throw new Error('Invalid script JSON structure');
-        }
-        console.log('[Gemini Web Auto-Fill] ✓ JSON validated');
-
-        // Step 6: Copy to clipboard
-        await navigator.clipboard.writeText(jsonString);
-        console.log('[Gemini Web Auto-Fill] ✓ JSON copied to clipboard');
-
-        // Step 7: Save to database
-        await saveScriptToDatabase(jsonString, debugLogger);
-        console.log('[Gemini Web Auto-Fill] ✓ Script saved to database');
-
-        // Step 8: Close tab
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        chrome.runtime.sendMessage({ type: 'CLOSE_CURRENT_TAB' });
-        console.log('[Gemini Web Auto-Fill] ✓ Tab close requested');
-
-        debugLogger.info('AUTOMATE_FULL_FLOW completed successfully');
-        sendResponse({ success: true, scriptJSON: jsonString });
+        console.log('2. [Gemini Web Auto-Fill] ✓ Send button clicked');
       } catch (error) {
-        console.error('[Gemini Web Auto-Fill] FULL AUTOMATION ERROR:', error);
+        console.error('9. [Gemini Web Auto-Fill] FULL AUTOMATION ERROR:', error);
         debugLogger.error('AUTOMATE_FULL_FLOW failed', {
           error: error instanceof Error ? error.message : 'Unknown',
         });

@@ -15,8 +15,10 @@ import {
   Badge,
   Button,
   Card,
+  CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
   Input,
@@ -96,26 +98,22 @@ const ScriptListPage = () => {
     <div className="space-y-6 py-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Scripts</CardTitle>
-              <CardDescription>Manage your script collection</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="mr-2 size-4" />
-                Export
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleImport}>
-                <Upload className="mr-2 size-4" />
-                Import
-              </Button>
-              <Button onClick={handleCreateNew}>
-                <Plus className="mr-2 size-4" />
-                New Script
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Scripts</CardTitle>
+          <CardDescription>Manage your script collection</CardDescription>
+          <CardAction className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="mr-2 size-4" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleImport}>
+              <Upload className="mr-2 size-4" />
+              Import
+            </Button>
+            <Button onClick={handleCreateNew}>
+              <Plus className="mr-2 size-4" />
+              New Script
+            </Button>
+          </CardAction>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search and Filters */}
@@ -172,37 +170,35 @@ const ScriptListPage = () => {
                 const sceneCount = script.acts.reduce((sum, act) => sum + act.scenes.length, 0);
 
                 return (
-                  <Card key={script.id} className="hover:border-primary/50 transition-colors">
-                    <CardContent className="p-4">
+                  <Card
+                    key={script.id}
+                    className="hover:border-primary/50 transition-colors"
+                    title={script.id?.toString()}>
+                    <CardHeader>
+                      <CardTitle onClick={() => navigate(`/script/${script.id}`)}>{script.title}</CardTitle>
+                      <CardAction className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(script)} title="Duplicate">
+                          <Copy className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/script/${script.id}`)}
+                          title="Edit">
+                          <Edit className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(script)} title="Delete">
+                          <Trash2 className="text-destructive size-4" />
+                        </Button>
+                      </CardAction>
+                      <CardDescription>{script.genre?.join(', ') || 'No genre specified'}</CardDescription>
+                    </CardHeader>
+                    <CardContent>{script.logline}</CardContent>
+                    <CardFooter>
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
-                          {/* Title and Genres */}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Film className="text-muted-foreground size-4" />
-                            <button
-                              className="cursor-pointer font-semibold hover:underline"
-                              onClick={() => navigate(`/script/${script.id}`)}>
-                              {script.title}
-                            </button>
-                            {script.genre && script.genre.length > 0 && (
-                              <>
-                                {script.genre.map(g => (
-                                  <Badge key={g} variant="secondary">
-                                    {g}
-                                  </Badge>
-                                ))}
-                              </>
-                            )}
-                          </div>
-
-                          {/* Logline */}
-                          {script.logline && (
-                            <p className="text-muted-foreground line-clamp-2 text-sm">{script.logline}</p>
-                          )}
-
                           {/* Metadata row */}
                           <div className="text-muted-foreground flex flex-wrap items-center gap-3">
-                            {script.tone && <Badge variant="outline">{script.tone}</Badge>}
                             {script.characters && script.characters.length > 0 && (
                               <span className="flex items-center gap-1">
                                 <Users className="size-3" />
@@ -216,37 +212,9 @@ const ScriptListPage = () => {
                               </span>
                             )}
                           </div>
-
-                          {/* Themes as tags */}
-                          {script.themes && script.themes.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {script.themes.map(theme => (
-                                <Badge key={theme} variant="outline" className="">
-                                  {theme}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleDuplicate(script)} title="Duplicate">
-                            <Copy className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/script/${script.id}`)}
-                            title="Edit">
-                            <Edit className="size-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(script)} title="Delete">
-                            <Trash2 className="text-destructive size-4" />
-                          </Button>
                         </div>
                       </div>
-                    </CardContent>
+                    </CardFooter>
                   </Card>
                 );
               })}

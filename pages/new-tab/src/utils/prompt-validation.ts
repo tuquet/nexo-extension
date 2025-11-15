@@ -10,16 +10,6 @@ interface ValidationResult {
   error?: string;
 }
 
-const VALID_CATEGORIES = [
-  'script-generation',
-  'image-generation',
-  'video-generation',
-  'character-dev',
-  'general',
-] as const;
-
-type ValidCategory = (typeof VALID_CATEGORIES)[number];
-
 /**
  * Validate prompt data object
  */
@@ -34,13 +24,6 @@ const validatePromptData = (data: Partial<PromptFormData>): ValidationResult => 
 
   if (!data.prompt || !data.prompt.trim()) {
     return { isValid: false, error: 'Field "prompt" is required' };
-  }
-
-  if (!VALID_CATEGORIES.includes(data.category as ValidCategory)) {
-    return {
-      isValid: false,
-      error: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`,
-    };
   }
 
   return { isValid: true };
@@ -67,5 +50,5 @@ const validatePromptJSON = (jsonString: string): ValidationResult & { data?: Pro
   }
 };
 
-export { validatePromptData, validatePromptJSON, VALID_CATEGORIES };
-export type { ValidationResult, ValidCategory };
+export { validatePromptData, validatePromptJSON };
+export type { ValidationResult };

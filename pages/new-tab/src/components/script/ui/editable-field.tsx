@@ -88,6 +88,36 @@ const EditableField: React.FC<EditableFieldProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    // Stop propagation to prevent parent handlers (DndContext) from interfering
+    e.stopPropagation();
+
+    // Cancel on Escape (works for both textarea and input)
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+      return;
+    }
+
+    // For textarea: Enter alone creates newline, Ctrl+Enter saves
+    if (as === 'textarea') {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+      // Allow plain Enter to work normally (create newline)
+      // Don't preventDefault - we need the newline to be inserted
+      return;
+    }
+
+    // For input fields: Enter saves
+    if (e.key === 'Enter' && as === 'input') {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
   if (isEditing) {
     const InputComponent = as === 'textarea' ? Textarea : Input;
     return (
@@ -96,6 +126,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
           ref={inputRef as React.RefObject<HTMLTextAreaElement & HTMLInputElement>}
           value={value}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="block w-full resize-none"
         />
         {!validation.isValid && validation.warnings.length > 0 && (

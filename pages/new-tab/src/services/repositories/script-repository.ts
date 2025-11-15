@@ -21,7 +21,7 @@ export class ScriptRepository implements IScriptRepository {
    */
   async getAll(): Promise<ScriptStory[]> {
     try {
-      return await db.scripts.toArray();
+      return await db.scripts.reverse().toArray();
     } catch (error) {
       console.error('[ScriptRepository] Failed to get all scripts:', error);
       throw new Error('Không thể tải danh sách kịch bản');

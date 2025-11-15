@@ -27,36 +27,41 @@ export const cleanupJSON = (jsonString: string): string => {
     }
   }
 
-  // Remove trailing single quote at end of string values (before comma, brace, bracket, newline, or end of string)
-  cleaned = cleaned.replace(/("[^"]+"\s*:\s*")([^"\n]*?)'(,|}|\]|\n|$)/g, '$1$2$3');
+  // 1. Remove zero-width spaces AND control characters (CRITICAL - backspace breaks JSON)
+  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Zero-width spaces
+  cleaned = cleaned.replace(/[\b]/g, ''); // Backspace characters (literal \b)
+  // eslint-disable-next-line no-control-regex
+  cleaned = cleaned.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // Other control chars (except \t, \n, \r)
 
-  // Remove all // ... style comments (single-line)
+  // 2. Fix single-quote string delimiters to double-quote (CRITICAL - do this FIRST)
+  // Handle cases like: "description": "text...'  => "description": "text..."
+  // Pattern: "key": "...text...'<end>  where <end> is comma, brace, bracket, or newline
+  cleaned = cleaned.replace(
+    /("[^"]+"\s*:\s*")([^"]*?)(')(\s*[,}\]\n]|$)/g,
+    (match, prefix, content, quote, suffix) => `${prefix}${content}"${suffix}`,
+  );
+
+  // Handle full single-quote strings: "key": 'value'  => "key": "value"
+  cleaned = cleaned.replace(/("[^"]+"\s*:)\s*'([^']*)'/g, '$1 "$2"');
+
+  // 3. Remove all // ... style comments (single-line)
   // Remove // comments at line start or after whitespace, but not in URLs (e.g., http://)
   cleaned = cleaned.replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  // Remove zero-width spaces
-  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, '');
-
-  // Escape control characters in string values (newlines, tabs, etc)
-  // This must be done BEFORE fixing nested quotes
+  // 4. Escape control characters in string values (newlines, tabs, etc)
+  // Note: Backspace (\b) is removed in step 1, not escaped here
   cleaned = cleaned.replace(/"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g, (match, key, value) => {
-    const escapedValue = value.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+    const escapedValue = value.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t').replace(/\f/g, '\\f');
     return `"${key}": "${escapedValue}"`;
   });
 
-  // 2. Fix unescaped nested quotes in string values
+  // 5. Fix unescaped nested quotes in string values (convert to single quotes)
   cleaned = cleaned.replace(/"([^"]+)"\s*:\s*"([^"]*"[^"]*(?:"[^"]*)*?)"/g, (match, key, value) => {
     const fixedValue = value.replace(/"/g, "'");
     return `"${key}": "${fixedValue}"`;
   });
 
-  // 3. Fix single-quote string endings to double-quote (critical for AI output)
-  // "key": "value',  => "key": "value",
-  cleaned = cleaned.replace(/("[^"]+"\s*:\s*")([^"]*?)(')([,}\]])/g, '$1$2"$4');
-  // "key": 'value'  => "key": "value"
-  cleaned = cleaned.replace(/("[^"]+"\s*:)\s*'([^']*)'/g, '$1 "$2"');
-
-  // Remove trailing commas before closing braces/brackets
+  // 6. Remove trailing commas before closing braces/brackets
   cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
 
   return cleaned.trim();
@@ -156,7 +161,6 @@ export const extractJSON = (responseElement: HTMLElement, debugLogger: ContentDe
 export const validateScriptJSON = (jsonString: string, debugLogger: ContentDebugLogger): boolean => {
   try {
     console.log('[Script Extraction] Validating JSON structure...');
-    console.log('jsonString:', jsonString);
     debugLogger.debug('Starting JSON validation', {
       length: jsonString.length,
       preview: jsonString.substring(0, 100),

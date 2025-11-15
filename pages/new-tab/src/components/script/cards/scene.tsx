@@ -1,11 +1,6 @@
 import EditableField from '../ui/editable-field';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardHeader, CardAction, CardTitle, CardContent, CardFooter, Button, Badge, toast } from '@extension/ui';
 import { db } from '@src/db';
@@ -222,7 +217,7 @@ const SortableDialogue: React.FC<SortableDialogueProps> = ({
         onSave={v => updateDialogueLine(actIndex, sceneIndex, index, v)}
         context={`Dialogue for ${dialogue.roleId}`}
         language={language}
-        textClassName="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"
+        textClassName="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed"
       />
     </div>
   );
@@ -240,12 +235,11 @@ const Scene: React.FC<SceneCardProps> = ({ scene, language, actIndex, sceneIndex
   const activeScript = useScriptsStore(s => s.activeScript);
 
   // Drag and drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  // NOTE: KeyboardSensor is DISABLED to prevent intercepting Enter/Arrow keys
+  // in EditableField textarea/input. Users can still drag using mouse/touch.
+  // If keyboard dragging is needed, implement custom activation logic that
+  // checks if active element is an input/textarea before activating.
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

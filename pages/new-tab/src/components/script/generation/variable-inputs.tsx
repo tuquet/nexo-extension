@@ -1,5 +1,10 @@
 import {
   Button,
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
   Input,
   Label,
   Select,
@@ -198,36 +203,53 @@ Make suggestions creative, diverse, and contextually appropriate.`;
     toast.success('Reset to default values');
   };
 
+  const handleCopyVariables = async () => {
+    try {
+      const jsonString = JSON.stringify(variables, null, 2);
+      await navigator.clipboard.writeText(jsonString);
+      toast.success('Copied template variables to clipboard', {
+        description: 'You can paste them elsewhere or save for later',
+      });
+    } catch (error) {
+      console.error('Failed to copy variables:', error);
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
   if (variables.length === 0) return null;
 
   return (
-    <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">📝 Template Variables</span>
-        <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={handleResetToDefaults} className="gap-1">
-            <RefreshCw className="size-3" />
-            Reset
+    <Card className="space-y-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+      <CardHeader className="flex items-center justify-between">
+        <CardTitle>📝 Template Variables</CardTitle>
+        <CardAction className="flex items-center gap-2">
+          <Button type="button" onClick={handleCopyVariables}>
+            <Copy className="size-3" />
+            Variables
           </Button>
+
           {onCopyPrompt && (
-            <Button type="button" size="sm" variant="outline" onClick={onCopyPrompt} className="gap-1">
+            <Button type="button" onClick={onCopyPrompt}>
               <Copy className="size-3" />
-              Copy Prompt
+              Prompt
             </Button>
           )}
           <Button
             type="button"
-            size="sm"
             onClick={handleAISuggest}
             disabled={isGenerating}
             className="gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600">
-            <Sparkles className="size-3" />
+            <Sparkles />
             {isGenerating ? 'Generating...' : 'AI Suggest'}
           </Button>
-        </div>
-      </div>
+          <Button type="button" onClick={handleResetToDefaults}>
+            <RefreshCw className="size-3" />
+            Reset
+          </Button>
+        </CardAction>
+      </CardHeader>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <CardContent className="grid gap-4 md:grid-cols-2">
         {variables.map(variable => (
           <div key={variable.name} className="grid gap-2">
             <Label htmlFor={variable.name}>
@@ -275,7 +297,7 @@ Make suggestions creative, diverse, and contextually appropriate.`;
             )}
           </div>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

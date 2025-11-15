@@ -385,7 +385,7 @@ const PromptsPage = () => {
                           title="Sao chép dưới dạng JSON">
                           <FileJson className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(prompt)} title="Sao chép">
+                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(prompt)} title="Nhân bản">
                           <Copy className="size-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(prompt)} title="Chỉnh sửa">
